@@ -1,9 +1,10 @@
-import { Column, Entity, JoinColumn, OneToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinColumn, OneToMany, OneToOne, PrimaryGeneratedColumn } from "typeorm";
 import { Gender } from "./gender.entity";
 import { UserRole } from "src/enums/user-role.enum";
 import { Campus } from "./university/campus.entity";
 import { Faculty } from "./university/faculty.entity";
 import { Major } from "./university/major.entity";
+import { Branch } from "./branch.entity";
 
 @Entity('userprofile')
 export class Userprofile {
@@ -32,6 +33,23 @@ export class Userprofile {
     @Column()
     majorId: number;
 
+    @Column({ name: 'username', nullable: true, length: 20 })
+    username: string;
+
+    @Column({ name: 'password', nullable: true, length: 20 })
+    password: string;
+
+    @Column({ name: 'status', type: 'integer', default: 1 })
+    status: number;
+
+    @Column({ name: 'behaviorScore', type: 'numeric', precision: 4, scale: 3, nullable: true })
+    behaviorScore: number;
+
+    @Column({ name: 'conceptMapState', type: 'jsonb', nullable: true })
+    conceptMapState: any;
+
+    @Column({ name: 'strengthWeaknessMatrix', type: 'jsonb', nullable: true })
+    strengthWeaknessMatrix: any;
 
     @Column({
         type: 'timestamp',
@@ -52,7 +70,6 @@ export class Userprofile {
     })
     role: UserRole;
 
-
     @OneToOne(() => Gender)
     @JoinColumn({ name: 'genderId', referencedColumnName: 'id' })
     gender: Gender;
@@ -69,4 +86,8 @@ export class Userprofile {
     @JoinColumn({ name: 'majorId', referencedColumnName: 'id' })
     major: Major;
 
+    @OneToMany(() => Branch, branch => branch.user)
+    branches: Branch[];
+
+    
 }

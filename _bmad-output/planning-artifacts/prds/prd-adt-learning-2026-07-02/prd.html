@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PRD: PSU Adaptive Learning System (PSU ALS)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-color: #0b1329;
+      --panel-bg: rgba(22, 33, 62, 0.7);
+      --border-color: rgba(0, 71, 171, 0.3);
+      --primary-color: #3b82f6;
+      --primary-hover: #60a5fa;
+      --accent-color: #0047AB;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --sidebar-width: 280px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      line-height: 1.6;
+      overflow-x: hidden;
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.15) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(0, 71, 171, 0.15) 0px, transparent 50%);
+      background-attachment: fixed;
+    }
+
+    /* Container & Grid Layout */
+    .container {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Sidebar Navigation */
+    .sidebar {
+      width: var(--sidebar-width);
+      background-color: rgba(15, 23, 42, 0.9);
+      border-right: 1px solid var(--border-color);
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      padding: 24px;
+      backdrop-filter: blur(10px);
+    }
+
+    .logo-area {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 32px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 20px;
+    }
+
+    .logo-icon {
+      font-size: 24px;
+    }
+
+    .logo-text {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      color: var(--text-main);
+    }
+
+    .nav-links {
+      list-style-type: none;
+      overflow-y: auto;
+      flex: 1;
+      padding-right: 4px;
+    }
+
+    .nav-links::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .nav-links::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+      border-radius: 4px;
+    }
+
+    .nav-item {
+      margin-bottom: 6px;
+    }
+
+    .nav-link {
+      display: block;
+      padding: 10px 14px;
+      color: var(--text-muted);
+      text-decoration: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .nav-link:hover, .nav-link.active {
+      color: var(--text-main);
+      background-color: rgba(59, 130, 246, 0.15);
+      border-left: 3px solid var(--primary-color);
+      padding-left: 17px;
+    }
+
+    /* Main Content Area */
+    .main-content {
+      margin-left: var(--sidebar-width);
+      flex: 1;
+      padding: 40px 60px;
+      max-width: 1000px;
+    }
+
+    /* Typography styling */
+    h1 {
+      font-size: 36px;
+      font-weight: 800;
+      margin-bottom: 12px;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #fff 30%, var(--primary-color) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .metadata-strip {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 40px;
+      flex-wrap: wrap;
+    }
+
+    .meta-badge {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 6px;
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid var(--border-color);
+      color: var(--primary-color);
+    }
+
+    .meta-badge.draft {
+      background: rgba(245, 158, 11, 0.1);
+      border-color: rgba(245, 158, 11, 0.3);
+      color: var(--warning);
+    }
+
+    section {
+      margin-bottom: 48px;
+      scroll-margin-top: 40px;
+    }
+
+    h2 {
+      font-size: 22px;
+      font-weight: 700;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 10px;
+      margin-bottom: 20px;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-top: 24px;
+      margin-bottom: 12px;
+      color: #3b82f6;
+    }
+
+    p {
+      margin-bottom: 16px;
+      color: #cbd5e1;
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    ul, ol {
+      margin-bottom: 16px;
+      padding-left: 20px;
+      font-size: 14px;
+      color: #cbd5e1;
+    }
+
+    li {
+      margin-bottom: 8px;
+    }
+
+    /* Specific components styling */
+    .feature-card {
+      background: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+      backdrop-filter: blur(5px);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .fr-block {
+      border-left: 3px solid var(--primary-color);
+      background: rgba(255, 255, 255, 0.02);
+      padding: 16px;
+      margin-top: 20px;
+      border-radius: 0 8px 8px 0;
+    }
+
+    .fr-header {
+      font-weight: 700;
+      color: var(--text-main);
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+
+    .fr-consequences {
+      margin-top: 12px;
+      background: rgba(0, 0, 0, 0.2);
+      padding: 12px;
+      border-radius: 6px;
+    }
+
+    .fr-consequences-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--success);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Glossary Term */
+    .glossary-item {
+      margin-bottom: 16px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      padding: 12px 16px;
+      border-radius: 8px;
+    }
+
+    .glossary-term {
+      font-weight: 700;
+      color: var(--primary-color);
+    }
+
+    /* Alerts */
+    .alert {
+      padding: 16px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      margin-bottom: 20px;
+      font-size: 13.5px;
+    }
+
+    .alert.note {
+      background: rgba(59, 130, 246, 0.08);
+      border-color: rgba(59, 130, 246, 0.2);
+      color: #93c5fd;
+    }
+
+    .alert.warning {
+      background: rgba(245, 158, 11, 0.08);
+      border-color: rgba(245, 158, 11, 0.2);
+      color: #fde68a;
+    }
+
+    /* Code Blocks */
+    pre, code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+    }
+
+    code.inline-code {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #f43f5e;
+    }
+
+    .code-block {
+      background: #050b14;
+      border: 1px solid #1e293b;
+      padding: 16px;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin-bottom: 16px;
+      color: #38bdf8;
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 24px;
+      font-size: 13.5px;
+    }
+
+    th, td {
+      border: 1px solid var(--border-color);
+      padding: 10px 12px;
+      text-align: left;
+    }
+
+    th {
+      background-color: rgba(59, 130, 246, 0.1);
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    td {
+      color: #cbd5e1;
+    }
+
+    /* UJ block */
+    .uj-block {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .uj-title {
+      font-weight: 700;
+      color: var(--primary-color);
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+
+    .uj-meta {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+
+    /* Assumptions index item */
+    .assumption-item {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 10px;
+      background: rgba(245, 158, 11, 0.03);
+      padding: 10px 14px;
+      border-radius: 6px;
+      border-left: 3px solid var(--warning);
+      font-size: 13.5px;
+    }
+
+    .assumption-tag {
+      font-weight: 700;
+      color: var(--warning);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .sidebar {
+        display: none;
+      }
+      .main-content {
+        margin-left: 0;
+        padding: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="logo-area">
+        <span class="logo-icon">📊</span>
+        <span class="logo-text">PSU · ALS</span>
+      </div>
+      <ul class="nav-links">
+        <li class="nav-item"><a href="#doc-purpose" class="nav-link active">0. Document Purpose</a></li>
+        <li class="nav-item"><a href="#vision" class="nav-link">1. Vision</a></li>
+        <li class="nav-item"><a href="#target-user" class="nav-link">2. Target User</a></li>
+        <li class="nav-item"><a href="#glossary" class="nav-link">3. Glossary</a></li>
+        <li class="nav-item"><a href="#features" class="nav-link">4. Features</a></li>
+        <li class="nav-item"><a href="#non-goals" class="nav-link">5. Non-Goals</a></li>
+        <li class="nav-item"><a href="#mvp-scope" class="nav-link">6. MVP Scope</a></li>
+        <li class="nav-item"><a href="#success-metrics" class="nav-link">7. Success Metrics</a></li>
+        <li class="nav-item"><a href="#open-questions" class="nav-link">8. Open Questions</a></li>
+        <li class="nav-item"><a href="#assumptions" class="nav-link">9. Assumptions Index</a></li>
+      </ul>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <header>
+        <h1>PSU Adaptive Learning System (PSU ALS)</h1>
+        <div class="metadata-strip">
+          <span class="meta-badge">Status: Final</span>
+          <span class="meta-badge">Created: 2026-07-02</span>
+          <span class="meta-badge">Updated: 2026-07-02</span>
+        </div>
+      </header>
+
+      <!-- Purpose Section -->
+      <section id="doc-purpose">
+        <h2>0. Document Purpose</h2>
+        <p>This Product Requirements Document (PRD) defines the functional requirements, user journeys, success metrics, and MVP boundaries for the <strong>PSU Adaptive Learning System (PSU ALS)</strong>. It is structured to provide PMs, UX designers, system architects, and developers with a clear and unified product blueprint. The document leverages a glossary-anchored vocabulary to avoid ambiguity. Key requirements are cataloged under globally stable IDs (<code class="inline-code">FR-1.1</code> through <code class="inline-code">FR-5.2</code>), and specific design hypotheses are tagged in the body as <code class="inline-code">[ASSUMPTION]</code> blocks and aggregated in the index for verification.</p>
+        <div class="alert note">
+          <strong>ℹ Input references:</strong> This specifications sheet integrates and builds on the React + Vite frontend prototype located under <code class="inline-code">go6-prototype</code> and the TypeORM database schemas designed for NestJS.
+        </div>
+      </section>
+
+      <!-- Vision Section -->
+      <section id="vision">
+        <h2>1. Vision</h2>
+        <p>Rigid, one-size-fits-all curricula in programming education struggle to engage diverse student bodies, leading to high dropout and failure rates. Advanced students are throttled by basic reviews, while beginners feel overwhelmed by sudden difficulty spikes.</p>
+        <p>The <strong>PSU Adaptive Learning System (PSU ALS)</strong> resolves this by establishing a dynamic learning loop that continuously matches curriculum pace and content to the individual learner. The platform discards superficial gaming overhead (such as character levels and fantasy RPG graphics) to focus student attention on conceptual progression.</p>
+        <p>Through an interactive, directed acyclic graph <strong>Concept Map (Skill Tree)</strong>, students navigate connected skill nodes that unlock dynamically. Utilizing the <strong>Bayesian Knowledge Tracing (BKT) Mastery Engine</strong> to track student mastery probabilities, and incorporating <strong>Case-Based Reasoning (CBR)</strong> to select adaptive question pathways, PSU ALS ensures students receive micro-exercises calibrated to their zone of proximal development, reinforcing mastery without lecture bloat.</p>
+      </section>
+
+      <!-- Target User Section -->
+      <section id="target-user">
+        <h2>2. Target User</h2>
+        
+        <h3>2.1 Jobs To Be Done</h3>
+        <ul>
+          <li><strong>Self-Paced Progression:</strong> As a sophomore computer science/ICT student, I want to learn programming concepts at my own speed so that I do not feel left behind or bored.</li>
+          <li><strong>Immediate Validation:</strong> As a student, I want to test my understanding of code blocks and get instant scoring feedback so that I can correct errors immediately.</li>
+          <li><strong>Hands-on Assessment:</strong> As a user, I want to bypass video lectures and prove my competence directly through interactive code exercises.</li>
+          <li><strong>Targeted Improvement:</strong> As a learner, I want the system to analyze my weaknesses and serve exercises that address those gaps directly.</li>
+        </ul>
+
+        <h3>2.2 Non-Users (v1)</h3>
+        <ul>
+          <li><strong>Instructors seeking question authoring:</strong> The MVP is dedicated purely to student learning and session calculations. Editing concept nodes or question banks will be handled directly in the database.</li>
+          <li><strong>Absolute Beginners:</strong> The platform is designed for students with basic introductory knowledge of variables and operations, serving as a supplementary adaptive coach.</li>
+        </ul>
+
+        <h3>2.3 Key User Journeys</h3>
+        
+        <div class="uj-block">
+          <div class="uj-title">UJ-1: Afdol starts with a Pretest to skip variable basics.</div>
+          <div class="uj-meta"><strong>Afdol</strong>, sophomore ICT student who already knows Python variables. • Authenticated, GetStart page.</div>
+          <p>Afdol starts his learning session and chooses the <strong>Pretest Gateway</strong>. The interface presents 5 diagnostic questions spanning variables, loops, functions, sorting, and graphs. He completes them, answering 3 correctly. The system scores his response times and correctness, setting his initial BKT mastery probability to Level 2 (Core) bounds. He lands on his Home dashboard, where the entire "Foundation" (T1) tier is marked as completed (progress 100%), and variables, operators, and basic I/O are unlocked. He goes directly to Loops to start exercises.</p>
+          <p><em>Edge Case:</em> If Afdol leaves the app midway, his answers are cached, allowing him to resume or submit the pretest when he logs back in.</p>
+        </div>
+
+        <div class="uj-block">
+          <div class="uj-title">UJ-2: Student attempts a Locked concept node and is directed to prerequisites.</div>
+          <div class="uj-meta"><strong>Student</strong>, wants to study OOP inheritance. • Dashboard, Interactive Concept Map.</div>
+          <p>The student views the dynamic Concept Map. Desiring to jump straight to OOP, they click on the locked <code>OOP — Inheritance</code> node. The Details Side Panel opens, displaying a locked state and listing <code>Linked List</code> and <code>Recursion</code> under prerequisites. The "Go to Exercise" button is disabled. Clicking the prerequisite link highlights the connection line in the SVG map and slides the panel to that concept.</p>
+        </div>
+      </section>
+
+      <!-- Glossary Section -->
+      <section id="glossary">
+        <h2>3. Glossary</h2>
+        
+        <div class="glossary-item">
+          <span class="glossary-term">Concept Node (Skill)</span> — A distinct learning unit in the tree (e.g., Loops) that contains a mastery probability P(L_t), progress status (0-100%), and dependency links.
+        </div>
+        <div class="glossary-item">
+          <span class="glossary-term">Prerequisite</span> — A directed edge on the map indicating that a parent Node must reach at least 60% progress before a child Node can unlock.
+        </div>
+        <div class="glossary-item">
+          <span class="glossary-term">Mastery Probability P(L_t)</span> — A Bayesian probability (0.0 to 1.0) representing the likelihood that a student has mastered the concepts in a specific node.
+        </div>
+        <div class="glossary-item">
+          <span class="glossary-term">Concept Map (Skill Tree)</span> — The visual DAG curriculum structure of concepts rendered in the UI with status-colored nodes.
+        </div>
+        <div class="glossary-item">
+          <span class="glossary-term">Micro-Exercise</span> — An interactive assessment item, supporting MCQs and fill-in-the-blank code snippets.
+        </div>
+        <div class="glossary-item">
+          <span class="glossary-term">Session</span> — A student attempt on a specific Concept Node node containing a block of 5 questions.
+        </div>
+        <div class="glossary-item">
+          <span class="glossary-term">Behavior Profile</span> — A categorization of learning behavior (Mastery, Fast, Steady, Slow, Struggler) based on time, accuracy, and momentum metrics.
+        </div>
+      </section>
+
+      <!-- Features Section -->
+      <section id="features">
+        <h2>4. Features</h2>
+
+        <!-- Feature 4.1 -->
+        <div class="feature-card">
+          <h3>4.1 Student Pre-test Gateway</h3>
+          <p><strong>Description:</strong> Assesses the user's initial proficiency to bypass redundant concepts. Realizes UJ-1.</p>
+          
+          <div class="fr-block">
+            <div class="fr-header">FR-1.1: Pre-test Execution and Scoring</div>
+            <p>The system must serve a 5-question pretest covering tiers T1 to T3. Students cannot navigate back to edit submitted answers.</p>
+            <div class="fr-consequences">
+              <div class="fr-consequences-title">Consequences (Testable)</div>
+              <ul>
+                <li>If a student clicks Next without picking an option, the system must trigger a warning modal.</li>
+                <li>The system must capture timestamps for each question submission to feed time profiling metrics.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="fr-block">
+            <div class="fr-header">FR-1.2: Initial BKT Probability Assignment</div>
+            <p>The system must calculate and assign initial concept mastery probabilities P(L_0) dynamically using a multi-factor formula that combines pre-test performance (accuracy and response time) and user profile inputs (selected learning goal, academic year, and user-inputted starting familiarity/experience level).</p>
+            <div class="alert warning">
+              <strong>[ASSUMPTION: Dynamic BKT Onboarding Calibration]</strong> The initial mastery probability P(L_0) is calculated as P(L_0) = P_base(Familiarity) + ΔP(Pretest) + ΔP(Profile), where Familiarity maps to Novice (0.15), Intermediate (0.45), and Advanced (0.75); ΔP(Pretest) awards up to +0.15 probability based on correctness and speed; and ΔP(Profile) awards up to +0.09 probability based on ICT/CS major correlation and Year 2+ enrollment.
+            </div>
+            <div class="fr-consequences">
+              <div class="fr-consequences-title">Consequences (Testable)</div>
+              <ul>
+                <li>Upon pretest completion, the system must update the profile's conceptMapState, setting the progress of bypassed nodes corresponding to the calculated mastery bounds to 100% and unlocking their direct dependent nodes.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Feature 4.2 -->
+        <div class="feature-card">
+          <h3>4.2 Interactive Concept Map (Skill Tree)</h3>
+          <p><strong>Description:</strong> Renders a visual mapping of the curriculum showing available and locked paths. Realizes UJ-2.</p>
+          
+          <div class="fr-block">
+            <div class="fr-header">FR-2.1: Graph Rendering and Layout</div>
+            <p>The UI must render nodes with distinct styling corresponding to their states: Locked, Available, and Mastered.</p>
+            <div class="fr-consequences">
+              <div class="fr-consequences-title">Consequences (Testable)</div>
+              <ul>
+                <li>A locked node must show a locked lock icon, have greyed out text, and disable the Start button in its side panel.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="fr-block">
+            <div class="fr-header">FR-2.2: Node Detail Side Panel</div>
+            <p>Clicking an unlocked or lockable node must slide in a details panel listing mastery probability P(L_t), current progress, prerequisites, and descendant nodes.</p>
+          </div>
+        </div>
+
+        <!-- Feature 4.3 -->
+        <div class="feature-card">
+          <h3>4.3 Bayesian Knowledge Tracing (BKT) Mastery Engine</h3>
+          <p><strong>Description:</strong> Evaluates student mastery probability for each learning concept dynamically after every exercise response. Realizes UJ-1 and UJ-2.</p>
+          
+          <div class="fr-block">
+            <div class="fr-header">FR-3.1: Latent State Estimation</div>
+            <p>The system must calculate the probability of mastery P(L_t) for each active Concept Node following the completion of any micro-exercise. The update calculation must use the standard BKT Bayes formulation representing probability updates for both correct and incorrect outcomes.</p>
+            <div class="alert warning">
+              <strong>[ASSUMPTION: BKT Node Mastery Threshold]</strong> A student is classified as having mastered a concept node when their calculated mastery probability P(L_t) meets or exceeds a 0.95 (95%) threshold.
+            </div>
+          </div>
+
+          <div class="fr-block">
+            <div class="fr-header">FR-3.2: Concept Node Unlock Propagation</div>
+            <p>Once a student's concept mastery probability P(L_t) reaches or exceeds the 0.95 threshold, the system must set the node's progress to 100% and transition its state to 'completed', and subsequently update all descendant nodes to 'unlocked'.</p>
+          </div>
+        </div>
+
+        <!-- Feature 4.4 -->
+        <div class="feature-card">
+          <h3>4.4 Interactive Micro-Exercises Loop</h3>
+          <p><strong>Description:</strong> Drives the low-latency game loop using Socket.IO gateways.</p>
+          
+          <div class="fr-block">
+            <div class="fr-header">FR-4.1: WebSocket Gateways</div>
+            <p>Exercises must run over persistent WebSocket connections to support real-time question delivery and timers.</p>
+            <div class="alert warning">
+              <strong>[ASSUMPTION: String Verification]</strong> MVP exercises validate code-blanks using string matching instead of executing arbitrary code on sandboxed containers.
+            </div>
+          </div>
+
+          <div class="fr-block">
+            <div class="fr-header">FR-4.2: Real-time Evaluation</div>
+            <p>User submissions must be validated, recorded, and returned within 50ms.</p>
+          </div>
+        </div>
+
+        <!-- Feature 4.5 -->
+        <div class="feature-card">
+          <h3>4.5 BKT-Based Adaptive Recommendation Engine</h3>
+          <p><strong>Description:</strong> Coordinates question selection and updates student mastery statistics at session finalization.</p>
+          
+          <div class="fr-block">
+            <div class="fr-header">FR-5.1: Mastery-Based Pathing</div>
+            <p>The system must dynamically select the next micro-exercise using Case-Based Reasoning (CBR) to match the student's current mastery probability P(L_t) computed by the BKT engine.</p>
+            <div class="alert warning">
+              <strong>[ASSUMPTION: Cache Persistence]</strong> Active question responses and intermediate BKT state updates are written to Redis, with the finalized mastery probability P(L_t) and completion progress flushed to PostgreSQL only when the session terminates.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Non-Goals Section -->
+      <section id="non-goals">
+        <h2>5. Non-Goals</h2>
+        <ul>
+          <li><strong>RPG Aesthetics:</strong> No character levels, custom avatars, or game screens.</li>
+          <li><strong>Media Management:</strong> Hosting or playing long-form video lectures.</li>
+          <li><strong>Student Interaction:</strong> Chat, messaging, or forum features in v1.</li>
+          <li><strong>Code Execution Sandbox:</strong> Running backend code blocks dynamically; validation is string-based in v1.</li>
+        </ul>
+      </section>
+
+      <!-- MVP Scope Section -->
+      <section id="mvp-scope">
+        <h2>6. MVP Scope</h2>
+        <h3>6.1 In Scope</h3>
+        <ul>
+          <li>5-question Pre-test.</li>
+          <li>Dynamic Concept Map (Python Data Structures) with grey/blue/green node states.</li>
+          <li>Socket.IO-based exercise loop with real-time question timers.</li>
+          <li>Bayesian Knowledge Tracing (BKT) Mastery Engine to track probability of concept mastery.</li>
+          <li>NestJS monolithic backend with PostgreSQL/TypeORM persistence and Redis caching.</li>
+        </ul>
+        <h3>6.2 Out of Scope for MVP</h3>
+        <ul>
+          <li>Adaptive SQL branch (deferred).</li>
+          <li>Instructor portal for question bank management.</li>
+          <li>Containerized Docker sandbox code execution.</li>
+          <li>Machine learning SVD offline recalculations: Offline Collaborative Filtering updates are deferred to v2; v1 uses BKT + CBR.</li>
+        </ul>
+      </section>
+
+      <!-- Success Metrics Section -->
+      <section id="success-metrics">
+        <h2>7. Success Metrics</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Metric Name</th>
+              <th>Description / Target</th>
+              <th>Validates</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>SM-1</strong></td>
+              <td>WebSocket Latency</td>
+              <td>API roundtrip response time under 50ms.</td>
+              <td>FR-4.2</td>
+            </tr>
+            <tr>
+              <td><strong>SM-2</strong></td>
+              <td>Time-to-Mastery</td>
+              <td>15% reduction in learning hours compared to static pathing.</td>
+              <td>FR-5.1</td>
+            </tr>
+            <tr>
+              <td><strong>SM-3</strong></td>
+              <td>System Engagement</td>
+              <td>DAU / MAU ratio over 25%.</td>
+              <td>-</td>
+            </tr>
+            <tr>
+              <td><strong>SM-4</strong></td>
+              <td>Redis Cache Hit</td>
+              <td>Concept map and profile query hit ratio over 90%.</td>
+              <td>FR-2.1</td>
+            </tr>
+            <tr>
+              <td><strong>SM-C1</strong></td>
+              <td>Completion Speed</td>
+              <td>Counter-metric: Do not optimize speed if user accuracy falls below 65%.</td>
+              <td>FR-4.2</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Open Questions Section -->
+      <section id="open-questions">
+        <h2>8. Open Questions</h2>
+        <ol>
+          <li>How do we normalize whitespace and casing variations in fill-in-the-blank text inputs? (Proposed: backend text normalization removing double spaces and carriage returns before matching).</li>
+          <li>Should BKT transition probability P(T) adjust dynamically based on student speed metrics?</li>
+        </ol>
+      </section>
+
+      <!-- Assumptions Section -->
+      <section id="assumptions">
+        <h2>9. Assumptions Index</h2>
+        <div class="assumption-item">
+          <span class="assumption-tag">A-1</span>
+          <div>Initial BKT probability P(L_0) is computed dynamically by combining self-reported familiarity base probability, pre-test correctness/speed metrics, and student profile variables (academic year & major). (Section 4.1)</div>
+        </div>
+        <div class="assumption-item">
+          <span class="assumption-tag">A-2</span>
+          <div>A student is classified as having mastered a concept node when their calculated mastery probability P(L_t) meets or exceeds a 0.95 (95%) threshold. (Section 4.3)</div>
+        </div>
+        <div class="assumption-item">
+          <span class="assumption-tag">A-3</span>
+          <div>Exercises use string-matching for fill-in-the-blank snippets instead of full sandboxed code execution in MVP. (Section 4.4)</div>
+        </div>
+        <div class="assumption-item">
+          <span class="assumption-tag">A-4</span>
+          <div>Redis caches active session data and only flushes finalized BKT mastery probabilities to PostgreSQL when a session is finalized. (Section 4.5)</div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script>
+    // Simple navigation highlighting
+    const links = document.querySelectorAll('.nav-link');
+    links.forEach(link => {
+      link.addEventListener('click', function() {
+        links.forEach(l => l.classList.remove('active'));
+        this.classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>

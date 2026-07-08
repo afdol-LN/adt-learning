@@ -1,0 +1,1341 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>บันทึกการระดมสมอง: Adaptive Basic Program Self Learning</title>
+    <style>
+        :root {
+            --bg-primary: #0b0f19;
+            --bg-secondary: #131a2b;
+            --bg-tertiary: #1e2942;
+            --accent-primary: #6366f1;
+            --accent-primary-glow: rgba(99, 102, 241, 0.4);
+            --safe-color: #10b981;
+            --safe-glow: rgba(16, 185, 129, 0.3);
+            --warning-color: #f59e0b;
+            --warning-glow: rgba(245, 158, 11, 0.3);
+            --danger-color: #ef4444;
+            --danger-glow: rgba(239, 68, 68, 0.3);
+            --locked-color: #64748b;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --border-color: rgba(255, 255, 255, 0.08);
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-main);
+            font-family: var(--font-family);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Gradient Header */
+        header {
+            background: linear-gradient(135deg, #131a2b 0%, #0b0f19 100%);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1.5rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .header-title-container {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header-badge {
+            background: linear-gradient(90deg, var(--accent-primary) 0%, #4f46e5 100%);
+            color: #ffffff;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 0.25rem 0.75rem;
+            border-radius: 50px;
+            width: fit-content;
+            margin-bottom: 0.5rem;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        h1 {
+            font-size: 1.75rem;
+            font-weight: 800;
+            background: linear-gradient(to right, #ffffff, #a5b4fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-subtitle {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        /* Branch Toggle Buttons */
+        .branch-selector {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            padding: 0.35rem;
+            border-radius: 12px;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .branch-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .branch-btn:hover {
+            color: var(--text-main);
+        }
+
+        .branch-btn.active {
+            background-color: var(--accent-primary);
+            color: #ffffff;
+            box-shadow: 0 4px 12px var(--accent-primary-glow);
+        }
+
+        /* Dashboard Layout Grid */
+        .dashboard-container {
+            display: grid;
+            grid-template-columns: 320px 1fr 380px;
+            flex-grow: 1;
+            padding: 1.5rem;
+            gap: 1.5rem;
+            max-width: 1600px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 1200px) {
+            .dashboard-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Card Panels base styling */
+        .panel-card {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 160px);
+            overflow-y: auto;
+            position: relative;
+        }
+
+        @media (max-width: 1200px) {
+            .panel-card {
+                height: auto;
+                max-height: 500px;
+            }
+        }
+
+        .panel-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.75rem;
+            color: var(--text-main);
+        }
+
+        .panel-title svg {
+            width: 18px;
+            height: 18px;
+            stroke: var(--accent-primary);
+        }
+
+        /* Left Panel Styles: Brainstorm Insights */
+        .tab-menu {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 1rem;
+            gap: 0.5rem;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            font-weight: 600;
+            padding: 0.5rem 0.75rem;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            color: var(--accent-primary);
+            border-bottom-color: var(--accent-primary);
+        }
+
+        .tab-content {
+            display: none;
+            font-size: 0.85rem;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .insight-card {
+            background-color: var(--bg-tertiary);
+            border-left: 3px solid var(--accent-primary);
+            border-radius: 6px;
+            padding: 0.85rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .insight-card h4 {
+            color: var(--text-main);
+            font-size: 0.9rem;
+            margin-bottom: 0.25rem;
+            font-weight: 600;
+        }
+
+        .insight-card p {
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        .worst-idea-card {
+            background-color: rgba(239, 68, 68, 0.05);
+            border: 1px solid rgba(239, 68, 68, 0.15);
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .worst-idea-card .bad-idea {
+            color: var(--danger-color);
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .worst-idea-card .solution {
+            color: var(--safe-color);
+            margin-top: 0.25rem;
+            padding-top: 0.25rem;
+            border-top: 1px dashed rgba(255, 255, 255, 0.05);
+        }
+
+        /* Center Panel Styles: Stage Map */
+        .stage-map-area {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            background: radial-gradient(circle at center, #1b253b 0%, var(--bg-secondary) 100%);
+            min-height: 400px;
+        }
+
+        .map-stats-bar {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            background-color: rgba(0, 0, 0, 0.2);
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            border: 1px solid var(--border-color);
+            font-size: 0.85rem;
+        }
+
+        .map-stat {
+            text-align: center;
+        }
+
+        .map-stat-value {
+            font-weight: 700;
+            color: var(--text-main);
+            font-size: 1.1rem;
+        }
+
+        .map-stat-label {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+        }
+
+        .nodes-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4rem;
+            width: 100%;
+            position: relative;
+            margin: auto 0;
+            padding: 2rem 0;
+        }
+
+        /* Connection line using absolute SVG */
+        .connection-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .connection-path {
+            stroke: rgba(255, 255, 255, 0.1);
+            stroke-width: 4;
+            stroke-dasharray: 8 4;
+            fill: none;
+            transition: all 0.5s ease;
+        }
+
+        .connection-path.active {
+            stroke: var(--accent-primary);
+            stroke-dasharray: none;
+            filter: drop-shadow(0 0 4px var(--accent-primary-glow));
+        }
+
+        /* Node Item Styling */
+        .node-wrapper {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+        }
+
+        /* Offset nodes left/right alternating for beautiful serpentine route */
+        .node-wrapper:nth-child(even) {
+            transform: translateX(60px);
+        }
+        .node-wrapper:nth-child(odd) {
+            transform: translateX(-60px);
+        }
+
+        @media (max-width: 600px) {
+            .node-wrapper:nth-child(even), .node-wrapper:nth-child(odd) {
+                transform: translateX(0);
+            }
+        }
+
+        .node {
+            background-color: var(--bg-tertiary);
+            border: 3px solid var(--locked-color);
+            border-radius: 50%;
+            width: 70px;
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+            position: relative;
+        }
+
+        .node:hover {
+            transform: scale(1.15);
+        }
+
+        .node.active-selected {
+            outline: 3px solid #ffffff;
+            outline-offset: 4px;
+        }
+
+        /* Node Status variants */
+        .node.safe {
+            border-color: var(--safe-color);
+            box-shadow: 0 0 15px var(--safe-glow);
+        }
+        .node.safe svg {
+            fill: var(--safe-color);
+        }
+
+        .node.warning {
+            border-color: var(--warning-color);
+            box-shadow: 0 0 15px var(--warning-glow);
+        }
+        .node.warning svg {
+            fill: var(--warning-color);
+        }
+
+        .node.danger {
+            border-color: var(--danger-color);
+            box-shadow: 0 0 15px var(--danger-glow);
+        }
+        .node.danger svg {
+            fill: var(--danger-color);
+        }
+
+        .node.locked {
+            border-color: var(--locked-color);
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .node.locked svg {
+            fill: var(--locked-color);
+        }
+
+        .node svg {
+            width: 28px;
+            height: 28px;
+            transition: fill 0.3s;
+        }
+
+        .node-label {
+            position: absolute;
+            left: 90px;
+            white-space: nowrap;
+            background-color: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(4px);
+            border: 1px solid var(--border-color);
+            padding: 0.35rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--text-main);
+            pointer-events: none;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        /* Alternating label position to match offsets */
+        .node-wrapper:nth-child(even) .node-label {
+            left: auto;
+            right: 90px;
+        }
+
+        @media (max-width: 600px) {
+            .node-label {
+                position: static;
+                margin-left: 10px;
+                white-space: normal;
+            }
+            .node-wrapper {
+                flex-direction: row;
+                justify-content: flex-start;
+                padding-left: 2rem;
+            }
+            .node-wrapper:nth-child(even) .node-label {
+                right: auto;
+                margin-left: 10px;
+            }
+        }
+
+        /* Right Panel: Code Trap / Active Quiz Panel */
+        .trap-panel {
+            transition: all 0.3s ease;
+        }
+
+        .trap-header {
+            margin-bottom: 1.25rem;
+        }
+
+        .trap-node-title {
+            font-size: 1.3rem;
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 0.25rem;
+        }
+
+        .trap-node-subtitle {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .hazard-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            margin-top: 0.5rem;
+        }
+
+        .hazard-badge.safe {
+            background-color: rgba(16, 185, 129, 0.15);
+            color: var(--safe-color);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .hazard-badge.warning {
+            background-color: rgba(245, 158, 11, 0.15);
+            color: var(--warning-color);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .hazard-badge.danger {
+            background-color: rgba(239, 68, 68, 0.15);
+            color: var(--danger-color);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .hazard-badge.locked {
+            background-color: rgba(100, 116, 139, 0.15);
+            color: var(--text-muted);
+            border: 1px solid rgba(100, 116, 139, 0.3);
+        }
+
+        .trap-body {
+            background-color: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-bottom: 1.25rem;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .question-text {
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-bottom: 1rem;
+            color: var(--text-main);
+        }
+
+        .code-container {
+            background-color: rgba(0,0,0,0.3);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9rem;
+            color: #38bdf8;
+            margin-bottom: 1.25rem;
+            white-space: pre-wrap;
+            position: relative;
+        }
+
+        .code-input {
+            background-color: var(--bg-primary);
+            border: 1px solid var(--accent-primary);
+            color: #ffffff;
+            font-family: inherit;
+            font-size: inherit;
+            padding: 0.1rem 0.5rem;
+            border-radius: 4px;
+            width: 80px;
+            text-align: center;
+        }
+
+        .code-input:focus {
+            outline: none;
+            box-shadow: 0 0 8px var(--accent-primary-glow);
+        }
+
+        .choice-option {
+            background-color: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.88rem;
+        }
+
+        .choice-option:hover:not(.disabled) {
+            background-color: rgba(255, 255, 255, 0.07);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .choice-option.selected {
+            background-color: rgba(99, 102, 241, 0.1);
+            border-color: var(--accent-primary);
+            color: #ffffff;
+        }
+
+        .choice-radio {
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--text-muted);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .choice-option.selected .choice-radio {
+            border-color: var(--accent-primary);
+        }
+
+        .choice-option.selected .choice-radio::after {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background-color: var(--accent-primary);
+            border-radius: 50%;
+        }
+
+        .action-btn {
+            background: linear-gradient(135deg, var(--accent-primary) 0%, #4f46e5 100%);
+            border: none;
+            color: #ffffff;
+            font-weight: 700;
+            padding: 0.85rem;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            box-shadow: 0 4px 12px var(--accent-primary-glow);
+            width: 100%;
+        }
+
+        .action-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px var(--accent-primary-glow);
+        }
+
+        .action-btn:disabled {
+            background: var(--locked-color);
+            opacity: 0.5;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .feedback-message {
+            margin-top: 1rem;
+            padding: 0.85rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .feedback-message.success {
+            display: block;
+            background-color: rgba(16, 185, 129, 0.1);
+            color: var(--safe-color);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .feedback-message.error {
+            display: block;
+            background-color: rgba(239, 68, 68, 0.1);
+            color: var(--danger-color);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        .feedback-explanation {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            margin-top: 0.5rem;
+            padding-top: 0.5rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Empty state for Trap Panel when locked or unselected */
+        .trap-empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-muted);
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .trap-empty-state svg {
+            width: 48px;
+            height: 48px;
+            fill: var(--locked-color);
+            margin-bottom: 1rem;
+        }
+
+        /* Decorative Footer */
+        footer {
+            border-top: 1px solid var(--border-color);
+            padding: 1rem 2rem;
+            text-align: center;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            background-color: var(--bg-secondary);
+            margin-top: auto;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-title-container">
+            <span class="header-badge">BRAIN-KEEPSAKE • คลังความรู้ความจำ</span>
+            <h1>แบบบันทึกระดมสมอง: ระบบการเรียนรู้ด้วยตนเอง</h1>
+            <span class="header-subtitle">แผนผังห้องดันเจี้ยนตะลุยความรู้ตามทักษะย่อยจำลอง (Adaptive Self-Learning Dashboard)</span>
+        </div>
+        <div class="branch-selector">
+            <button class="branch-btn active" id="btn-python" onclick="switchBranch('python')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                ดันเจี้ยน Python
+            </button>
+            <button class="branch-btn" id="btn-sql" onclick="switchBranch('sql')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                ดันเจี้ยน SQL
+            </button>
+        </div>
+    </header>
+
+    <div class="dashboard-container">
+        
+        <!-- LEFT PANEL: Insights & Decisions -->
+        <aside class="panel-card">
+            <h2 class="panel-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.663 17h4.673M12 3v1m6.364.364l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+                สรุปแนวคิด & การระดมสมอง
+            </h2>
+            
+            <div class="tab-menu">
+                <button class="tab-btn active" id="tab-btn-insights" onclick="switchTab('insights')">ข้อสรุปหลัก</button>
+                <button class="tab-btn" id="tab-btn-worst" onclick="switchTab('worst')">Worst Ideas</button>
+                <button class="tab-btn" id="tab-btn-decisions" onclick="switchTab('decisions')">มติการออกแบบ</button>
+            </div>
+
+            <!-- Tab 1: Core Insights -->
+            <div class="tab-content active" id="tab-insights">
+                <div class="insight-card">
+                    <h4>Insight 1: เลิกการฟังคำบรรยาย</h4>
+                    <p>เปลี่ยนมาตอบคำถามและทำแบบทดสอบแบบโต้ตอบขนาดย่อย (Interactive micro-exercises) ทันทีที่เข้าสู่ระบบ</p>
+                </div>
+                <div class="insight-card">
+                    <h4>Insight 2: ประเมินผลต่อเนื่อง</h4>
+                    <p>ระบบประเมินความสามารถเรียลไทม์ (Continuous real-time assessment) แทนข้อสอบประตูกั้นแรกรับ</p>
+                </div>
+                <div class="insight-card">
+                    <h4>Insight 3: ดันเจี้ยนนำทางตรงเป้า</h4>
+                    <p>สร้างโครงสร้างการเรียนแบบ Dependency graph ที่ทุกวิชาความรู้จะลิงก์ตรงไปยังทักษะเป้าหมายสุดท้ายของผู้เรียน</p>
+                </div>
+                <div class="insight-card">
+                    <h4>Insight 4: วิ่งด่วนตามสมรรถนะ</h4>
+                    <p>ยกเลิกการกักเวลาเรียนรายวัน (Zero time-gating) อนุญาตให้เคลียร์ด่านได้อย่างรวดเร็วทันทีที่ผู้เรียนทำสำเร็จ</p>
+                </div>
+            </div>
+
+            <!-- Tab 2: Worst Possible Ideas vs Solutions -->
+            <div class="tab-content" id="tab-worst">
+                <div class="worst-idea-card">
+                    <div class="bad-idea">⚠️ Infinite Lecture Lock</div>
+                    <p style="font-size:0.75rem; color:var(--text-muted);">บังคับดูวิดีโอ 3 ชั่วโมงข้ามไม่ได้ ห้ามกะพริบตา ไม่งั้นรีสตาร์ท</p>
+                    <div class="solution">➡️ <strong>แก้ด้วย:</strong> แบบฝึกหัดสั้นกระชับ ท้าทายความเข้าใจทันที</div>
+                </div>
+                <div class="worst-idea-card">
+                    <div class="bad-idea">⚠️ Blind Level Assessment</div>
+                    <p style="font-size:0.75rem; color:var(--text-muted);">ระบบไม่รู้ความสามารถผู้เรียน ส่งแบบฝึกหัดมั่วซั่วจนละทิ้ง</p>
+                    <div class="solution">➡️ <strong>แก้ด้วย:</strong> ตรวจสอบจุดแข็ง-จุดอ่อนแบบตอบสนองทันที</div>
+                </div>
+                <div class="worst-idea-card">
+                    <div class="bad-idea">⚠️ Rabbit Hole Traps</div>
+                    <p style="font-size:0.75rem; color:var(--text-muted);">ตอบผิดหนึ่งข้อ พาลงไปวนเรียนทฤษฎียิบย่อยสุดน่าเบื่อ</p>
+                    <div class="solution">➡️ <strong>แก้ด้วย:</strong> การแก้กับดักสั้นในห้องและอธิบายความก้าวหน้าชัดเจน</div>
+                </div>
+                <div class="worst-idea-card">
+                    <div class="bad-idea">⚠️ Forced Pacing Bloat</div>
+                    <p style="font-size:0.75rem; color:var(--text-muted);">ล็อกเนื้อหาให้ผ่านไปได้ทีละวันเพื่อบังคับยืดระยะเวลาคอร์ส</p>
+                    <div class="solution">➡️ <strong>แก้ด้วย:</strong> เคลียร์ห้องทักษะได้รวดเร็วตามฝีมือที่แท้จริง</div>
+                </div>
+            </div>
+
+            <!-- Tab 3: Design Decisions -->
+            <div class="tab-content" id="tab-decisions">
+                <div class="insight-card" style="border-left-color: var(--safe-color);">
+                    <h4>ธีมห้องดันเจี้ยนฝึกหัด</h4>
+                    <p>เปรียบเทียบจุดทักษะต่างๆ เป็นห้อง (Rooms) ที่มีภัยอันตรายที่ระบุเป็นกับดักโค้ดท้าทายความสามารถ</p>
+                </div>
+                <div class="insight-card" style="border-left-color: var(--safe-color);">
+                    <h4>สลับเป้าหมายอิสระ</h4>
+                    <p>ระบบอนุญาตให้สลับปีกภารกิจได้ทันทีผ่าน Toggle ด้านบน (Python / SQL) เก็บประวัติความจำและคะแนนแยกกัน</p>
+                </div>
+                <div class="insight-card" style="border-left-color: var(--safe-color);">
+                    <h4>การเรียนรู้แบบแก้กับดัก</h4>
+                    <p>เน้นคำถามแบบเติมโค้ดสั้น (Fill-in-the-blank) และเลือกตอบ (Multiple Choice) เพื่อกระชับเวลาและส่งเสริมสมองให้ตอบสนองเร็ว</p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- CENTER PANEL: Interactive Concept Map -->
+        <main class="panel-card stage-map-area">
+            <h2 class="panel-title" style="width:100%;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
+                แผนที่ด่านจำลอง: <span id="current-wing-title">Python Basics Wing</span>
+            </h2>
+
+            <div class="map-stats-bar">
+                <div class="map-stat">
+                    <div class="map-stat-value" id="stat-cleared">2/4</div>
+                    <div class="map-stat-label">ห้องที่ปลอดภัย</div>
+                </div>
+                <div class="map-stat">
+                    <div class="map-stat-value" id="stat-rate">75%</div>
+                    <div class="map-stat-label">อัตราสำเร็จเฉลี่ย</div>
+                </div>
+                <div class="map-stat">
+                    <div class="map-stat-value" id="stat-risk" style="color: var(--warning-color);">ปานกลาง</div>
+                    <div class="map-stat-label">ความเสี่ยงโดยรวม</div>
+                </div>
+            </div>
+
+            <!-- Stage Route Nodes Container -->
+            <div class="nodes-container" id="nodes-container">
+                <svg class="connection-svg">
+                    <path class="connection-path active" id="conn-1" d="M 100,50 C 100,100 220,100 220,150" />
+                    <path class="connection-path" id="conn-2" d="M 220,150 C 220,200 100,200 100,250" />
+                    <path class="connection-path" id="conn-3" d="M 100,250 C 100,300 220,300 220,350" />
+                </svg>
+
+                <!-- Dynamic nodes loaded here via JS -->
+            </div>
+        </main>
+
+        <!-- RIGHT PANEL: Trap Resolver (Interactive Quiz) -->
+        <section class="panel-card trap-panel">
+            <h2 class="panel-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                แผงถอดรหัสกับดัก
+            </h2>
+
+            <div id="trap-empty" class="trap-empty-state">
+                <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-6.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                <p>เลือกห้องหรือด่านในดันเจี้ยนที่ปลดล็อกแล้วเพื่อเริ่มแก้กับดักโค้ดและพัฒนาฝีมือ</p>
+            </div>
+
+            <div id="trap-content" style="display: none; height: 100%; flex-direction: column;">
+                <div class="trap-header">
+                    <div class="trap-node-subtitle" id="node-subtitle-label">ROOM NODE</div>
+                    <div class="trap-node-title" id="node-title-label">Variables & Data Types</div>
+                    <span class="hazard-badge safe" id="hazard-badge-status">
+                        <span id="hazard-badge-text">ปลอดภัย (จุดแข็ง: 95%)</span>
+                    </span>
+                </div>
+
+                <div class="trap-body">
+                    <div class="question-text" id="question-text-label">สร้างตัวแปร x และกำหนดค่าเท่ากับ 10</div>
+                    
+                    <div id="quiz-interactive-area">
+                        <!-- Code snippet or Multiple choice list injected here -->
+                    </div>
+
+                    <div class="feedback-message" id="quiz-feedback">
+                        <strong id="feedback-result-title">ถูกต้อง!</strong>
+                        <div class="feedback-explanation" id="feedback-explanation-text">
+                            คำอธิบาย: หลีกเลี่ยงการเรียนรู้แบบน่าเบื่อโดยใช้การโต้ตอบตรงจุด
+                        </div>
+                    </div>
+                </div>
+
+                <button class="action-btn" id="disarm-btn" onclick="validateAnswer()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m5 .5a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <span>ปลดล็อกและเคลียร์ห้องทักษะ</span>
+                </button>
+            </div>
+        </section>
+
+    </div>
+
+    <footer>
+        บันทึกผลการระดมสมองและเค้าร่างการพัฒนาโปรแกรมจำลอง Adaptive Basic Self-Learning - สร้างขึ้นเพื่อจัดเก็บประวัติตามแนวคิด Dungeon Wings
+    </footer>
+
+    <script>
+        // Memlog Brainstorm data structure based on the prompt constraints & loaded decisions
+        const wingsData = {
+            python: {
+                title: "Python Basics Wing (ปีกพื้นฐาน Python)",
+                stats: { cleared: "2/4", successRate: "75%", riskLevel: "ปานกลาง" },
+                nodes: [
+                    {
+                        id: "py-1",
+                        name: "Variables & Data Types",
+                        thaiName: "ตัวแปรและประเภทข้อมูล",
+                        status: "safe", // safe, warning, danger, locked
+                        statusThai: "ปลอดภัย (จุดแข็ง)",
+                        hazardLevel: "ความเสี่ยงต่ำมาก (Strength: 95%)",
+                        type: "fill-blank",
+                        question: "จงเติมช่องว่างเพื่อให้ตัวแปร x มีค่าจำนวนเต็มเท่ากับ 10",
+                        snippet: "x = [INPUT]\nprint(type(x)) # ผลลัพธ์: <class 'int'>",
+                        answer: "10",
+                        explanation: "หลีกเลี่ยงระบบประเมินแรกเข้าที่ยาวและน่าเบื่อ (One-Way Gate Assessment) โดยตรวจเช็คความรู้ย่อยทันที"
+                    },
+                    {
+                        id: "py-2",
+                        name: "Conditionals (If/Else)",
+                        thaiName: "เงื่อนไขและการตัดสินใจ",
+                        status: "warning",
+                        statusThai: "มีความเสี่ยงเล็กน้อย (Warning)",
+                        hazardLevel: "ระดับอันตราย: ต่ำ (Strength: 60%)",
+                        type: "multiple-choice",
+                        question: "Syntax การเขียนเงื่อนไขใดใน Python ที่ถูกต้อง?",
+                        choices: [
+                            "if x > 5 then:",
+                            "if (x > 5) {",
+                            "if x > 5:"
+                        ],
+                        answer: 2, // 0-indexed index
+                        explanation: "แก้ปัญหาแบบฝึกหัดวนซ้ำไม่ตรงประเด็น (Irrelevant Exercise Loop) ด้วยการตรวจสอบเงื่อนไขที่ผู้เรียนจำเป็นต้องใช้จริงเท่านั้น"
+                    },
+                    {
+                        id: "py-3",
+                        name: "Loops (For/While)",
+                        thaiName: "การวนซ้ำและการทำซ้ำ",
+                        status: "danger",
+                        statusThai: "อันตรายสูง (จุดอ่อนวิกฤต)",
+                        hazardLevel: "ระดับอันตราย: สูง (Strength: 30%)",
+                        type: "fill-blank",
+                        question: "ต้องการวนซ้ำเพื่อพิมพ์ตัวเลข 0 ถึง 4 ต้องเขียนช่องว่างอย่างไร?",
+                        snippet: "for i in [INPUT](5):\n    print(i)",
+                        answer: "range",
+                        explanation: "แก้ไขการบรรยายอันยาวเหยียดไร้จุดสิ้นสุด (Infinite Lecture Lock) ด้วยการแก้โจทย์ช่องว่างสั้นๆ เพื่อให้สมองจดจำได้ทันที"
+                    },
+                    {
+                        id: "py-4",
+                        name: "Functions & Scope",
+                        thaiName: "ฟังก์ชันและการส่งคืนค่า",
+                        status: "locked",
+                        statusThai: "ยังไม่เปิดเผย (Locked)",
+                        hazardLevel: "ยังไม่ระบุภัยอันตราย",
+                        type: "multiple-choice",
+                        question: "คำสำคัญ (Keyword) ใดใช้สร้างฟังก์ชันใน Python?",
+                        choices: [
+                            "def",
+                            "func",
+                            "function"
+                        ],
+                        answer: 0,
+                        explanation: "ระบบยกเลิกการล็อกการเรียนตามวัน (Zero Time-Gating) ถ้าแก้ปัญหานี้ได้แปลว่าพร้อมผ่านด่านสุดท้ายทันที"
+                    }
+                ]
+            },
+            sql: {
+                title: "SQL Basics Wing (ปีกพื้นฐาน SQL)",
+                stats: { cleared: "1/4", successRate: "45%", riskLevel: "สูง" },
+                nodes: [
+                    {
+                        id: "sql-1",
+                        name: "SELECT & FROM",
+                        thaiName: "การดึงข้อมูลและคอลัมน์",
+                        status: "safe",
+                        statusThai: "ปลอดภัย (จุดแข็ง)",
+                        hazardLevel: "ความเสี่ยงต่ำมาก (Strength: 90%)",
+                        type: "fill-blank",
+                        question: "ต้องการดึงข้อมูลคอลัมน์ name จากตาราง users ต้องใส่คำใดในช่องว่าง?",
+                        snippet: "[INPUT] name FROM users;",
+                        answer: "SELECT",
+                        explanation: "แทนที่การทำแบบทดสอบยาวๆ ก่อนเรียนรู้จริงด้วยการทำแบบฝึกหัดทันทีและติดตามความเข้าใจแบบนาทีต่อนาที"
+                    },
+                    {
+                        id: "sql-2",
+                        name: "WHERE Filter",
+                        thaiName: "การกรองข้อมูลแบบมีเงื่อนไข",
+                        status: "danger",
+                        statusThai: "อันตรายสูง (จุดอ่อนวิกฤต)",
+                        hazardLevel: "ระดับอันตราย: สูง (Strength: 25%)",
+                        type: "multiple-choice",
+                        question: "การกรองข้อมูลหาแถวที่ฟิลด์ price เป็นค่าว่าง (NULL) ข้อใดเขียนได้ถูกต้อง?",
+                        choices: [
+                            "WHERE price = NULL",
+                            "WHERE price IS NULL",
+                            "WHERE price IN (NULL)"
+                        ],
+                        answer: 1,
+                        explanation: "แทนที่จะตกลงไปในหลุมกระต่าย (Rabbit Hole Trap) เมื่อทำข้อสอบผิด ระบบจะส่งโจทย์ที่สั้นและตรงจุดเพื่อปรับทักษะในหน้าจอนี้โดยทันที"
+                    },
+                    {
+                        id: "sql-3",
+                        name: "JOIN Operations",
+                        thaiName: "การเชื่อมโยงต่างตาราง",
+                        status: "locked",
+                        statusThai: "ยังไม่เปิดเผย (Locked)",
+                        hazardLevel: "ยังไม่ระบุภัยอันตราย",
+                        type: "fill-blank",
+                        question: "พิมพ์คำค้นเพื่อเชื่อมโยง orders กับ users แบบ Inner Join ในช่องว่าง",
+                        snippet: "SELECT * FROM orders [INPUT] JOIN users ON orders.user_id = users.id;",
+                        answer: "INNER",
+                        explanation: "ความสามารถจริงประเมินได้ตลอดเวลา ไม่ต้องถูกระบบล็อกด้วยเวลาหรือจดจำเรื่องไม่จำเป็น"
+                    },
+                    {
+                        id: "sql-4",
+                        name: "GROUP BY & Aggregations",
+                        thaiName: "การสรุปข้อมูลและจัดกลุ่ม",
+                        status: "danger",
+                        statusThai: "อันตรายสูง (จุดอ่อนวิกฤต)",
+                        hazardLevel: "ระดับอันตราย: สูง (Strength: 15%)",
+                        type: "multiple-choice",
+                        question: "ต้องการใช้ SUM(sales) แยกกลุ่มตามประเทศ (country) ต้องระบุคีย์เวิร์ดใดท้ายคิวรี?",
+                        choices: [
+                            "ORDER BY country",
+                            "HAVING country",
+                            "GROUP BY country"
+                        ],
+                        answer: 2,
+                        explanation: "ผู้ใช้งานสามารถสลับไปมาระหว่างห้องเรียนรู้สองทาง Python / SQL เพื่อค้นหาข้อบกพร่องตามเป้าหมายปลายทางได้อิสระ"
+                    }
+                ]
+            }
+        };
+
+        let currentBranch = 'python';
+        let selectedNodeIndex = null;
+        let selectedChoiceIndex = null;
+
+        // Switch Left panel tabs
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            document.getElementById(`tab-btn-${tabId}`).classList.add('active');
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+        }
+
+        // Switch learning branch/wing (Python / SQL)
+        function switchBranch(branch) {
+            currentBranch = branch;
+            document.querySelectorAll('.branch-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`btn-${branch}`).classList.add('active');
+            
+            // Clear current active trap resolver card
+            document.getElementById('trap-empty').style.display = 'flex';
+            document.getElementById('trap-content').style.display = 'none';
+            selectedNodeIndex = null;
+            selectedChoiceIndex = null;
+
+            renderStageMap();
+            updateStats();
+        }
+
+        // Render the nodes and paths on the center stage map
+        function renderStageMap() {
+            const data = wingsData[currentBranch];
+            const container = document.getElementById('nodes-container');
+            
+            // Set current title
+            document.getElementById('current-wing-title').innerText = data.title;
+
+            // Clear old dynamic node wrappers
+            const oldWrappers = container.querySelectorAll('.node-wrapper');
+            oldWrappers.forEach(w => w.remove());
+
+            // Build new nodes
+            data.nodes.forEach((node, index) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'node-wrapper';
+
+                const nodeEl = document.createElement('div');
+                nodeEl.className = `node ${node.status}`;
+                nodeEl.id = `node-${node.id}`;
+                nodeEl.innerHTML = `
+                    <svg viewBox="0 0 24 24">
+                        ${getNodeSVGIcon(node.status)}
+                    </svg>
+                `;
+                
+                if (node.status !== 'locked') {
+                    nodeEl.onclick = () => selectNode(index);
+                } else {
+                    nodeEl.title = "กรุณาเคลียร์ด่านก่อนหน้าเพื่อปลดล็อก";
+                }
+
+                const label = document.createElement('div');
+                label.className = 'node-label';
+                label.innerText = `${index + 1}. ${node.thaiName}`;
+
+                wrapper.appendChild(nodeEl);
+                wrapper.appendChild(label);
+                container.appendChild(wrapper);
+            });
+
+            // Recalculate connection lines
+            setTimeout(drawConnectionLines, 50);
+        }
+
+        function getNodeSVGIcon(status) {
+            if (status === 'safe') {
+                // Checkmark shield icon
+                return `<path d="M9 12l2 2 4-4m5 .5a9 9 0 11-18 0 9 9 0 0118 0z"/>`;
+            } else if (status === 'warning') {
+                // Warning exclamation icon
+                return `<path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>`;
+            } else if (status === 'danger') {
+                // Skull/Danger fire icon
+                return `<path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>`;
+            } else {
+                // Padlock icon
+                return `<path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>`;
+            }
+        }
+
+        // Draw dynamic connecting lines between nodes
+        function drawConnectionLines() {
+            const container = document.getElementById('nodes-container');
+            const svg = container.querySelector('.connection-svg');
+            
+            // Clear existing paths in SVG
+            svg.innerHTML = '';
+            
+            const nodes = container.querySelectorAll('.node');
+            if (nodes.length < 2) return;
+
+            const containerRect = container.getBoundingClientRect();
+            
+            for (let i = 0; i < nodes.length - 1; i++) {
+                const nodeA = nodes[i];
+                const nodeB = nodes[i+1];
+                
+                const rectA = nodeA.getBoundingClientRect();
+                const rectB = nodeB.getBoundingClientRect();
+
+                // Coordinates relative to the nodes container
+                const x1 = (rectA.left + rectA.right) / 2 - containerRect.left;
+                const y1 = (rectA.top + rectA.bottom) / 2 - containerRect.top;
+                const x2 = (rectB.left + rectB.right) / 2 - containerRect.left;
+                const y2 = (rectB.top + rectB.bottom) / 2 - containerRect.top;
+
+                const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                
+                // Set cubic bezier curve path for elegant winding dungeon path look
+                const controlOffsetY = (y2 - y1) / 2;
+                const d = `M ${x1},${y1} C ${x1},${y1 + controlOffsetY} ${x2},${y2 - controlOffsetY} ${x2},${y2}`;
+                
+                path.setAttribute("d", d);
+                path.setAttribute("class", "connection-path");
+                
+                // If the target node is unlocked, highlight the path to it
+                const targetNodeObj = wingsData[currentBranch].nodes[i+1];
+                if (targetNodeObj.status !== 'locked') {
+                    path.classList.add('active');
+                }
+
+                svg.appendChild(path);
+            }
+        }
+
+        // Select a stage node to display quiz
+        function selectNode(index) {
+            selectedNodeIndex = index;
+            selectedChoiceIndex = null;
+            
+            const nodeData = wingsData[currentBranch].nodes[index];
+            
+            // Update UI selected state
+            document.querySelectorAll('.node').forEach((n, idx) => {
+                if (idx === index) n.classList.add('active-selected');
+                else n.classList.remove('active-selected');
+            });
+
+            // Populate Trap Resolver panel
+            document.getElementById('trap-empty').style.display = 'none';
+            document.getElementById('trap-content').style.display = 'flex';
+
+            document.getElementById('node-title-label').innerText = `${index + 1}. ${nodeData.thaiName}`;
+            document.getElementById('node-subtitle-label').innerText = nodeData.name;
+            
+            // Set hazard badge
+            const badge = document.getElementById('hazard-badge-status');
+            const badgeText = document.getElementById('hazard-badge-text');
+            badge.className = `hazard-badge ${nodeData.status}`;
+            badgeText.innerText = `${nodeData.statusThai} • ${nodeData.hazardLevel}`;
+
+            document.getElementById('question-text-label').innerText = nodeData.question;
+            
+            // Hide feedback messages initially
+            document.getElementById('quiz-feedback').className = 'feedback-message';
+            document.getElementById('quiz-feedback').style.display = 'none';
+
+            // Build Quiz UI depending on type
+            const area = document.getElementById('quiz-interactive-area');
+            area.innerHTML = '';
+
+            const disarmBtn = document.getElementById('disarm-btn');
+            disarmBtn.disabled = false;
+            
+            if (nodeData.status === 'safe') {
+                disarmBtn.querySelector('span').innerText = "ทำโจทย์อีกครั้งเพื่อทบทวน";
+            } else {
+                disarmBtn.querySelector('span').innerText = "แก้กับดักโค้ดเพื่อปลดล็อก";
+            }
+
+            if (nodeData.type === 'fill-blank') {
+                const codeSnippetHTML = nodeData.snippet.replace('[INPUT]', `<input type="text" class="code-input" id="fill-blank-input" autocomplete="off" placeholder="...">`);
+                area.innerHTML = `<div class="code-container">${codeSnippetHTML}</div>`;
+            } else if (nodeData.type === 'multiple-choice') {
+                nodeData.choices.forEach((choice, choiceIdx) => {
+                    const optionEl = document.createElement('div');
+                    optionEl.className = 'choice-option';
+                    optionEl.id = `choice-${choiceIdx}`;
+                    optionEl.onclick = () => selectChoice(choiceIdx);
+                    optionEl.innerHTML = `
+                        <div class="choice-radio"></div>
+                        <div>${choice}</div>
+                    `;
+                    area.appendChild(optionEl);
+                });
+            }
+        }
+
+        // Selection handle for multiple choice
+        function selectChoice(index) {
+            selectedChoiceIndex = index;
+            document.querySelectorAll('.choice-option').forEach((opt, idx) => {
+                if (idx === index) opt.classList.add('selected');
+                else opt.classList.remove('selected');
+            });
+        }
+
+        // Validate answer of current selected node
+        function validateAnswer() {
+            if (selectedNodeIndex === null) return;
+            
+            const nodeData = wingsData[currentBranch].nodes[selectedNodeIndex];
+            let isCorrect = false;
+            let userAnswerStr = "";
+
+            if (nodeData.type === 'fill-blank') {
+                const inputVal = document.getElementById('fill-blank-input').value.trim();
+                isCorrect = (inputVal.toLowerCase() === nodeData.answer.toLowerCase());
+                userAnswerStr = inputVal;
+            } else if (nodeData.type === 'multiple-choice') {
+                isCorrect = (selectedChoiceIndex === nodeData.answer);
+                userAnswerStr = selectedChoiceIndex !== null ? nodeData.choices[selectedChoiceIndex] : "";
+            }
+
+            const feedback = document.getElementById('quiz-feedback');
+            const resultTitle = document.getElementById('feedback-result-title');
+            const expText = document.getElementById('feedback-explanation-text');
+
+            if (isCorrect) {
+                feedback.className = 'feedback-message success';
+                resultTitle.innerText = "แก้กับดักสำเร็จ! (Trap Disarmed)";
+                expText.innerHTML = `
+                    <div><strong>คำอธิบายแนวคิด:</strong> ${nodeData.explanation}</div>
+                    <div style="margin-top: 0.25rem; font-style: italic; color: var(--safe-color);">* ห้องนี้ปลอดภัยแล้ว ระดับพลังฝึกฝนเต็ม 100% *</div>
+                `;
+                
+                // Upgrade node status in runtime data
+                nodeData.status = 'safe';
+                nodeData.statusThai = "ปลอดภัย (จุดแข็ง)";
+                nodeData.hazardLevel = "ความเสี่ยงต่ำมาก (Strength: 100%)";
+                
+                // Unlock the next node if it exists and is locked
+                if (selectedNodeIndex + 1 < wingsData[currentBranch].nodes.length) {
+                    const nextNode = wingsData[currentBranch].nodes[selectedNodeIndex + 1];
+                    if (nextNode.status === 'locked') {
+                        nextNode.status = 'danger'; // Unlock as danger/weakness to clear
+                        nextNode.statusThai = "ประเมินแล้วพบจุดอ่อน";
+                        nextNode.hazardLevel = "ระดับอันตราย: สูง (Strength: 25%)";
+                    }
+                }
+
+                // Redraw map and refresh header stats
+                renderStageMap();
+                updateStats();
+                
+                // Re-select same node to update active header status
+                selectNode(selectedNodeIndex);
+            } else {
+                feedback.className = 'feedback-message error';
+                resultTitle.innerText = "แก้กับดักล้มเหลว! (Trap Triggered)";
+                expText.innerHTML = `
+                    <div><strong>ลองใหม่อีกครั้ง:</strong> กับดักในระบบนี้จะไม่ลงโทษด้วยการย้อนไปทำเลกเชอร์ยาวๆ (Rabbit Hole Traps) แต่ให้ผู้เรียนวิเคราะห์คำสั่งสั้นๆ นี้ใหม่จนเข้าใจกระบวนการอย่างสมบูรณ์</div>
+                `;
+            }
+        }
+
+        // Update overall stats values based on active branch state
+        function updateStats() {
+            const data = wingsData[currentBranch];
+            
+            // Calculate actual cleared rooms in runtime
+            const total = data.nodes.length;
+            const clearedCount = data.nodes.filter(n => n.status === 'safe').length;
+            
+            // Calculate overall risk
+            let riskLevel = "ต่ำ";
+            const dangerCount = data.nodes.filter(n => n.status === 'danger').length;
+            const warningCount = data.nodes.filter(n => n.status === 'warning').length;
+            
+            if (dangerCount >= 2) {
+                riskLevel = "วิกฤต / สูง";
+            } else if (dangerCount === 1 || warningCount >= 2) {
+                riskLevel = "ปานกลาง";
+            }
+
+            // Calculate success rate approximation
+            const scoreSum = data.nodes.reduce((acc, curr) => {
+                if (curr.status === 'safe') return acc + 95;
+                if (curr.status === 'warning') return acc + 60;
+                if (curr.status === 'danger') return acc + 25;
+                return acc + 0;
+            }, 0);
+            const rate = Math.round(scoreSum / total);
+
+            // Update UI elements
+            document.getElementById('stat-cleared').innerText = `${clearedCount}/${total}`;
+            document.getElementById('stat-rate').innerText = `${rate}%`;
+            
+            const riskEl = document.getElementById('stat-risk');
+            riskEl.innerText = riskLevel;
+            if (riskLevel.includes("วิกฤต") || riskLevel.includes("สูง")) {
+                riskEl.style.color = "var(--danger-color)";
+            } else if (riskLevel.includes("ปานกลาง")) {
+                riskEl.style.color = "var(--warning-color)";
+            } else {
+                riskEl.style.color = "var(--safe-color)";
+            }
+        }
+
+        // Resize window triggers line redrawing
+        window.onresize = drawConnectionLines;
+
+        // Init load
+        window.onload = () => {
+            switchBranch('python');
+        };
+    </script>
+</body>
+</html>

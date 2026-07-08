@@ -8,9 +8,15 @@ export class Campus {
     @Column()
     campus: string;
 
-    @Column()
+    @Column({
+        default: () => 'CURRENT_TIMESTAMP',
+        type: 'timestamp',
+    })
     createdAt: Date;
 
-    @Column()
+    @Column({
+        default: () => 'CURRENT_TIMESTAMP',
+        type: 'timestamp',
+    })
     updatedAt: Date;
 }

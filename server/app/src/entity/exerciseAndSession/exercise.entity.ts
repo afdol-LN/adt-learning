@@ -1,6 +1,8 @@
 import { Status } from 'src/enums/status.enum';
-import { Column, Entity, ManyToMany, PrimaryGeneratedColumn } from 'typeorm';
-import { SessionExercise } from './session.entity';
+import { Column, Entity, ManyToMany, ManyToOne, JoinColumn, PrimaryGeneratedColumn } from 'typeorm';
+import { Session } from './session.entity';
+import { Skill } from '../skill.entity';
+
 @Entity('exercise')
 export class Exercise {
   @PrimaryGeneratedColumn()
@@ -19,6 +21,12 @@ export class Exercise {
   })
   status: Status;
 
+  @Column({ name: 'expect_time', type: 'integer', nullable: true })
+  expectTime: number;
+
+  @Column({ name: 'skill_id', type: 'integer', nullable: true })
+  skillId: number;
+
   @Column({
     type: 'timestamp',
     default: () => 'CURRENT_TIMESTAMP',
@@ -32,8 +40,12 @@ export class Exercise {
   updatedAt: Date;
 
   @ManyToMany(
-    () => SessionExercise,
-    (sessionExercise) => sessionExercise.exercises,
+    () => Session,
+    (session) => session.exercises,
   )
-  sessions?: SessionExercise[];
+  sessions?: Session[];
+
+  @ManyToOne(() => Skill)
+  @JoinColumn({ name: 'skill_id', referencedColumnName: 'skillId' })
+  skill: Skill;
 }

@@ -1,16 +1,21 @@
-import { Column, Entity, OneToOne, PrimaryGeneratedColumn, JoinColumn } from "typeorm";
+import { Column, Entity, ManyToOne, PrimaryGeneratedColumn, JoinColumn } from "typeorm";
 import { Exercise } from "./exercise.entity";
 
 @Entity('exerciseChoice')
-export class ExerciseChoice{
+export class ExerciseChoice {
     @PrimaryGeneratedColumn()
     id: number;
 
-    @OneToOne(()=> Exercise)
-    @JoinColumn({name: 'exerciseId', referencedColumnName: 'id'})
+    @Column({ name: 'exerciseId', nullable: true })
     exerciseId: number;
 
-    @Column()
+    @Column({ name: 'choice_NO', type: 'integer', nullable: true })
+    choiceNo: number;
+
+    @Column({ name: 'script', type: 'varchar', length: 15, nullable: true })
+    script: string;
+
+    @Column({ name: 'isAnswer' })
     isAnswer: boolean;
 
     @Column({
@@ -25,7 +30,7 @@ export class ExerciseChoice{
     })
     updatedAt: Date;
 
-
-
-
+    @ManyToOne(() => Exercise)
+    @JoinColumn({ name: 'exerciseId', referencedColumnName: 'id' })
+    exercise: Exercise;
 }

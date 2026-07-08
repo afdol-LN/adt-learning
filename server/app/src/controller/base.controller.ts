@@ -3,9 +3,9 @@ import {
   Delete,
   Get,
   Param,
+  ParseIntPipe,
   Post,
   Put,
-  ParseIntPipe,
 } from '@nestjs/common';
 import { IBaseService } from 'src/type/base-service.interface';
 import type { DeepPartial, ObjectLiteral } from 'typeorm';

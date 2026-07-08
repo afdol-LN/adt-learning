@@ -2,7 +2,9 @@ import { NotFoundException } from '@nestjs/common';
 import { IBaseService } from 'src/type/base-service.interface';
 import { DeepPartial, ObjectLiteral, Repository } from 'typeorm';
 
-export abstract class BaseService<T extends ObjectLiteral> implements IBaseService<T> {
+export abstract class BaseService<
+  T extends ObjectLiteral,
+> implements IBaseService<T> {
   constructor(private readonly repo: Repository<T>) {}
 
   async create(data: DeepPartial<T>): Promise<T> {

@@ -19,8 +19,8 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "typeorm": "typeorm-ts-node-commonjs",
-    "migration:generate": "npm run build && npm run typeorm migration:generate -d src/config/data-source.ts src/migrations/UpdateSchema",
-    "migration:run": "npm run build && npm run typeorm migration:run -d src/config/data-source.ts",
+    "migration:generate": "npm run build && npx typeorm-ts-node-commonjs migration:generate -d src/config/data-source.ts src/migrations/UpdateSchem",
+    "migration:run": "npm run build && npx typeorm-ts-node-commonjs migration:run -d src/config/data-source.ts",
     "migration:revert": "npm run typeorm migration:revert -d src/config/data-source.ts"
   },
   "dependencies": {
@@ -28,10 +28,13 @@
     "@nestjs/config": "^4.0.4",
     "@nestjs/core": "^11.0.1",
     "@nestjs/platform-express": "^11.0.1",
+    "@nestjs/platform-socket.io": "^11.1.27",
     "@nestjs/typeorm": "^11.0.3",
+    "@nestjs/websockets": "^11.1.27",
     "pg": "^8.22.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
+    "socket.io": "^4.8.3",
     "typeorm": "^1.0.0"
   },
   "devDependencies": {

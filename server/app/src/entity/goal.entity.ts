@@ -1,19 +1,26 @@
 import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
 
-
 @Entity('goal')
-export class Goal{
+export class Goal {
     @PrimaryGeneratedColumn()
     id: number;
 
-    @Column()
+    @Column({ nullable: true })
     goal: string;
 
-    @Column()
+    @Column({ name: 'goal_name', type: 'varchar', length: 20, nullable: true })
+    goalName: string;
+
+    @Column({
+        type: 'timestamp',
+        default: () => 'CURRENT_TIMESTAMP',
+    })
     createdAt: Date;
 
-    @Column()
+    @Column({
+        type: 'timestamp',
+        default: () => 'CURRENT_TIMESTAMP',
+    })
     updatedAt: Date;
 
-    
 }
