@@ -20,7 +20,7 @@ export class exerciseController  extends BaseController<Exercise> {
         goalId : pretestBody.goalId;
         level : pretestBody.level;
         Logger.log(pretestBody)
-        
+        var response;
         try{
             response = await exerciseService.findPretest();
         }
