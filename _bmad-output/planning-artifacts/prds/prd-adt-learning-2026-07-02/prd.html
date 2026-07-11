@@ -381,7 +381,87 @@
       .main-content {
         margin-left: 0;
         padding: 20px;
-      }
+    /* Flow & Architecture Visualization */
+    .flow-viz-container {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(59, 130, 246, 0.35);
+      border-radius: 14px;
+      padding: 24px;
+      margin: 24px 0;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    }
+    .flow-viz-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #60a5fa;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .flow-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .flow-step-card {
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid rgba(96, 165, 250, 0.2);
+      border-radius: 10px;
+      padding: 16px;
+      position: relative;
+      transition: all 0.25s ease;
+    }
+    .flow-step-card:hover {
+      transform: translateY(-4px);
+      border-color: #3b82f6;
+      box-shadow: 0 8px 25px rgba(59, 130, 246, 0.25);
+    }
+    .flow-step-number {
+      position: absolute;
+      top: -10px;
+      right: 14px;
+      background: #3b82f6;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 20px;
+      box-shadow: 0 2px 8px rgba(59, 130, 246, 0.5);
+    }
+    .flow-step-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #f8fafc;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .flow-step-desc {
+      font-size: 12.5px;
+      color: #cbd5e1;
+      line-height: 1.5;
+    }
+    .flow-step-tag {
+      display: inline-block;
+      font-size: 10.5px;
+      font-weight: 600;
+      color: #38bdf8;
+      background: rgba(56, 189, 248, 0.12);
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-top: 10px;
+    }
+    .svg-flow-wrapper {
+      width: 100%;
+      overflow-x: auto;
+      margin-top: 16px;
+      background: rgba(11, 19, 41, 0.9);
+      border-radius: 10px;
+      padding: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
     }
   </style>
 </head>
@@ -400,6 +480,7 @@
         <li class="nav-item"><a href="#target-user" class="nav-link">2. Target User</a></li>
         <li class="nav-item"><a href="#glossary" class="nav-link">3. Glossary</a></li>
         <li class="nav-item"><a href="#features" class="nav-link">4. Features</a></li>
+        <li class="nav-item"><a href="#prd-workflow" class="nav-link" style="padding-left: 24px; font-size: 12px; color: #60a5fa;">└ 4.6 System Workflow &amp; Visualization</a></li>
         <li class="nav-item"><a href="#non-goals" class="nav-link">5. Non-Goals</a></li>
         <li class="nav-item"><a href="#mvp-scope" class="nav-link">6. MVP Scope</a></li>
         <li class="nav-item"><a href="#success-metrics" class="nav-link">7. Success Metrics</a></li>
@@ -603,6 +684,146 @@
             <p>The system must dynamically select the next micro-exercise using Case-Based Reasoning (CBR) to match the student's current mastery probability P(L_t) computed by the BKT engine.</p>
             <div class="alert warning">
               <strong>[ASSUMPTION: Cache Persistence]</strong> Active question responses and intermediate BKT state updates are written to Redis, with the finalized mastery probability P(L_t) and completion progress flushed to PostgreSQL only when the session terminates.
+            </div>
+          </div>
+        </div>
+
+        <!-- Feature 4.6: PRD System Workflow & Architecture Visualization -->
+        <div class="feature-card" id="prd-workflow">
+          <h3>4.6 PRD End-to-End System Workflow &amp; Architecture Visualization</h3>
+          <p><strong>Description:</strong> Illustrates the complete operational lifecycle of the PSU Adaptive Learning System (PSU ALS) from student onboarding and diagnostic pre-testing to real-time BKT mastery evaluation and database persistence.</p>
+          
+          <div class="flow-viz-container">
+            <div class="flow-viz-title">⚡ Operational Phase Breakdown</div>
+            <div class="flow-grid">
+              <div class="flow-step-card">
+                <span class="flow-step-number">PHASE 1</span>
+                <div class="flow-step-title">🎯 Onboarding &amp; Pre-test Gateway</div>
+                <div class="flow-step-desc">
+                  Student selects Major, Year &amp; self-reported familiarity. System serves a 5-question diagnostic pre-test to compute initial BKT mastery probability <code>P(L_0) = P_base + ΔP(Pretest) + ΔP(Profile)</code>.
+                </div>
+                <span class="flow-step-tag">FR-1.1 &amp; FR-1.2</span>
+              </div>
+
+              <div class="flow-step-card">
+                <span class="flow-step-number">PHASE 2</span>
+                <div class="flow-step-title">🗺️ Concept Map Prerequisite Resolver</div>
+                <div class="flow-step-desc">
+                  Evaluates dependency graph. If all parent prerequisites have progress <code>&ge; 60%</code>, node unlocks (Available). Nodes with <code>P(L_t) &ge; 0.95</code> display as Mastered (Green).
+                </div>
+                <span class="flow-step-tag">FR-2.1 &amp; FR-2.2</span>
+              </div>
+
+              <div class="flow-step-card">
+                <span class="flow-step-number">PHASE 3</span>
+                <div class="flow-step-title">⚡ Real-Time BKT Quiz Loop</div>
+                <div class="flow-step-desc">
+                  Low-latency Socket.IO (&lt;50ms) micro-exercise validation. Updates Bayesian Knowledge Tracing posterior probability <code>P(L_t | C_t)</code> incorporating Guess P(G) and Slip P(S).
+                </div>
+                <span class="flow-step-tag">FR-3.1 &amp; FR-4.1</span>
+              </div>
+
+              <div class="flow-step-card">
+                <span class="flow-step-number">PHASE 4</span>
+                <div class="flow-step-title">💾 High-Performance Persistence</div>
+                <div class="flow-step-desc">
+                  Active session responses cached in Redis. Finalized BKT mastery probabilities and progress (0-100%) flushed atomically to PostgreSQL JSONB <code>conceptMapState</code>.
+                </div>
+                <span class="flow-step-tag">FR-4.2 &amp; FR-5.1</span>
+              </div>
+            </div>
+
+            <div class="flow-viz-title" style="margin-top: 28px;">📊 End-to-End System Flowchart Visualization</div>
+            <div class="svg-flow-wrapper">
+              <svg viewBox="0 0 960 380" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg" style="font-family: 'Inter', sans-serif;">
+                <defs>
+                  <linearGradient id="grad-blue" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#2563eb"/>
+                    <stop offset="100%" stop-color="#1d4ed8"/>
+                  </linearGradient>
+                  <linearGradient id="grad-cyan" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#0284c7"/>
+                    <stop offset="100%" stop-color="#0369a1"/>
+                  </linearGradient>
+                  <linearGradient id="grad-green" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#059669"/>
+                    <stop offset="100%" stop-color="#047857"/>
+                  </linearGradient>
+                  <linearGradient id="grad-purple" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#7c3aed"/>
+                    <stop offset="100%" stop-color="#6d28d9"/>
+                  </linearGradient>
+                  <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+                    <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000" flood-opacity="0.35"/>
+                  </filter>
+                  <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                    <path d="M 0 1 L 10 5 L 0 9 z" fill="#60a5fa"/>
+                  </marker>
+                </defs>
+
+                <!-- Background Track Lines -->
+                <path d="M 180 85 L 260 85" stroke="#3b82f6" stroke-width="2.5" stroke-dasharray="4,4" marker-end="url(#arrow)" />
+                <path d="M 420 85 L 500 85" stroke="#3b82f6" stroke-width="2.5" marker-end="url(#arrow)" />
+                <path d="M 660 85 L 740 85" stroke="#3b82f6" stroke-width="2.5" marker-end="url(#arrow)" />
+                <path d="M 820 125 L 820 185 L 580 185 L 580 230" stroke="#10b981" stroke-width="2.5" marker-end="url(#arrow)" />
+                <path d="M 580 305 L 580 340 L 100 340 L 100 125" stroke="#f59e0b" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#arrow)" />
+                <path d="M 660 268 L 740 268" stroke="#10b981" stroke-width="2.5" marker-end="url(#arrow)" />
+
+                <!-- Box 1: Registration & Pretest -->
+                <g transform="translate(20, 45)" filter="url(#shadow)">
+                  <rect width="160" height="80" rx="10" fill="url(#grad-blue)" stroke="#60a5fa" stroke-width="1.5"/>
+                  <text x="80" y="30" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="700">1. Student Onboard</text>
+                  <text x="80" y="50" text-anchor="middle" fill="#dbeafe" font-size="11">5-Q Diagnostic Pretest</text>
+                  <text x="80" y="66" text-anchor="middle" fill="#93c5fd" font-size="10" font-weight="600">Calculate P(L₀)</text>
+                </g>
+
+                <!-- Box 2: Concept Map Resolver -->
+                <g transform="translate(260, 45)" filter="url(#shadow)">
+                  <rect width="160" height="80" rx="10" fill="url(#grad-cyan)" stroke="#38bdf8" stroke-width="1.5"/>
+                  <text x="80" y="30" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="700">2. Concept Resolver</text>
+                  <text x="80" y="50" text-anchor="middle" fill="#e0f2fe" font-size="11">Prereq Progress ≥ 60%</text>
+                  <text x="80" y="66" text-anchor="middle" fill="#7dd3fc" font-size="10" font-weight="600">Unlock Eligible Nodes</text>
+                </g>
+
+                <!-- Box 3: Socket.IO Quiz Loop -->
+                <g transform="translate(500, 45)" filter="url(#shadow)">
+                  <rect width="160" height="80" rx="10" fill="url(#grad-purple)" stroke="#a78bfa" stroke-width="1.5"/>
+                  <text x="80" y="30" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="700">3. WebSocket Loop</text>
+                  <text x="80" y="50" text-anchor="middle" fill="#ede9fe" font-size="11">Sub-50ms Verification</text>
+                  <text x="80" y="66" text-anchor="middle" fill="#c4b5fd" font-size="10" font-weight="600">Real-Time Quiz Response</text>
+                </g>
+
+                <!-- Box 4: BKT Mastery Engine -->
+                <g transform="translate(740, 45)" filter="url(#shadow)">
+                  <rect width="160" height="80" rx="10" fill="url(#grad-green)" stroke="#34d399" stroke-width="1.5"/>
+                  <text x="80" y="28" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="700">4. BKT Engine</text>
+                  <text x="80" y="46" text-anchor="middle" fill="#d1fae5" font-size="11">Bayesian Update P(Lₜ|Cₜ)</text>
+                  <text x="80" y="64" text-anchor="middle" fill="#a7f3d0" font-size="10" font-weight="700">Mastery ≥ 95% Check</text>
+                </g>
+
+                <!-- Box 5: Redis Cache -->
+                <g transform="translate(500, 230)" filter="url(#shadow)">
+                  <rect width="160" height="75" rx="10" fill="#1e293b" stroke="#f59e0b" stroke-width="1.5"/>
+                  <text x="80" y="28" text-anchor="middle" fill="#fbbf24" font-size="13" font-weight="700">Redis Session Cache</text>
+                  <text x="80" y="48" text-anchor="middle" fill="#cbd5e1" font-size="11">Temporary Quiz State</text>
+                  <text x="80" y="64" text-anchor="middle" fill="#94a3b8" font-size="10">Subsequent Question Loop</text>
+                </g>
+
+                <!-- Box 6: PostgreSQL JSONB Storage -->
+                <g transform="translate(740, 230)" filter="url(#shadow)">
+                  <rect width="180" height="75" rx="10" fill="#0f172a" stroke="#10b981" stroke-width="1.5"/>
+                  <text x="90" y="28" text-anchor="middle" fill="#10b981" font-size="13" font-weight="700">PostgreSQL Database</text>
+                  <text x="90" y="48" text-anchor="middle" fill="#e2e8f0" font-size="11">13 Core Relational Tables</text>
+                  <text x="90" y="64" text-anchor="middle" fill="#6ee7b7" font-size="10" font-weight="600">JSONB conceptMapState Flush</text>
+                </g>
+
+                <!-- Labels on connectors -->
+                <text x="220" y="75" fill="#93c5fd" font-size="10" text-anchor="middle" font-weight="600">P(L₀)</text>
+                <text x="460" y="75" fill="#93c5fd" font-size="10" text-anchor="middle" font-weight="600">Selected Node</text>
+                <text x="700" y="75" fill="#93c5fd" font-size="10" text-anchor="middle" font-weight="600">Submit Answer</text>
+                <text x="700" y="260" fill="#10b981" font-size="10" text-anchor="middle" font-weight="700">Session End (Flush)</text>
+                <text x="340" y="330" fill="#f59e0b" font-size="10" text-anchor="middle" font-weight="600">Next Question / Retry (if P(Lₜ) &lt; 95%)</text>
+              </svg>
             </div>
           </div>
         </div>

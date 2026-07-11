@@ -1,0 +1,878 @@
+  <!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PRD ภาษาไทย: PSU Adaptive Learning System (PSU ALS)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+Thai:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-color: #0b1329;
+      --panel-bg: rgba(22, 33, 62, 0.7);
+      --border-color: rgba(0, 71, 171, 0.3);
+      --primary-color: #3b82f6;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --sidebar-width: 280px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Noto Sans Thai', 'Inter', sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      line-height: 1.75;
+      overflow-x: hidden;
+      background-image:
+        radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.15) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(0, 71, 171, 0.15) 0px, transparent 50%);
+      background-attachment: fixed;
+    }
+
+    .container {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      width: var(--sidebar-width);
+      background-color: rgba(15, 23, 42, 0.9);
+      border-right: 1px solid var(--border-color);
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      padding: 24px;
+      backdrop-filter: blur(10px);
+    }
+
+    .logo-area {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 32px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 20px;
+    }
+
+    .logo-icon {
+      font-size: 24px;
+    }
+
+    .logo-text {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: 1px;
+    }
+
+    .nav-links {
+      list-style-type: none;
+      overflow-y: auto;
+      flex: 1;
+      padding-right: 4px;
+    }
+
+    .nav-item {
+      margin-bottom: 6px;
+    }
+
+    .nav-link {
+      display: block;
+      padding: 10px 14px;
+      color: var(--text-muted);
+      text-decoration: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .nav-link:hover,
+    .nav-link.active {
+      color: var(--text-main);
+      background-color: rgba(59, 130, 246, 0.15);
+      border-left: 3px solid var(--primary-color);
+      padding-left: 17px;
+    }
+
+    .main-content {
+      margin-left: var(--sidebar-width);
+      flex: 1;
+      padding: 40px 60px;
+      max-width: 1000px;
+    }
+
+    h1 {
+      font-size: 36px;
+      font-weight: 800;
+      margin-bottom: 12px;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #fff 30%, var(--primary-color) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .metadata-strip {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 40px;
+      flex-wrap: wrap;
+    }
+
+    .meta-badge {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 6px;
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid var(--border-color);
+      color: var(--primary-color);
+    }
+
+    section {
+      margin-bottom: 48px;
+      scroll-margin-top: 40px;
+    }
+
+    h2 {
+      font-size: 22px;
+      font-weight: 700;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 10px;
+      margin-bottom: 20px;
+      color: var(--text-main);
+    }
+
+    h3 {
+      font-size: 16px;
+      font-weight: 700;
+      margin-top: 24px;
+      margin-bottom: 12px;
+      color: #60a5fa;
+    }
+
+    p {
+      margin-bottom: 16px;
+      color: #cbd5e1;
+      font-size: 14px;
+    }
+
+    ul,
+    ol {
+      margin-bottom: 16px;
+      padding-left: 20px;
+      font-size: 14px;
+      color: #cbd5e1;
+    }
+
+    li {
+      margin-bottom: 8px;
+    }
+
+    .feature-card,
+    .uj-block {
+      background: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+      backdrop-filter: blur(5px);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .fr-block {
+      border-left: 3px solid var(--primary-color);
+      background: rgba(255, 255, 255, 0.02);
+      padding: 16px;
+      margin-top: 20px;
+      border-radius: 0 8px 8px 0;
+    }
+
+    .fr-header {
+      font-weight: 700;
+      color: var(--text-main);
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+
+    .fr-consequences {
+      margin-top: 12px;
+      background: rgba(0, 0, 0, 0.2);
+      padding: 12px;
+      border-radius: 6px;
+    }
+
+    .fr-consequences-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--success);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .glossary-item {
+      margin-bottom: 16px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      padding: 12px 16px;
+      border-radius: 8px;
+      color: #cbd5e1;
+      font-size: 14px;
+    }
+
+    .glossary-term {
+      font-weight: 700;
+      color: var(--primary-color);
+    }
+
+    .alert {
+      padding: 16px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      margin-bottom: 20px;
+      font-size: 13.5px;
+    }
+
+    .alert.note {
+      background: rgba(59, 130, 246, 0.08);
+      border-color: rgba(59, 130, 246, 0.2);
+      color: #93c5fd;
+    }
+
+    .alert.warning {
+      background: rgba(245, 158, 11, 0.08);
+      border-color: rgba(245, 158, 11, 0.2);
+      color: #fde68a;
+    }
+
+    pre,
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+    }
+
+    code.inline-code {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #f43f5e;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 24px;
+      font-size: 13.5px;
+    }
+
+    th,
+    td {
+      border: 1px solid var(--border-color);
+      padding: 10px 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background-color: rgba(59, 130, 246, 0.1);
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    td {
+      color: #cbd5e1;
+    }
+
+    .uj-title {
+      font-weight: 700;
+      color: var(--primary-color);
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+
+    .uj-meta {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+
+    .assumption-item {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 10px;
+      background: rgba(245, 158, 11, 0.03);
+      padding: 10px 14px;
+      border-radius: 6px;
+      border-left: 3px solid var(--warning);
+      font-size: 13.5px;
+      color: #cbd5e1;
+    }
+
+    .assumption-tag {
+      font-weight: 700;
+      color: var(--warning);
+      min-width: 32px;
+    }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        display: none;
+      }
+
+      .main-content {
+        margin-left: 0;
+        padding: 20px;
+    /* Flow & Architecture Visualization */
+    .flow-viz-container {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(59, 130, 246, 0.35);
+      border-radius: 14px;
+      padding: 24px;
+      margin: 24px 0;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    }
+    .flow-viz-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #60a5fa;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .flow-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .flow-step-card {
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid rgba(96, 165, 250, 0.2);
+      border-radius: 10px;
+      padding: 16px;
+      position: relative;
+      transition: all 0.25s ease;
+    }
+    .flow-step-card:hover {
+      transform: translateY(-4px);
+      border-color: #3b82f6;
+      box-shadow: 0 8px 25px rgba(59, 130, 246, 0.25);
+    }
+    .flow-step-number {
+      position: absolute;
+      top: -10px;
+      right: 14px;
+      background: #3b82f6;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 20px;
+      box-shadow: 0 2px 8px rgba(59, 130, 246, 0.5);
+    }
+    .flow-step-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #f8fafc;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .flow-step-desc {
+      font-size: 12.5px;
+      color: #cbd5e1;
+      line-height: 1.5;
+    }
+    .flow-step-tag {
+      display: inline-block;
+      font-size: 10.5px;
+      font-weight: 600;
+      color: #38bdf8;
+      background: rgba(56, 189, 248, 0.12);
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-top: 10px;
+    }
+    .svg-flow-wrapper {
+      width: 100%;
+      overflow-x: auto;
+      margin-top: 16px;
+      background: rgba(11, 19, 41, 0.9);
+      border-radius: 10px;
+      padding: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <aside class="sidebar">
+      <div class="logo-area">
+        <span class="logo-icon">📊</span>
+        <span class="logo-text">PSU · ALS</span>
+      </div>
+      <ul class="nav-links">
+        <li class="nav-item"><a href="#doc-purpose" class="nav-link active">0. วัตถุประสงค์เอกสาร</a></li>
+        <li class="nav-item"><a href="#vision" class="nav-link">1. วิสัยทัศน์</a></li>
+        <li class="nav-item"><a href="#target-user" class="nav-link">2. ผู้ใช้เป้าหมาย</a></li>
+        <li class="nav-item"><a href="#glossary" class="nav-link">3. คำศัพท์สำคัญ</a></li>
+        <li class="nav-item"><a href="#features" class="nav-link">4. ฟีเจอร์</a></li>
+        <li class="nav-item"><a href="#prd-workflow" class="nav-link" style="padding-left: 24px; font-size: 12px; color: #60a5fa;">└ 4.6 แผนภาพขั้นตอนการทำงานและระบบ</a></li>
+        <li class="nav-item"><a href="#non-goals" class="nav-link">5. สิ่งที่ไม่ทำ</a></li>
+        <li class="nav-item"><a href="#mvp-scope" class="nav-link">6. ขอบเขต MVP</a></li>
+        <li class="nav-item"><a href="#success-metrics" class="nav-link">7. ตัวชี้วัดความสำเร็จ</a></li>
+        <li class="nav-item"><a href="#open-questions" class="nav-link">8. คำถามเปิด</a></li>
+        <li class="nav-item"><a href="#assumptions" class="nav-link">9. สมมติฐาน</a></li>
+      </ul>
+    </aside>
+
+    <main class="main-content">
+      <header>
+        <h1>PSU Adaptive Learning System (PSU ALS)</h1>
+        <div class="metadata-strip">
+          <span class="meta-badge">สถานะ: ฉบับสมบูรณ์</span>
+          <span class="meta-badge">สร้าง: 2026-07-02</span>
+          <span class="meta-badge">อัปเดต: 2026-07-02</span>
+        </div>
+      </header>
+
+      <section id="doc-purpose">
+        <h2>0. วัตถุประสงค์ของเอกสาร</h2>
+        <p>เอกสาร Product Requirements Document (PRD) ฉบับนี้อธิบายข้อกำหนดด้านฟังก์ชัน เส้นทางการใช้งานของผู้ใช้ ตัวชี้วัดความสำเร็จ และขอบเขต MVP ของ <strong>PSU Adaptive Learning System (PSU ALS)</strong> เพื่อให้ PM, UX designer, system architect และ developer เข้าใจภาพผลิตภัณฑ์ตรงกัน เอกสารใช้คำศัพท์กลางเพื่อลดความคลุมเครือ และกำหนด requirement ด้วยรหัสที่อ้างอิงได้คงที่ตั้งแต่ <code class="inline-code">FR-1.1</code> ถึง <code class="inline-code">FR-5.2</code> รวมถึงระบุสมมติฐานสำคัญด้วย <code class="inline-code">[ASSUMPTION]</code></p>
+        <div class="alert note">
+          <strong>ข้อมูลอ้างอิง:</strong> เอกสารนี้ต่อยอดจาก prototype ฝั่ง frontend แบบ React + Vite ในโฟลเดอร์ <code class="inline-code">go6-prototype</code> และ schema ฐานข้อมูล TypeORM ที่ออกแบบสำหรับ NestJS
+        </div>
+      </section>
+
+      <section id="vision">
+        <h2>1. วิสัยทัศน์</h2>
+        <p>หลักสูตรการเขียนโปรแกรมแบบเดียวกันสำหรับทุกคนมักไม่ตอบโจทย์นักศึกษาที่มีพื้นฐานต่างกัน ส่งผลให้บางคนตามไม่ทัน ขณะที่บางคนที่เก่งอยู่แล้วรู้สึกเสียเวลากับเนื้อหาพื้นฐานซ้ำ ๆ</p>
+        <p><strong>PSU Adaptive Learning System (PSU ALS)</strong> แก้ปัญหานี้ด้วยวงจรการเรียนรู้แบบปรับตัวได้ ซึ่งปรับจังหวะและเนื้อหาให้เหมาะกับผู้เรียนแต่ละคน ระบบลดองค์ประกอบเกมที่ไม่จำเป็น เช่น level ตัวละครหรือกราฟิก RPG เพื่อให้ผู้เรียนโฟกัสกับการเติบโตของความเข้าใจเชิงแนวคิด</p>
+        <p>ผู้เรียนจะเรียนผ่าน <strong>Concept Map หรือ Skill Tree</strong> ซึ่งเป็นกราฟแนวคิดแบบ directed acyclic graph ที่ปลดล็อก node ตามความก้าวหน้า ระบบใช้ <strong>Bayesian Knowledge Tracing (BKT) Mastery Engine</strong> เพื่อติดตามความน่าจะเป็นว่าผู้เรียนเชี่ยวชาญแนวคิดนั้นแล้ว และใช้ <strong>Case-Based Reasoning (CBR)</strong> เพื่อเลือกเส้นทางคำถามที่เหมาะสม ทำให้ผู้เรียนได้รับ micro-exercise ที่พอดีกับระดับความสามารถของตนเอง</p>
+      </section>
+
+      <section id="target-user">
+        <h2>2. ผู้ใช้เป้าหมาย</h2>
+
+        <h3>2.1 งานที่ผู้ใช้ต้องการทำให้สำเร็จ</h3>
+        <ul>
+          <li><strong>เรียนตามจังหวะของตัวเอง:</strong> ในฐานะนักศึกษาชั้นปีที่ 2 สาขา CS/ICT ฉันต้องการเรียนแนวคิดการเขียนโปรแกรมด้วยความเร็วที่เหมาะกับตัวเอง เพื่อไม่ให้รู้สึกตามไม่ทันหรือเบื่อ</li>
+          <li><strong>ตรวจคำตอบได้ทันที:</strong> ในฐานะนักศึกษา ฉันต้องการทดสอบความเข้าใจเรื่อง code block และได้รับคะแนนหรือ feedback ทันที เพื่อแก้ความเข้าใจผิดได้เร็ว</li>
+          <li><strong>ประเมินด้วยการลงมือทำ:</strong> ในฐานะผู้ใช้ ฉันต้องการข้าม lecture วิดีโอยาว ๆ และพิสูจน์ความสามารถผ่านแบบฝึกโต้ตอบโดยตรง</li>
+          <li><strong>พัฒนาเฉพาะจุดอ่อน:</strong> ในฐานะผู้เรียน ฉันต้องการให้ระบบวิเคราะห์จุดอ่อนและส่งแบบฝึกที่ช่วยแก้ช่องว่างนั้นโดยตรง</li>
+        </ul>
+
+        <h3>2.2 กลุ่มที่ไม่ใช่ผู้ใช้หลักใน v1</h3>
+        <ul>
+          <li><strong>อาจารย์ที่ต้องการระบบสร้างคำถาม:</strong> MVP โฟกัสที่การเรียนของนักศึกษาและการคำนวณ session เท่านั้น การแก้ concept node หรือ question bank จะทำผ่านฐานข้อมูลโดยตรง</li>
+          <li><strong>ผู้เริ่มต้นแบบไม่มีพื้นฐานเลย:</strong> ระบบนี้ออกแบบสำหรับนักศึกษาที่มีพื้นฐานเบื้องต้นเรื่อง variables และ operations แล้ว โดยทำหน้าที่เป็น adaptive coach เสริม</li>
+        </ul>
+
+        <h3>2.3 เส้นทางการใช้งานสำคัญ</h3>
+
+        <div class="uj-block">
+          <div class="uj-title">UJ-1: Afdol เริ่มจาก Pretest เพื่อข้ามพื้นฐานเรื่องตัวแปร</div>
+          <div class="uj-meta"><strong>Afdol</strong>, นักศึกษา ICT ปี 2 ที่รู้เรื่อง Python variables แล้ว · เข้าสู่ระบบแล้ว อยู่ที่หน้า GetStart</div>
+          <p>Afdol เริ่ม session การเรียนและเลือก <strong>Pretest Gateway</strong> ระบบแสดงคำถาม diagnostic 5 ข้อ ครอบคลุม variables, loops, functions, sorting และ graphs เขาตอบถูก 3 ข้อ ระบบนำความถูกต้องและเวลาในการตอบไปตั้งค่า BKT mastery probability เริ่มต้นให้อยู่ในระดับ Level 2 (Core) จากนั้น Afdol เข้าสู่ Home dashboard โดย tier Foundation (T1) ถูก mark ว่าสำเร็จ 100% และปลดล็อก variables, operators และ basic I/O เขาจึงไปเริ่มเรียน Loops ได้ทันที</p>
+          <p><em>กรณีขอบ:</em> หาก Afdol ออกจากแอปกลางคัน คำตอบจะถูก cache ไว้ ทำให้กลับมาทำต่อหรือ submit pretest ได้เมื่อ login ใหม่</p>
+        </div>
+
+        <div class="uj-block">
+          <div class="uj-title">UJ-2: นักศึกษากด concept node ที่ยังล็อกอยู่ และถูกพาไปดู prerequisite</div>
+          <div class="uj-meta"><strong>Student</strong>, ต้องการเรียน OOP inheritance · อยู่ที่ Dashboard และ Interactive Concept Map</div>
+          <p>นักศึกษาดู Concept Map และอยากข้ามไปเรียน OOP จึงคลิก node <code>OOP - Inheritance</code> ที่ยังล็อกอยู่ ระบบเปิด Details Side Panel พร้อมสถานะ locked และแสดง prerequisite ได้แก่ <code>Linked List</code> และ <code>Recursion</code> ปุ่ม "Go to Exercise" ถูก disable เมื่อคลิก prerequisite link ระบบ highlight เส้นเชื่อมใน SVG map และเลื่อน panel ไปยัง concept นั้น</p>
+        </div>
+      </section>
+
+      <section id="glossary">
+        <h2>3. คำศัพท์สำคัญ</h2>
+
+        <div class="glossary-item"><span class="glossary-term">Concept Node (Skill)</span> - หน่วยการเรียนรู้หนึ่ง node ในต้นไม้ เช่น Loops โดยมีค่า mastery probability P(L_t), progress 0-100% และ dependency link</div>
+        <div class="glossary-item"><span class="glossary-term">Prerequisite</span> - เส้นเชื่อมแบบมีทิศทางใน map ที่บอกว่า node แม่ต้องมี progress อย่างน้อย 60% ก่อน node ลูกจึงจะปลดล็อก</div>
+        <div class="glossary-item"><span class="glossary-term">Mastery Probability P(L_t)</span> - ความน่าจะเป็นแบบ Bayesian ช่วง 0.0 ถึง 1.0 ที่บอกว่านักศึกษาเชี่ยวชาญ concept ใน node นั้นแล้วมากน้อยแค่ไหน</div>
+        <div class="glossary-item"><span class="glossary-term">Concept Map (Skill Tree)</span> - โครงสร้างหลักสูตรแบบ DAG ที่แสดงเป็นแผนภาพ node สีต่าง ๆ ตามสถานะ</div>
+        <div class="glossary-item"><span class="glossary-term">Micro-Exercise</span> - ข้อฝึกโต้ตอบขนาดเล็ก เช่น multiple choice หรือเติม code snippet ในช่องว่าง</div>
+        <div class="glossary-item"><span class="glossary-term">Session</span> - การทำแบบฝึกของนักศึกษาใน Concept Node หนึ่ง ๆ โดยประกอบด้วยคำถาม 5 ข้อ</div>
+        <div class="glossary-item"><span class="glossary-term">Behavior Profile</span> - การจัดกลุ่มพฤติกรรมการเรียน เช่น Mastery, Fast, Steady, Slow, Struggler จากเวลา ความถูกต้อง และ momentum</div>
+      </section>
+
+      <section id="features">
+        <h2>4. ฟีเจอร์</h2>
+
+        <div class="feature-card">
+          <h3>4.1 Student Pre-test Gateway</h3>
+          <p><strong>คำอธิบาย:</strong> ประเมินระดับเริ่มต้นของผู้ใช้ เพื่อให้ข้าม concept ที่ซ้ำซ้อนกับความรู้เดิมได้ รองรับ UJ-1</p>
+
+          <div class="fr-block">
+            <div class="fr-header">FR-1.1: การทำ Pre-test และการให้คะแนน</div>
+            <p>ระบบต้องแสดง pretest จำนวน 5 ข้อ ครอบคลุม tier T1 ถึง T3 และนักศึกษาจะย้อนกลับไปแก้คำตอบที่ submit แล้วไม่ได้</p>
+            <div class="fr-consequences">
+              <div class="fr-consequences-title">ผลลัพธ์ที่ทดสอบได้</div>
+              <ul>
+                <li>หากนักศึกษากด Next โดยยังไม่เลือกคำตอบ ระบบต้องแสดง warning modal</li>
+                <li>ระบบต้องบันทึก timestamp ของการ submit แต่ละข้อ เพื่อใช้คำนวณ metric ด้านเวลา</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="fr-block">
+            <div class="fr-header">FR-1.2: การตั้งค่า BKT probability เริ่มต้น</div>
+            <p>ระบบต้องคำนวณและกำหนดค่า initial concept mastery probability P(L_0) แบบ dynamic โดยรวมผล pre-test ทั้งความถูกต้องและเวลาเข้ากับข้อมูล profile เช่น learning goal, academic year และระดับ familiarity/experience ที่ผู้ใช้กรอก</p>
+            <div class="alert warning">
+              <strong>[ASSUMPTION: Dynamic BKT Onboarding Calibration]</strong> ค่า P(L_0) คำนวณจาก P_base(Familiarity) + Delta P(Pretest) + Delta P(Profile) โดย Familiarity map เป็น Novice (0.15), Intermediate (0.45), Advanced (0.75); Pretest เพิ่มได้สูงสุด +0.15 จากความถูกต้องและความเร็ว; Profile เพิ่มได้สูงสุด +0.09 จากความเกี่ยวข้องกับ ICT/CS และการอยู่ชั้นปี 2 ขึ้นไป
+            </div>
+            <div class="fr-consequences">
+              <div class="fr-consequences-title">ผลลัพธ์ที่ทดสอบได้</div>
+              <ul>
+                <li>เมื่อทำ pretest เสร็จ ระบบต้องอัปเดต conceptMapState ใน profile โดยตั้ง progress ของ node ที่ข้ามได้เป็น 100% และปลดล็อก node ที่ขึ้นต่อจาก node เหล่านั้น</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="feature-card">
+          <h3>4.2 Interactive Concept Map (Skill Tree)</h3>
+          <p><strong>คำอธิบาย:</strong> แสดงแผนภาพหลักสูตรให้เห็นว่า path ไหนเรียนได้แล้วหรือยังล็อกอยู่ รองรับ UJ-2</p>
+
+          <div class="fr-block">
+            <div class="fr-header">FR-2.1: การ render graph และ layout</div>
+            <p>UI ต้องแสดง node ด้วย style ที่แตกต่างกันตามสถานะ ได้แก่ Locked, Available และ Mastered</p>
+            <div class="fr-consequences">
+              <div class="fr-consequences-title">ผลลัพธ์ที่ทดสอบได้</div>
+              <ul>
+                <li>node ที่ล็อกต้องแสดงไอคอน lock ข้อความสีเทา และ disable ปุ่ม Start ใน side panel</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="fr-block">
+            <div class="fr-header">FR-2.2: Node Detail Side Panel</div>
+            <p>เมื่อคลิก node ที่ปลดล็อกแล้วหรือ node ที่สามารถปลดล็อกได้ ระบบต้องเลื่อน panel รายละเอียดเข้ามา โดยแสดง mastery probability P(L_t), progress ปัจจุบัน, prerequisites และ descendant nodes</p>
+          </div>
+        </div>
+
+        <div class="feature-card">
+          <h3>4.3 Bayesian Knowledge Tracing (BKT) Mastery Engine</h3>
+          <p><strong>คำอธิบาย:</strong> ประเมินความน่าจะเป็นว่านักศึกษาเชี่ยวชาญ concept แต่ละตัว หลังตอบ exercise แต่ละข้อ รองรับ UJ-1 และ UJ-2</p>
+
+          <div class="fr-block">
+            <div class="fr-header">FR-3.1: การประมาณ latent state</div>
+            <p>ระบบต้องคำนวณ probability of mastery P(L_t) สำหรับ Concept Node ที่ใช้งานอยู่หลังผู้เรียนทำ micro-exercise เสร็จ โดยใช้สูตรมาตรฐานของ BKT Bayes สำหรับทั้งกรณีตอบถูกและตอบผิด</p>
+            <div class="alert warning">
+              <strong>[ASSUMPTION: BKT Node Mastery Threshold]</strong> นักศึกษาจะถือว่าเชี่ยวชาญ concept node เมื่อค่า mastery probability P(L_t) มากกว่าหรือเท่ากับ 0.95 หรือ 95%
+            </div>
+          </div>
+
+          <div class="fr-block">
+            <div class="fr-header">FR-3.2: การปลดล็อก Concept Node ต่อเนื่อง</div>
+            <p>เมื่อ mastery probability P(L_t) ของนักศึกษามากกว่าหรือเท่ากับ 0.95 ระบบต้องตั้ง progress ของ node เป็น 100% เปลี่ยนสถานะเป็น completed และอัปเดต descendant nodes ทั้งหมดให้เป็น unlocked</p>
+          </div>
+        </div>
+
+        <div class="feature-card">
+          <h3>4.4 Interactive Micro-Exercises Loop</h3>
+          <p><strong>คำอธิบาย:</strong> ขับเคลื่อน game loop latency ต่ำด้วย Socket.IO gateway</p>
+
+          <div class="fr-block">
+            <div class="fr-header">FR-4.1: WebSocket Gateways</div>
+            <p>แบบฝึกต้องทำงานบน WebSocket connection ที่คงอยู่ เพื่อรองรับการส่งคำถามและตัวจับเวลาแบบ real-time</p>
+            <div class="alert warning">
+              <strong>[ASSUMPTION: String Verification]</strong> แบบฝึกใน MVP จะตรวจ code blanks ด้วย string matching แทนการรัน arbitrary code ใน sandbox container
+            </div>
+          </div>
+
+          <div class="fr-block">
+            <div class="fr-header">FR-4.2: การประเมินผลแบบ Real-time</div>
+            <p>คำตอบของผู้ใช้ต้องถูก validate, record และส่งผลลัพธ์กลับภายใน 50ms</p>
+          </div>
+        </div>
+
+        <div class="feature-card">
+          <h3>4.5 BKT-Based Adaptive Recommendation Engine</h3>
+          <p><strong>คำอธิบาย:</strong> ประสานการเลือกคำถามและอัปเดตสถิติ mastery ของนักศึกษาเมื่อ session สิ้นสุด</p>
+
+          <div class="fr-block">
+            <div class="fr-header">FR-5.1: การเลือกเส้นทางตาม Mastery</div>
+            <p>ระบบต้องเลือก micro-exercise ถัดไปแบบ dynamic ด้วย Case-Based Reasoning (CBR) ให้สอดคล้องกับ mastery probability P(L_t) ปัจจุบันของนักศึกษาที่คำนวณจาก BKT engine</p>
+            <div class="alert warning">
+              <strong>[ASSUMPTION: Cache Persistence]</strong> คำตอบที่อยู่ระหว่าง session และ intermediate BKT state updates จะถูกเขียนลง Redis ส่วน finalized mastery probability P(L_t) และ completion progress จะ flush ลง PostgreSQL เมื่อ session จบเท่านั้น
+            </div>
+          </div>
+        </div>
+
+        <!-- Feature 4.6: PRD System Workflow & Architecture Visualization -->
+        <div class="feature-card" id="prd-workflow">
+          <h3>4.6 แผนภาพขั้นตอนการทำงานและสถาปัตยกรรมระบบ (PRD End-to-End System Workflow &amp; Visualization)</h3>
+          <p><strong>คำอธิบาย:</strong> แสดงวงจรการทำงานครบวงจรของ PSU Adaptive Learning System ตั้งแต่ขั้นตอนการลงทะเบียนและ Pre-test ประเมินทักษะเริ่มต้น จนถึงวงจรเรียลไทม์ BKT Mastery และการบันทึกลงฐานข้อมูล</p>
+          
+          <div class="flow-viz-container">
+            <div class="flow-viz-title">⚡ ลำดับขั้นตอนการทำงานหลักของระบบ (Operational Phase Breakdown)</div>
+            <div class="flow-grid">
+              <div class="flow-step-card">
+                <span class="flow-step-number">PHASE 1</span>
+                <div class="flow-step-title">🎯 Onboarding &amp; Pre-test Gateway</div>
+                <div class="flow-step-desc">
+                  ผู้เรียนเลือกสาขา ชั้นปี และระดับความคุ้นเคย ระบบให้ทำ Pre-test 5 ข้อเพื่อคำนวณความน่าจะเป็นเริ่มต้น <code>P(L_0) = P_base + ΔP(Pretest) + ΔP(Profile)</code>
+                </div>
+                <span class="flow-step-tag">FR-1.1 &amp; FR-1.2</span>
+              </div>
+
+              <div class="flow-step-card">
+                <span class="flow-step-number">PHASE 2</span>
+                <div class="flow-step-title">🗺️ Concept Map Prerequisite Resolver</div>
+                <div class="flow-step-desc">
+                  ตรวจสอบความพร้อมของเงื่อนไข Prerequisite หาก Node พ่อแม่ทั้งหมดมี Progress <code>&ge; 60%</code> จะปลดล็อก Node ให้เรียนได้ Node ที่ผ่านเกณฑ์ <code>P(L_t) &ge; 0.95</code> จะเป็นสีเขียว (Mastered)
+                </div>
+                <span class="flow-step-tag">FR-2.1 &amp; FR-2.2</span>
+              </div>
+
+              <div class="flow-step-card">
+                <span class="flow-step-number">PHASE 3</span>
+                <div class="flow-step-title">⚡ Real-Time BKT Quiz Loop</div>
+                <div class="flow-step-desc">
+                  ทำแบบฝึกหัดโต้ตอบผ่าน Socket.IO ลาเทนซีต่ำ (&lt;50ms) อัปเดตความน่าจะเป็น Bayesian Knowledge Tracing <code>P(L_t | C_t)</code> ร่วมกับค่าโอกาสเดา P(G) และสะเพร่า P(S)
+                </div>
+                <span class="flow-step-tag">FR-3.1 &amp; FR-4.1</span>
+              </div>
+
+              <div class="flow-step-card">
+                <span class="flow-step-number">PHASE 4</span>
+                <div class="flow-step-title">💾 High-Performance Persistence</div>
+                <div class="flow-step-desc">
+                  คำตอบระหว่างทำแบบฝึกหัดถูก Cache ใน Redis และเมื่อจบ Session จะบันทึกค่า BKT สุดท้ายและ Progress (0-100%) ลง PostgreSQL ในรูปแบบ JSONB <code>conceptMapState</code>
+                </div>
+                <span class="flow-step-tag">FR-4.2 &amp; FR-5.1</span>
+              </div>
+            </div>
+
+            <div class="flow-viz-title" style="margin-top: 28px;">📊 แผนภาพสถาปัตยกรรมและกระบวนการทำงานแบบ End-to-End</div>
+            <div class="svg-flow-wrapper">
+              <svg viewBox="0 0 960 380" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg" style="font-family: 'Inter', sans-serif;">
+                <defs>
+                  <linearGradient id="grad-blue-th" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#2563eb"/>
+                    <stop offset="100%" stop-color="#1d4ed8"/>
+                  </linearGradient>
+                  <linearGradient id="grad-cyan-th" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#0284c7"/>
+                    <stop offset="100%" stop-color="#0369a1"/>
+                  </linearGradient>
+                  <linearGradient id="grad-green-th" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#059669"/>
+                    <stop offset="100%" stop-color="#047857"/>
+                  </linearGradient>
+                  <linearGradient id="grad-purple-th" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#7c3aed"/>
+                    <stop offset="100%" stop-color="#6d28d9"/>
+                  </linearGradient>
+                  <filter id="shadow-th" x="-10%" y="-10%" width="120%" height="120%">
+                    <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000" flood-opacity="0.35"/>
+                  </filter>
+                  <marker id="arrow-th" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                    <path d="M 0 1 L 10 5 L 0 9 z" fill="#60a5fa"/>
+                  </marker>
+                </defs>
+
+                <!-- Background Track Lines -->
+                <path d="M 180 85 L 260 85" stroke="#3b82f6" stroke-width="2.5" stroke-dasharray="4,4" marker-end="url(#arrow-th)" />
+                <path d="M 420 85 L 500 85" stroke="#3b82f6" stroke-width="2.5" marker-end="url(#arrow-th)" />
+                <path d="M 660 85 L 740 85" stroke="#3b82f6" stroke-width="2.5" marker-end="url(#arrow-th)" />
+                <path d="M 820 125 L 820 185 L 580 185 L 580 230" stroke="#10b981" stroke-width="2.5" marker-end="url(#arrow-th)" />
+                <path d="M 580 305 L 580 340 L 100 340 L 100 125" stroke="#f59e0b" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#arrow-th)" />
+                <path d="M 660 268 L 740 268" stroke="#10b981" stroke-width="2.5" marker-end="url(#arrow-th)" />
+
+                <!-- Box 1: Registration & Pretest -->
+                <g transform="translate(20, 45)" filter="url(#shadow-th)">
+                  <rect width="160" height="80" rx="10" fill="url(#grad-blue-th)" stroke="#60a5fa" stroke-width="1.5"/>
+                  <text x="80" y="30" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="700">1. ลงทะเบียน &amp; Pre-test</text>
+                  <text x="80" y="50" text-anchor="middle" fill="#dbeafe" font-size="11">ทำข้อสอบวินิจฉัย 5 ข้อ</text>
+                  <text x="80" y="66" text-anchor="middle" fill="#93c5fd" font-size="10" font-weight="600">คำนวณค่า P(L₀)</text>
+                </g>
+
+                <!-- Box 2: Concept Map Resolver -->
+                <g transform="translate(260, 45)" filter="url(#shadow-th)">
+                  <rect width="160" height="80" rx="10" fill="url(#grad-cyan-th)" stroke="#38bdf8" stroke-width="1.5"/>
+                  <text x="80" y="30" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="700">2. ตรวจ Prerequisite</text>
+                  <text x="80" y="50" text-anchor="middle" fill="#e0f2fe" font-size="11">Prereq Progress ≥ 60%</text>
+                  <text x="80" y="66" text-anchor="middle" fill="#7dd3fc" font-size="10" font-weight="600">ปลดล็อก Concept Node</text>
+                </g>
+
+                <!-- Box 3: Socket.IO Quiz Loop -->
+                <g transform="translate(500, 45)" filter="url(#shadow-th)">
+                  <rect width="160" height="80" rx="10" fill="url(#grad-purple-th)" stroke="#a78bfa" stroke-width="1.5"/>
+                  <text x="80" y="30" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="700">3. WebSocket Loop</text>
+                  <text x="80" y="50" text-anchor="middle" fill="#ede9fe" font-size="11">ตอบข้อสอบเรียลไทม์</text>
+                  <text x="80" y="66" text-anchor="middle" fill="#c4b5fd" font-size="10" font-weight="600">ตรวจคำตอบ &lt; 50ms</text>
+                </g>
+
+                <!-- Box 4: BKT Mastery Engine -->
+                <g transform="translate(740, 45)" filter="url(#shadow-th)">
+                  <rect width="160" height="80" rx="10" fill="url(#grad-green-th)" stroke="#34d399" stroke-width="1.5"/>
+                  <text x="80" y="28" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="700">4. BKT Mastery</text>
+                  <text x="80" y="46" text-anchor="middle" fill="#d1fae5" font-size="11">อัปเดตค่า P(Lₜ|Cₜ)</text>
+                  <text x="80" y="64" text-anchor="middle" fill="#a7f3d0" font-size="10" font-weight="700">ผ่านเกณฑ์ P(Lₜ) ≥ 95%</text>
+                </g>
+
+                <!-- Box 5: Redis Cache -->
+                <g transform="translate(500, 230)" filter="url(#shadow-th)">
+                  <rect width="160" height="75" rx="10" fill="#1e293b" stroke="#f59e0b" stroke-width="1.5"/>
+                  <text x="80" y="28" text-anchor="middle" fill="#fbbf24" font-size="13" font-weight="700">Redis Session Cache</text>
+                  <text x="80" y="48" text-anchor="middle" fill="#cbd5e1" font-size="11">เก็บสถานะข้อสอบชั่วคราว</text>
+                  <text x="80" y="64" text-anchor="middle" fill="#94a3b8" font-size="10">วนทำข้อถัดไปเร็วสูง</text>
+                </g>
+
+                <!-- Box 6: PostgreSQL JSONB Storage -->
+                <g transform="translate(740, 230)" filter="url(#shadow-th)">
+                  <rect width="180" height="75" rx="10" fill="#0f172a" stroke="#10b981" stroke-width="1.5"/>
+                  <text x="90" y="28" text-anchor="middle" fill="#10b981" font-size="13" font-weight="700">PostgreSQL Database</text>
+                  <text x="90" y="48" text-anchor="middle" fill="#e2e8f0" font-size="11">13 ตารางหลัก Relational</text>
+                  <text x="90" y="64" text-anchor="middle" fill="#6ee7b7" font-size="10" font-weight="600">บันทึก JSONB conceptMapState</text>
+                </g>
+
+                <!-- Labels on connectors -->
+                <text x="220" y="75" fill="#93c5fd" font-size="10" text-anchor="middle" font-weight="600">ค่า P(L₀)</text>
+                <text x="460" y="75" fill="#93c5fd" font-size="10" text-anchor="middle" font-weight="600">เลือก Node</text>
+                <text x="700" y="75" fill="#93c5fd" font-size="10" text-anchor="middle" font-weight="600">ส่งคำตอบ</text>
+                <text x="700" y="260" fill="#10b981" font-size="10" text-anchor="middle" font-weight="700">จบ Session (Flush DB)</text>
+                <text x="340" y="330" fill="#f59e0b" font-size="10" text-anchor="middle" font-weight="600">ข้อถัดไป / ลองใหม่ (ถ้า P(Lₜ) &lt; 95%)</text>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="non-goals">
+        <h2>5. สิ่งที่ไม่ทำ</h2>
+        <ul>
+          <li><strong>งานภาพแบบ RPG:</strong> ไม่มี character levels, custom avatars หรือ game screens</li>
+          <li><strong>Media Management:</strong> ไม่ host หรือเล่นวิดีโอ lecture ยาว ๆ</li>
+          <li><strong>Student Interaction:</strong> ไม่มี chat, messaging หรือ forum ใน v1</li>
+          <li><strong>Code Execution Sandbox:</strong> ไม่รัน backend code block แบบ dynamic โดย v1 ใช้ string-based validation</li>
+        </ul>
+      </section>
+
+      <section id="mvp-scope">
+        <h2>6. ขอบเขต MVP</h2>
+        <h3>6.1 อยู่ในขอบเขต</h3>
+        <ul>
+          <li>Pre-test จำนวน 5 ข้อ</li>
+          <li>Dynamic Concept Map สำหรับ Python Data Structures พร้อม node สีเทา/น้ำเงิน/เขียวตามสถานะ</li>
+          <li>Exercise loop ผ่าน Socket.IO พร้อมตัวจับเวลาคำถามแบบ real-time</li>
+          <li>Bayesian Knowledge Tracing (BKT) Mastery Engine เพื่อติดตาม probability ของ concept mastery</li>
+          <li>Backend แบบ NestJS monolith พร้อม PostgreSQL/TypeORM persistence และ Redis caching</li>
+        </ul>
+        <h3>6.2 อยู่นอกขอบเขต MVP</h3>
+        <ul>
+          <li>Adaptive SQL branch เลื่อนไปภายหลัง</li>
+          <li>Instructor portal สำหรับจัดการ question bank</li>
+          <li>Docker sandbox สำหรับรัน code</li>
+          <li>Machine learning SVD offline recalculations: Offline Collaborative Filtering เลื่อนไป v2; v1 ใช้ BKT + CBR</li>
+        </ul>
+      </section>
+
+      <section id="success-metrics">
+        <h2>7. ตัวชี้วัดความสำเร็จ</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>ชื่อ Metric</th>
+              <th>คำอธิบาย / เป้าหมาย</th>
+              <th>ตรวจสอบข้อกำหนด</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>SM-1</strong></td>
+              <td>WebSocket Latency</td>
+              <td>เวลา roundtrip ของ API ต่ำกว่า 50ms</td>
+              <td>FR-4.2</td>
+            </tr>
+            <tr>
+              <td><strong>SM-2</strong></td>
+              <td>Time-to-Mastery</td>
+              <td>ลดชั่วโมงการเรียนลง 15% เมื่อเทียบกับ path แบบคงที่</td>
+              <td>FR-5.1</td>
+            </tr>
+            <tr>
+              <td><strong>SM-3</strong></td>
+              <td>System Engagement</td>
+              <td>อัตราส่วน DAU / MAU มากกว่า 25%</td>
+              <td>-</td>
+            </tr>
+            <tr>
+              <td><strong>SM-4</strong></td>
+              <td>Redis Cache Hit</td>
+              <td>อัตรา cache hit ของ concept map และ profile query มากกว่า 90%</td>
+              <td>FR-2.1</td>
+            </tr>
+            <tr>
+              <td><strong>SM-C1</strong></td>
+              <td>Completion Speed</td>
+              <td>Counter-metric: ห้าม optimize ความเร็ว หาก accuracy ของผู้ใช้ต่ำกว่า 65%</td>
+              <td>FR-4.2</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="open-questions">
+        <h2>8. คำถามเปิด</h2>
+        <ol>
+          <li>เราจะ normalize ช่องว่างและตัวพิมพ์เล็ก/ใหญ่ในคำตอบแบบ fill-in-the-blank อย่างไร? ข้อเสนอ: normalize ข้อความใน backend โดยลบ double spaces และ carriage returns ก่อน matching</li>
+          <li>ควรปรับ BKT transition probability P(T) แบบ dynamic ตาม speed metric ของนักศึกษาหรือไม่?</li>
+        </ol>
+      </section>
+
+      <section id="assumptions">
+        <h2>9. ดัชนีสมมติฐาน</h2>
+        <div class="assumption-item">
+          <span class="assumption-tag">A-1</span>
+          <div>Initial BKT probability P(L_0) คำนวณแบบ dynamic จาก self-reported familiarity, ความถูกต้อง/ความเร็วของ pre-test และตัวแปร profile ของนักศึกษา เช่น academic year และ major (Section 4.1)</div>
+        </div>
+        <div class="assumption-item">
+          <span class="assumption-tag">A-2</span>
+          <div>นักศึกษาถือว่า mastered concept node เมื่อ mastery probability P(L_t) มากกว่าหรือเท่ากับ 0.95 หรือ 95% (Section 4.3)</div>
+        </div>
+        <div class="assumption-item">
+          <span class="assumption-tag">A-3</span>
+          <div>แบบฝึกใน MVP ใช้ string matching สำหรับ fill-in-the-blank snippets แทนการรัน code ใน sandbox เต็มรูปแบบ (Section 4.4)</div>
+        </div>
+        <div class="assumption-item">
+          <span class="assumption-tag">A-4</span>
+          <div>Redis cache ข้อมูล active session และ flush ค่า BKT mastery probability ที่ finalized แล้วลง PostgreSQL เมื่อ session สิ้นสุด (Section 4.5)</div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const links = document.querySelectorAll('.nav-link');
+    links.forEach((link) => {
+      link.addEventListener('click', function() {
+        links.forEach((item) => item.classList.remove('active'));
+        this.classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>
