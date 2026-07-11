@@ -31,6 +31,16 @@ import { userController } from './controller/user.controller';
 import { userProfileService } from './service/user.service';
 import { exerciseController } from './controller/exercise.controller';
 import { exerciseService } from './service/exercise.service';
+import { genderController } from './controller/gender.controller';
+import { genderService } from './service/gender.service';
+import { campusController } from './controller/campus.controller';
+import { campusService } from './service/campus.service';
+import { facultyController } from './controller/faculty.controller';
+import { facultyService } from './service/faculty.service';
+import { majorController } from './controller/major.controller';
+import { majorService } from './service/major.service';
+import { authService } from './service/auth.service';
+import { authController } from './controller/auth.controller';
 
 @Module({
   imports: [
@@ -55,7 +65,25 @@ import { exerciseService } from './service/exercise.service';
       GoalSkillRequire,
     ]),
   ],
-  controllers: [AppController, userController, exerciseController],
-  providers: [AppService, userProfileService, exerciseService],
+  controllers: [
+    AppController,
+    userController,
+    exerciseController,
+    genderController,
+    campusController,
+    facultyController,
+    majorController,
+    authController
+  ],
+  providers: [
+    AppService,
+    userProfileService,
+    exerciseService,
+    genderService,
+    campusService,
+    facultyService,
+    majorService,
+    authService
+  ],
 })
 export class AppModule {}
