@@ -1,5 +1,5 @@
-import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
-
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Branch } from "./branch.entity";
 @Entity('goal')
 export class Goal {
     @PrimaryGeneratedColumn()
@@ -22,5 +22,8 @@ export class Goal {
         default: () => 'CURRENT_TIMESTAMP',
     })
     updatedAt: Date;
+
+    @OneToMany(() => Branch, branch => branch.goal)
+    branches: Branch[];
 
 }

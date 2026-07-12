@@ -1,4 +1,4 @@
-import { Column, Entity, JoinColumn, OneToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 import { Userprofile } from "./userprofile.entity";
 import { Goal } from "./goal.entity";
 
@@ -28,11 +28,11 @@ export class Branch {
     })
     updatedAt: Date;
 
-    @OneToOne(() => Userprofile)
+    @ManyToOne(() => Userprofile, userprofile => userprofile.branches)
     @JoinColumn({ name: 'userId', referencedColumnName: 'id' })
     user: Userprofile;
 
-    @OneToOne(() => Goal)
+    @ManyToOne(() => Goal, goal => goal.branches)
     @JoinColumn({ name: 'goalId', referencedColumnName: 'id' })
     goal: Goal;
 }

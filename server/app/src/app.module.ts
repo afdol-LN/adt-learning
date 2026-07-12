@@ -4,7 +4,7 @@ import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 import { dataSourceOptions } from './config/data-source';
-
+import { Logger } from '@nestjs/common';
 // University entities
 import { Campus } from './entity/university/campus.entity';
 import { Faculty } from './entity/university/faculty.entity';
@@ -77,13 +77,14 @@ import { authController } from './controller/auth.controller';
   ],
   providers: [
     AppService,
+    Logger,
     userProfileService,
     exerciseService,
     genderService,
     campusService,
     facultyService,
     majorService,
-    authService
+    authService,
   ],
 })
 export class AppModule {}

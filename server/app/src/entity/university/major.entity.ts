@@ -1,4 +1,4 @@
-import { Column, Entity, JoinColumn, OneToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinColumn, ManyToOne, OneToOne, PrimaryGeneratedColumn } from "typeorm";
 import { Faculty } from "./faculty.entity";
 
 @Entity('major')
@@ -18,7 +18,6 @@ export class Major {
     @Column()
     updatedAt: Date;
 
-    @OneToOne(() => Faculty)
-    @JoinColumn({ name: 'facultyId', referencedColumnName: 'id' })
+    @ManyToOne(() => Faculty, faculty=>faculty.majors)
     faculty: Faculty;
 }

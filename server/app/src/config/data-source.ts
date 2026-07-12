@@ -11,7 +11,7 @@ export const dataSourceOptions: DataSourceOptions = {
   entities: ['dist/**/*.entity.js'], 
   migrations: ['dist/migrations/*.js'],
   
-  // ⚠️ คำเตือน: synchronize ควรเป็น false เสมอเมื่อใช้ร่วมกับ Migration
+  // synchronize ควรเป็น false เสมอเมื่อใช้ร่วมกับ Migration
   // และห้ามเปิดเป็น true ใน Production เด็ดขาดเพราะมันอาจลบตารางคุณทิ้งได้
   synchronize: false, 
   

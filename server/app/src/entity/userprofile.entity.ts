@@ -1,4 +1,4 @@
-import { Column, Entity, JoinColumn, OneToMany, OneToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinColumn, OneToMany, OneToOne, PrimaryGeneratedColumn, ManyToOne } from "typeorm";
 import { Gender } from "./gender.entity";
 import { UserRole } from "src/enums/user-role.enum";
 import { Campus } from "./university/campus.entity";
@@ -11,32 +11,31 @@ export class Userprofile {
     @PrimaryGeneratedColumn()
     id: number;
 
-    @Column()
-    firstName: string;
+    @Column({ name: 'fullName', length: 100 })
+    fullName: string;
 
-    @Column()
-    lastName: string;
-
-    @Column()
+    //เพิ่ม default = 1
+    @Column({default: 1})
     genderId: number;
 
+    //แก้ String -> Date
     @Column()
     birthDate: string;
 
     // ข้อมูลการศึกษา
-    @Column()
+    @Column({ nullable: true })
     campusId: number;
     
-    @Column()
+    @Column({ nullable: true })
     facultyId: number;
 
-    @Column()
+    @Column({ nullable: true })
     majorId: number;
 
     @Column({ name: 'username', nullable: true, length: 20 })
     username: string;
 
-    @Column({ name: 'password', nullable: true, length: 20 })
+    @Column({ name: 'password', nullable: true, length: 80 })
     password: string;
 
     @Column({ name: 'status', type: 'integer', default: 1 })
@@ -70,19 +69,19 @@ export class Userprofile {
     })
     role: UserRole;
 
-    @OneToOne(() => Gender)
+    @ManyToOne(() => Gender)
     @JoinColumn({ name: 'genderId', referencedColumnName: 'id' })
     gender: Gender;
 
-    @OneToOne(() => Campus)
+    @ManyToOne(() => Campus)
     @JoinColumn({ name: 'campusId', referencedColumnName: 'id' })
     campus: Campus;
 
-    @OneToOne(() => Faculty)
+    @ManyToOne(() => Faculty)
     @JoinColumn({ name: 'facultyId', referencedColumnName: 'id' })
     faculty: Faculty;
 
-    @OneToOne(() => Major)
+    @ManyToOne(() => Major)
     @JoinColumn({ name: 'majorId', referencedColumnName: 'id' })
     major: Major;
 

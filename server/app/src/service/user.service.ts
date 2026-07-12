@@ -27,8 +27,7 @@ export class userProfileService extends BaseService<Userprofile>{
 
         return result.map((userProfile) => ({
             id: userProfile.id,
-            firstName: userProfile.firstName,
-            lastName: userProfile.lastName,
+            fullName : userProfile.fullName,
             gender: userProfile.gender.gender,
             birthDate: userProfile.birthDate,
             campus: userProfile.campus.campus,

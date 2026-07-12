@@ -8,6 +8,6 @@ export class CreateExerciseChoiceDto {
 export class UpdateExerciseChoiceDto {
   exerciseId?: number;
   choiceNo?: number;
-  script?: string;
-  isAnswer?: boolean;
+  script: string;
+  isAnswer: boolean;
 }

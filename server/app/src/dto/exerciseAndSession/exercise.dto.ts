@@ -5,7 +5,7 @@ export class CreateExerciseDto {
   level: number;
   status?: Status;
   expectTime?: number;
-  skillId?: number;
+  skillId: number;
 }
 
 export class UpdateExerciseDto {

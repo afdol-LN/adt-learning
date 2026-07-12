@@ -1,7 +1,6 @@
 export interface responseUser{
     id: number;
-    firstName: string;
-    lastName: string;
+    fullName: string;
     gender: string;
     birthDate: string;
     campus: string;

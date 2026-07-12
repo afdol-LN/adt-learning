@@ -30,7 +30,7 @@ export class ExerciseChoice {
     })
     updatedAt: Date;
 
-    @ManyToOne(() => Exercise)
+    @ManyToOne(() => Exercise, exercise => exercise.exerciseChoices)
     @JoinColumn({ name: 'exerciseId', referencedColumnName: 'id' })
     exercise: Exercise;
 }

@@ -1,4 +1,5 @@
-import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Faculty } from "./faculty.entity";
 
 @Entity('campus')
 export class Campus {
@@ -19,4 +20,7 @@ export class Campus {
         type: 'timestamp',
     })
     updatedAt: Date;
+
+    @OneToMany(()=>Faculty, faculty=>faculty.campus)
+    faculties: Faculty[];
 }

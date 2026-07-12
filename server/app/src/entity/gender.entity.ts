@@ -9,9 +9,15 @@ export class Gender {
     @Column()
     gender: string;
 
-    @Column()
+    @Column({
+        type: 'timestamp',
+        default: () => 'CURRENT_TIMESTAMP',
+    })
     createdAt: Date;
 
-    @Column()
-    updatedAt: Date;
+    @Column({
+        type: 'timestamp',
+        default: () => 'CURRENT_TIMESTAMP',
+    })
+    updatedAt: Date;   
 }
