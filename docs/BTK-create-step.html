@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BKT Backend Implementation Plan & Step-by-Step Guide</title>
+  <style>
+    :root {
+      --bg-color: #0f172a;
+      --card-bg: #1e293b;
+      --border-color: #334155;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-green: #34d399;
+      --accent-purple: #a855f7;
+      --code-bg: #0f172a;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      line-height: 1.6;
+      margin: 0;
+      padding: 2rem;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 2.25rem;
+      color: var(--accent);
+      border-bottom: 2px solid var(--border-color);
+      padding-bottom: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    h2 {
+      font-size: 1.5rem;
+      color: var(--accent-green);
+      margin-top: 2.5rem;
+      margin-bottom: 1rem;
+      border-left: 4px solid var(--accent-green);
+      padding-left: 0.75rem;
+    }
+
+    h3 {
+      font-size: 1.2rem;
+      color: var(--accent-purple);
+      margin-top: 1.5rem;
+    }
+
+    p, li {
+      color: var(--text-main);
+    }
+
+    ul {
+      padding-left: 1.5rem;
+    }
+
+    .card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+    }
+
+    .formula-box {
+      background-color: rgba(56, 189, 248, 0.08);
+      border-left: 4px solid var(--accent);
+      padding: 1rem 1.25rem;
+      margin: 1rem 0;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 1.05rem;
+      color: #e0f2fe;
+      overflow-x: auto;
+    }
+
+    code {
+      background-color: var(--code-bg);
+      color: var(--accent);
+      padding: 0.2rem 0.4rem;
+      border-radius: 0.35rem;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 0.9em;
+    }
+
+    pre {
+      background-color: var(--code-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 0.5rem;
+      padding: 1.25rem;
+      overflow-x: auto;
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      color: #e2e8f0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1rem 0;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    th {
+      background-color: rgba(255, 255, 255, 0.05);
+      color: var(--accent);
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      background-color: rgba(56, 189, 248, 0.2);
+      color: var(--accent);
+      margin-bottom: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <span class="badge">Backend Specification</span>
+    <h1>Bayesian Knowledge Tracing (BKT) Engine Implementation Plan</h1>
+    <p>
+      This document outlines the step-by-step backend implementation plan to create and test the <strong>Bayesian Knowledge Tracing (BKT) Engine</strong>, strictly grounded in the data, mathematical formulas, and database constraints defined in the PRD (<code>prd.html</code>, <code>prd_thai.html</code>) and Addendum (<code>addendum.md</code>).
+    </p>
+
+    <div class="card">
+      <h2>Step 1: Define BKT Interfaces & Constants (PRD & Addendum Specs)</h2>
+      <p>Create <code>src/type/bkt.interface.ts</code> (or <code>src/libs/bkt/bkt.interface.ts</code>) containing the exact data structures and constants defined in the PRD:</p>
+      
+      <table>
+        <thead>
+          <tr>
+            <th>Parameter / Constant</th>
+            <th>Specification / Formula</th>
+            <th>PRD / Addendum Reference</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>BKT Core Parameters</strong></td>
+            <td><code>pL0</code> (Initial Mastery), <code>pG</code> (Guess), <code>pS</code> (Slip), <code>pT</code> (Learning Transition)</td>
+            <td>Addendum Section 1.1</td>
+          </tr>
+          <tr>
+            <td><strong>MASTERY_THRESHOLD</strong></td>
+            <td><code>0.95</code> (Node completed when P(L<sub>t</sub>) &ge; 0.95)</td>
+            <td>Addendum 1.1.4 & PRD 4.3</td>
+          </tr>
+          <tr>
+            <td><strong>Clamping Bounds</strong></td>
+            <td>Min: <code>0.01</code> | Max: <code>0.99</code></td>
+            <td>Addendum 1.1.3</td>
+          </tr>
+          <tr>
+            <td><strong>Base Familiarity (P<sub>base</sub>)</strong></td>
+            <td>Novice: <code>0.15</code> | Intermediate: <code>0.45</code> | Advanced: <code>0.75</code></td>
+            <td>Addendum 1.2 & PRD FR-1.2</td>
+          </tr>
+          <tr>
+            <td><strong>Pretest Delta (&Delta;P<sub>Pretest</sub>)</strong></td>
+            <td>Max <code>+0.15</code> (Accuracy &times; 0.10 + SpeedFactor &times; 0.05)</td>
+            <td>Addendum 1.2 & PRD FR-1.2</td>
+          </tr>
+          <tr>
+            <td><strong>Profile Delta (&Delta;P<sub>Profile</sub>)</strong></td>
+            <td>Max <code>+0.09</code> (CS/ICT Major: <code>+0.05</code> | Year &ge; 2: <code>+0.04</code>)</td>
+            <td>Addendum 1.2 & PRD FR-1.2</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>Step 2: Implement BKT Calculation Service (<code>BktService</code>)</h2>
+      <p>Create <code>src/libs/bkt/bkt.service.ts</code> (or NestJS service <code>src/service/bkt.service.ts</code>) with two core methods:</p>
+
+      <h3>A. Initial Onboarding Probability Calculator (<code>calculateInitialProbability</code>)</h3>
+      <div class="formula-box">
+        P(L<sub>0</sub>) = P<sub>base</sub>(Familiarity) + &Delta;P(Pretest) + &Delta;P(Profile)
+      </div>
+      <ul>
+        <li><strong>Pretest Performance Delta:</strong>
+          <code>&Delta;P(Pretest) = (Accuracy &times; 0.10) + (SpeedFactor &times; 0.05)</code>
+          <ul>
+            <li><code>Accuracy = correctAnswers / totalQuestions</code></li>
+            <li><code>SpeedFactor = max(0, min(1, (expectedTime - actualTime) / expectedTime))</code></li>
+          </ul>
+        </li>
+        <li><strong>Profile Metadata Delta:</strong>
+          <ul>
+            <li>Add <code>+0.05</code> if Major matches CS or ICT.</li>
+            <li>Add <code>+0.04</code> if Academic Year &ge; 2.</li>
+          </ul>
+        </li>
+        <li>Clamp final <code>P(L<sub>0</sub>)</code> within <code>[0.01, 0.99]</code>.</li>
+      </ul>
+
+      <h3>B. Stepwise Mastery Probability Updater (<code>updateMasteryProbability</code>)</h3>
+      <p>Computes the updated mastery state following any micro-exercise attempt:</p>
+      
+      <div class="formula-box">
+        // 1. Bayesian Posterior Update P(L<sub>t</sub> | C<sub>t</sub>)<br>
+        If Correct (C<sub>t</sub> = 1): &nbsp;&nbsp;P(L<sub>t</sub> | C<sub>t</sub>=1) = [P(L<sub>t-1</sub>) &middot; (1 - P(S))] / [P(L<sub>t-1</sub>) &middot; (1 - P(S)) + (1 - P(L<sub>t-1</sub>)) &middot; P(G)]<br>
+        If Incorrect (C<sub>t</sub> = 0): P(L<sub>t</sub> | C<sub>t</sub>=0) = [P(L<sub>t-1</sub>) &middot; P(S)] / [P(L<sub>t-1</sub>) &middot; P(S) + (1 - P(L<sub>t-1</sub>)) &middot; (1 - P(G))]<br><br>
+        // 2. Learning Transition Step P(T)<br>
+        P(L<sub>t</sub>) = P(L<sub>t</sub> | C<sub>t</sub>) + (1 - P(L<sub>t</sub> | C<sub>t</sub>)) &middot; P(T)<br><br>
+        // 3. Numerical Clamping & Mastery Check<br>
+        P(L<sub>t</sub>) = max(0.01, min(0.99, P(L<sub>t</sub>)))<br>
+        isMastered = P(L<sub>t</sub>) &ge; 0.95
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Step 3: Integrate with Session Cache & Storage (PRD Section 4.5)</h2>
+      <p>Per PRD constraint <strong>[ASSUMPTION: Cache Persistence]</strong>:</p>
+      <ol>
+        <li>During active micro-exercise quiz loops, store intermediate <code>P(L<sub>t</sub>)</code> probabilities in <strong>Redis</strong>.</li>
+        <li>When the session terminates, flush finalized <code>P(L<sub>t</sub>)</code>, completion progress (<code>0-100%</code>), and node unlock status (<code>locked</code>, <code>unlocked</code>, <code>completed</code>) atomically to <strong>PostgreSQL JSONB</strong> column <code>Userprofile.conceptMapState</code>.</li>
+      </ol>
+    </div>
+
+    <div class="card">
+      <h2>Step 4: Implement Unit Tests (<code>bkt.service.spec.ts</code>)</h2>
+      <p>Create Jest unit test file <code>src/service/bkt.service.spec.ts</code> (or <code>src/libs/bkt/bkt.service.spec.ts</code>) testing all PRD scenarios:</p>
+      <ul>
+        <li><strong>Posterior Probability Updates (<code>updateMasteryProbability</code>):</strong>
+          <ul>
+            <li>Verify answering correctly (<code>C<sub>t</sub> = 1</code>) increases <code>P(L<sub>t</sub>)</code> relative to <code>P(L<sub>t-1</sub>)</code>.</li>
+            <li>Verify answering incorrectly (<code>C<sub>t</sub> = 0</code>) adjusts <code>P(L<sub>t</sub>)</code> downwards according to Slip probability.</li>
+          </ul>
+        </li>
+        <li><strong>Clamping Boundary Tests:</strong>
+          <ul>
+            <li>Verify repeated incorrect answers never drop <code>P(L<sub>t</sub>)</code> below <code>0.01</code>.</li>
+            <li>Verify repeated correct answers never push <code>P(L<sub>t</sub>)</code> above <code>0.99</code>.</li>
+          </ul>
+        </li>
+        <li><strong>Mastery Threshold Check:</strong>
+          <ul>
+            <li>Verify node returns <code>isMastered: true</code> when <code>P(L<sub>t</sub>) &ge; 0.95</code> and <code>isMastered: false</code> when below <code>0.95</code>.</li>
+          </ul>
+        </li>
+        <li><strong>Onboarding Calibration PRD Scenario Test (<code>calculateInitialProbability</code>):</strong>
+          <ul>
+            <li>Test base familiarities (<code>0.15</code>, <code>0.45</code>, <code>0.75</code>).</li>
+            <li>Test Afdol's scenario from PRD Section 4.1: Diagnostic pre-test (3/5 correct = <code>0.6</code> accuracy) combined with profile metadata bonuses properly calculates initial onboarding probability <code>P(L<sub>0</sub>)</code>.</li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  </div>
+</body>
+</html>
