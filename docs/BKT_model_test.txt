@@ -1,0 +1,35 @@
+import pandas as pd
+from pyBKT.models import Model
+
+# 1. โหลดข้อมูลที่ Generate มา
+df = pd.read_csv('student1-kt-idem-log.csv')
+
+# 2. ผูกคอลัมน์ (Data Mapping)
+defaults = {
+    'order_id': 'id',
+    'skill_name': 'skill_name',
+    'correct': 'isCorrect',
+    'user_id': 'userId',
+    # จุดสำคัญ: ระบุให้ Guess P(G) และ Slip P(S) แปรผันตาม 'level' ของโจทย์
+    'multigs': 'level' 
+}
+
+# 3. ประกาศสร้างแบบจำลอง
+model = Model(seed=42, defaults=defaults)
+
+# 4. สั่งให้ AI ประมวลผลและแก้สมการมาร์คอฟ
+print("⚙️ กำลัง Train โมเดลด้วยสถาปัตยกรรม KT-IDEM...")
+model.fit(data=df)
+print("✅ การ Train สำเร็จ!\n")
+
+# 5. ดึงค่าพารามิเตอร์ทางปัญญาออกมาดู (คุณจะได้ใช้สกิลวิเคราะห์ตัวเลขตรงนี้ครับ)
+params_df = model.params()
+print("📊 พารามิเตอร์ที่คำนวณได้ (สังเกตค่า guesses และ slips ที่แยกตาม level):")
+print(params_df)
+
+# 6. พยากรณ์ความน่าจะเป็นที่จะตอบถูกในข้อถัดไป และสถานะความเชี่ยวชาญ (State)
+predictions_df = model.predict(data=df)
+
+# ลองดึงข้อมูลทักษะ loop มาวิเคราะห์ดู
+print("\n🔍 ตัวอย่างผลการทำนาย (Skill: loop):")
+print(predictions_df[predictions_df['skill_name'] == 'loop'][['level', 'isCorrect', 'correct_predictions', 'state_predictions']].tail())

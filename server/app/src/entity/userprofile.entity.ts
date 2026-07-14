@@ -5,6 +5,7 @@ import { Campus } from "./university/campus.entity";
 import { Faculty } from "./university/faculty.entity";
 import { Major } from "./university/major.entity";
 import { Branch } from "./branch.entity";
+import { Status } from "../enums/status.enum";
 
 @Entity('userprofile')
 export class Userprofile {
@@ -37,10 +38,16 @@ export class Userprofile {
 
     @Column({ name: 'password', nullable: true, length: 80 })
     password: string;
+    
+    @Column({
+        type: 'enum',
+        enum : Status,
+        default : Status.ACTIVE,
+    })
+    status: string;
 
-    @Column({ name: 'status', type: 'integer', default: 1 })
-    status: number;
 
+    // ************* ด๊อลงงงงงงงงงงงงงงงงงงงงงงงงงง
     @Column({ name: 'behaviorScore', type: 'numeric', precision: 4, scale: 3, nullable: true })
     behaviorScore: number;
 
@@ -49,6 +56,7 @@ export class Userprofile {
 
     @Column({ name: 'strengthWeaknessMatrix', type: 'jsonb', nullable: true })
     strengthWeaknessMatrix: any;
+    // ******************
 
     @Column({
         type: 'timestamp',

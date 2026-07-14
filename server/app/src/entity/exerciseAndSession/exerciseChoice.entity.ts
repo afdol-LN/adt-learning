@@ -9,9 +9,6 @@ export class ExerciseChoice {
     @Column({ name: 'exerciseId', nullable: true })
     exerciseId: number;
 
-    @Column({ name: 'choice_NO', type: 'integer', nullable: true })
-    choiceNo: number;
-
     @Column({ name: 'script', type: 'varchar', length: 15, nullable: true })
     script: string;
 

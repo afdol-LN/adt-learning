@@ -11,7 +11,7 @@ export class CreateUserprofileDto {
   majorId?: number;
   username: string;
   password: string;
-  status?: number;
+  status?: string;
   behaviorScore?: number;
   conceptMapState?: any;
   strengthWeaknessMatrix?: any;
@@ -28,7 +28,7 @@ export class UpdateUserprofileDto {
   majorId?: number;
   username?: string;
   password?: string;
-  status?: number;
+  status?: string;
   behaviorScore?: number;
   conceptMapState?: any;
   strengthWeaknessMatrix?: any;

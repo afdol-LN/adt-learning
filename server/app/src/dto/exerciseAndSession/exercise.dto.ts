@@ -6,6 +6,8 @@ export class CreateExerciseDto {
   status?: Status;
   expectTime?: number;
   skillId: number;
+  fillInBlank?: string;
+  isCasesensitive?: string;
 }
 
 export class UpdateExerciseDto {
@@ -14,6 +16,8 @@ export class UpdateExerciseDto {
   status?: Status;
   expectTime?: number;
   skillId?: number;
+  fillInBlank?: string;
+  isCasesensitive?: string;
 }
 
 export class ResultPerExerciseDto{

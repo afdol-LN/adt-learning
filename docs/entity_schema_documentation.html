@@ -1,0 +1,2188 @@
+<!DOCTYPE html>
+<html lang="th" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ADT Learning - Entity Schema & Database Relationships Documentation</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0e17;
+            --bg-secondary: #111827;
+            --bg-card: rgba(30, 41, 59, 0.65);
+            --bg-card-hover: rgba(51, 65, 85, 0.75);
+            --border-color: rgba(148, 163, 184, 0.15);
+            --border-active: #38bdf8;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent-blue: #38bdf8;
+            --accent-purple: #818cf8;
+            --accent-emerald: #34d399;
+            --accent-amber: #fbbf24;
+            --accent-rose: #fb7185;
+            --badge-pk-bg: rgba(251, 113, 133, 0.15);
+            --badge-pk-text: #fda4af;
+            --badge-fk-bg: rgba(129, 140, 248, 0.15);
+            --badge-fk-text: #c7d2fe;
+            --badge-idx-bg: rgba(251, 191, 36, 0.15);
+            --badge-idx-text: #fde68a;
+            --badge-type-bg: rgba(56, 189, 248, 0.15);
+            --badge-type-text: #7dd3fc;
+            --badge-json-bg: rgba(52, 211, 153, 0.15);
+            --badge-json-text: #6ee7b7;
+            --shadow-lg: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+            --radius-lg: 16px;
+            --radius-md: 10px;
+            --radius-sm: 6px;
+        }
+
+        [data-theme="light"] {
+            --bg-primary: #f8fafc;
+            --bg-secondary: #f1f5f9;
+            --bg-card: rgba(255, 255, 255, 0.85);
+            --bg-card-hover: rgba(255, 255, 255, 1);
+            --border-color: rgba(148, 163, 184, 0.3);
+            --border-active: #0284c7;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #64748b;
+            --shadow-lg: 0 10px 25px -5px rgba(15, 23, 42, 0.08);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Sarabun', 'Outfit', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            transition: background-color 0.3s ease, color 0.3s ease;
+            overflow-x: hidden;
+        }
+
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(10, 14, 23, 0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        [data-theme="light"] header {
+            background: rgba(248, 250, 252, 0.85);
+        }
+
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            font-size: 1.25rem;
+            box-shadow: 0 4px 15px rgba(56, 189, 248, 0.3);
+        }
+
+        .header-title h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.35rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            background: linear-gradient(90deg, var(--text-primary), var(--accent-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-title p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .theme-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 0.5rem 0.9rem;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+        }
+
+        .theme-btn:hover {
+            border-color: var(--accent-blue);
+            transform: translateY(-1px);
+        }
+
+        main {
+            max-width: 1440px;
+            margin: 0 auto;
+            padding: 2.5rem 2rem;
+        }
+
+        /* Hero Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            backdrop-filter: blur(8px);
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+            border-color: var(--accent-blue);
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+        }
+
+        .stat-card.c-blue::before { background: var(--accent-blue); }
+        .stat-card.c-purple::before { background: var(--accent-purple); }
+        .stat-card.c-emerald::before { background: var(--accent-emerald); }
+        .stat-card.c-amber::before { background: var(--accent-amber); }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .stat-value {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .stat-desc {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* Architecture Section & Interactive Diagram */
+        .section-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.6rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .section-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .diagram-container {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            margin-bottom: 3rem;
+            overflow-x: auto;
+        }
+
+        .diagram-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(280px, 1fr));
+            gap: 1.5rem;
+            min-width: 1100px;
+        }
+
+        .diagram-cluster {
+            border: 1px dashed var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 1.25rem;
+            background: rgba(15, 23, 42, 0.35);
+        }
+
+        .cluster-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .cluster-badge {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .diagram-node {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: 0.85rem 1rem;
+            margin-bottom: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .diagram-node:hover {
+            border-color: var(--accent-blue);
+            transform: translateX(4px);
+            background: var(--bg-card-hover);
+        }
+
+        .node-name {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .node-meta {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        /* Filter & Toolbar */
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            padding: 1rem 1.5rem;
+            border-radius: var(--radius-lg);
+        }
+
+        .filter-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .filter-tab {
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text-secondary);
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius-sm);
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filter-tab:hover {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .filter-tab.active {
+            background: var(--accent-blue);
+            color: #000;
+            font-weight: 600;
+        }
+
+        .search-box {
+            position: relative;
+            flex: 1;
+            max-width: 340px;
+            min-width: 240px;
+        }
+
+        .search-box input {
+            width: 100%;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: 0.65rem 1rem 0.65rem 2.5rem;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .search-box input:focus {
+            border-color: var(--accent-blue);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 0.85rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            pointer-events: none;
+        }
+
+        /* Entity Cards */
+        .entity-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 2.5rem;
+        }
+
+        .entity-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            transition: border-color 0.3s, transform 0.2s;
+        }
+
+        .entity-card:hover {
+            border-color: rgba(56, 189, 248, 0.4);
+        }
+
+        .entity-header {
+            background: rgba(15, 23, 42, 0.45);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1.5rem 2rem;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+
+        .entity-title-group {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .entity-icon {
+            width: 46px;
+            height: 46px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.35rem;
+            font-weight: 700;
+        }
+
+        .entity-title h3 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.4rem;
+            color: var(--text-primary);
+            font-weight: 700;
+        }
+
+        .entity-title span {
+            font-size: 0.88rem;
+            color: var(--text-secondary);
+        }
+
+        .entity-badges {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.25rem 0.65rem;
+            border-radius: 9999px;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .badge-module {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-primary);
+        }
+
+        .entity-body {
+            padding: 2rem;
+        }
+
+        .entity-desc {
+            color: var(--text-secondary);
+            font-size: 0.98rem;
+            margin-bottom: 1.75rem;
+            padding: 1rem 1.25rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-left: 4px solid var(--accent-blue);
+            border-radius: var(--radius-sm);
+        }
+
+        .table-section-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .schema-table-wrapper {
+            overflow-x: auto;
+            margin-bottom: 2rem;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+        }
+
+        .schema-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        .schema-table th {
+            background: rgba(15, 23, 42, 0.6);
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 0.85rem 1.2rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .schema-table td {
+            padding: 0.9rem 1.2rem;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.9rem;
+            vertical-align: top;
+        }
+
+        .schema-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .schema-table tr:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .col-name {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .col-type {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.82rem;
+            color: var(--badge-type-text);
+            background: var(--badge-type-bg);
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        .col-tag {
+            font-size: 0.72rem;
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+            margin-right: 0.35rem;
+            display: inline-block;
+        }
+
+        .tag-pk { background: var(--badge-pk-bg); color: var(--badge-pk-text); }
+        .tag-fk { background: var(--badge-fk-bg); color: var(--badge-fk-text); }
+        .tag-idx { background: var(--badge-idx-bg); color: var(--badge-idx-text); }
+        .tag-json { background: var(--badge-json-bg); color: var(--badge-json-text); }
+
+        /* Relationships cards */
+        .relation-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1rem;
+        }
+
+        .relation-card {
+            background: rgba(15, 23, 42, 0.4);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 1rem 1.25rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .rel-icon {
+            padding: 0.5rem;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            line-height: 1;
+        }
+
+        .rel-info h4 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            margin-bottom: 0.25rem;
+            color: var(--text-primary);
+        }
+
+        .rel-info p {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+        }
+
+        .rel-link {
+            color: var(--accent-blue);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .rel-link:hover {
+            text-decoration: underline;
+        }
+
+        footer {
+            margin-top: 4rem;
+            border-top: 1px solid var(--border-color);
+            padding: 2rem 0;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        @media (max-width: 768px) {
+            header { padding: 1rem; }
+            main { padding: 1.5rem 1rem; }
+            .entity-header { padding: 1.25rem; }
+            .entity-body { padding: 1.25rem; }
+            .toolbar { flex-direction: column; align-items: stretch; }
+            .search-box { max-width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-brand">
+            <div class="logo-icon">ADT</div>
+            <div class="header-title">
+                <h1>Entity Schema & Database Architecture</h1>
+                <p>เอกสารโครงสร้างข้อมูลและความสัมพันธ์ของตาราง (13+2 Core Entities)</p>
+            </div>
+        </div>
+        <div class="header-controls">
+            <button class="theme-btn" onclick="toggleTheme()">
+                <span id="theme-icon">☀️</span>
+                <span id="theme-label">Light Mode</span>
+            </button>
+        </div>
+    </header>
+
+    <main>
+        <!-- Statistics Section -->
+        <div class="stats-grid">
+            <div class="stat-card c-blue">
+                <span class="stat-label">Total Entities</span>
+                <span class="stat-value">15</span>
+                <span class="stat-desc">ตารางหลักของระบบ (13 Core + 2 Relation Tables)</span>
+            </div>
+            <div class="stat-card c-purple">
+                <span class="stat-label">Logical Modules</span>
+                <span class="stat-value">4</span>
+                <span class="stat-desc">User Profile, Academic, Skill Tree & Learning</span>
+            </div>
+            <div class="stat-card c-emerald">
+                <span class="stat-label">ORM Framework</span>
+                <span class="stat-value">TypeORM</span>
+                <span class="stat-desc">รองรับ PostgreSQL / Relational DB + JSONB</span>
+            </div>
+            <div class="stat-card c-amber">
+                <span class="stat-label">Performance Cache</span>
+                <span class="stat-value">JSONB</span>
+                <span class="stat-desc">ลด Write Amplification สำหรับ BKT & Matrix</span>
+            </div>
+        </div>
+
+        <!-- Architecture Flow Section -->
+        <h2 class="section-title">🗺️ สถาปัตยกรรมและความสัมพันธ์ของกลุ่มตาราง (Entity Modules Architecture)</h2>
+        <p class="section-subtitle">คลิกที่ชื่อตารางในแผนผังเพื่อเลื่อนไปยังรายละเอียดของตารางนั้นทันที</p>
+
+        <div class="diagram-container">
+            <div class="diagram-grid">
+                <!-- Cluster 1 -->
+                <div class="diagram-cluster">
+                    <div class="cluster-header" style="color: var(--accent-blue);">
+                        <span class="cluster-badge" style="background: var(--accent-blue);"></span>
+                        1. User Profile & Academic
+                    </div>
+                    <div class="diagram-node" onclick="scrollToEntity('userprofile')">
+                        <span class="node-name">userprofile</span>
+                        <span class="node-meta">Core Profile + JSONB</span>
+                    </div>
+                    <div class="diagram-node" onclick="scrollToEntity('gender')">
+                        <span class="node-name">gender</span>
+                        <span class="node-meta">Directory</span>
+                    </div>
+                    <div class="diagram-node" onclick="scrollToEntity('campus')">
+                        <span class="node-name">campus</span>
+                        <span class="node-meta">Directory</span>
+                    </div>
+                    <div class="diagram-node" onclick="scrollToEntity('faculty')">
+                        <span class="node-name">faculty</span>
+                        <span class="node-meta">Directory</span>
+                    </div>
+                    <div class="diagram-node" onclick="scrollToEntity('major')">
+                        <span class="node-name">major</span>
+                        <span class="node-meta">Directory</span>
+                    </div>
+                    <div class="diagram-node" onclick="scrollToEntity('branch')">
+                        <span class="node-name">branch</span>
+                        <span class="node-meta">User Track Map</span>
+                    </div>
+                </div>
+
+                <!-- Cluster 2 -->
+                <div class="diagram-cluster">
+                    <div class="cluster-header" style="color: var(--accent-rose);">
+                        <span class="cluster-badge" style="background: var(--accent-rose);"></span>
+                        2. Goal & Skill Tree
+                    </div>
+                    <div class="diagram-node" onclick="scrollToEntity('goal')">
+                        <span class="node-name">goal</span>
+                        <span class="node-meta">Career Pathway</span>
+                    </div>
+                    <div class="diagram-node" onclick="scrollToEntity('skill')">
+                        <span class="node-name">skill</span>
+                        <span class="node-meta">Competency</span>
+                    </div>
+                    <div class="diagram-node" onclick="scrollToEntity('skills_prerequisite')">
+                        <span class="node-name">skills_prerequisite</span>
+                        <span class="node-meta">Skill Tree Graph</span>
+                    </div>
+                    <div class="diagram-node" onclick="scrollToEntity('GoalskillRequire')">
+                        <span class="node-name">GoalskillRequire</span>
+                        <span class="node-meta">Goal -> Skill Map</span>
+                    </div>
+                </div>
+
+                <!-- Cluster 3 -->
+                <div class="diagram-cluster">
+                    <div class="cluster-header" style="color: var(--accent-emerald);">
+                        <span class="cluster-badge" style="background: var(--accent-emerald);"></span>
+                        3. Exercise & Session
+                    </div>
+                    <div class="diagram-node" onclick="scrollToEntity('exercise')">
+                        <span class="node-name">exercise</span>
+                        <span class="node-meta">Question Bank</span>
+                    </div>
+                    <div class="diagram-node" onclick="scrollToEntity('exerciseChoice')">
+                        <span class="node-name">exerciseChoice</span>
+                        <span class="node-meta">MCQ Options</span>
+                    </div>
+                    <div class="diagram-node" onclick="scrollToEntity('session')">
+                        <span class="node-name">session</span>
+                        <span class="node-meta">Exam Session</span>
+                    </div>
+                    <div class="diagram-node" onclick="scrollToEntity('sessionAndExercise')">
+                        <span class="node-name">sessionAndExercise</span>
+                        <span class="node-meta">Session Bridge</span>
+                    </div>
+                </div>
+
+                <!-- Cluster 4 -->
+                <div class="diagram-cluster">
+                    <div class="cluster-header" style="color: var(--accent-amber);">
+                        <span class="cluster-badge" style="background: var(--accent-amber);"></span>
+                        4. Student Learning Log
+                    </div>
+                    <div class="diagram-node" onclick="scrollToEntity('history')">
+                        <span class="node-name">history</span>
+                        <span class="node-meta">Learning Attempts</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter & Search Toolbar -->
+        <div class="toolbar">
+            <div class="filter-tabs">
+                <button class="filter-tab active" onclick="filterEntities('all', this)">ทั้งหมด (15)</button>
+                <button class="filter-tab" onclick="filterEntities('user-academic', this)">ข้อมูลผู้ใช้และสถาบัน (6)</button>
+                <button class="filter-tab" onclick="filterEntities('skill-tree', this)">เป้าหมายและทักษะ (4)</button>
+                <button class="filter-tab" onclick="filterEntities('exercise-session', this)">โจทย์และเซสชัน (4)</button>
+                <button class="filter-tab" onclick="filterEntities('history', this)">ประวัติการเรียนรู้ (1)</button>
+            </div>
+            <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="searchInput" placeholder="ค้นหาชื่อตาราง หรือฟิลด์..." onkeyup="handleSearch()">
+            </div>
+        </div>
+
+        <!-- Entity Documentation Grid -->
+        <div class="entity-grid" id="entityGrid">
+
+            <!-- 1. userprofile -->
+            <div class="entity-card" id="entity-userprofile" data-module="user-academic" data-search="userprofile profile user credentials bkt conceptmap behavior">
+                <div class="entity-header">
+                    <div class="entity-title-group">
+                        <div class="entity-icon" style="background: rgba(56, 189, 248, 0.15); color: var(--accent-blue);">👤</div>
+                        <div class="entity-title">
+                            <h3>userprofile</h3>
+                            <span>Class: <strong>Userprofile</strong> | ไฟล์: entity/userprofile.entity.ts</span>
+                        </div>
+                    </div>
+                    <div class="entity-badges">
+                        <span class="badge badge-module">🟣 User Profile & Academic</span>
+                        <span class="badge" style="background: var(--badge-json-bg); color: var(--badge-json-text);">JSONB Supported</span>
+                    </div>
+                </div>
+                <div class="entity-body">
+                    <div class="entity-desc">
+                        ตารางหลักสำหรับเก็บข้อมูลผู้ใช้งาน นักศึกษา ข้อมูลการศึกษาระดับมหาวิทยาลัย และสถานะความก้าวหน้าในการเรียนรู้ (BKT Concept Map & Strength-Weakness Matrix) ในรูปแบบ JSONB เพื่อลดภาระการเขียน (Write Amplification) ของระบบ
+                    </div>
+
+                    <h4 class="table-section-title">📄 โครงสร้างคอลัมน์ (Data Structure)</h4>
+                    <div class="schema-table-wrapper">
+                        <table class="schema-table">
+                            <thead>
+                                <tr>
+                                    <th>ชื่อฟิลด์ (Field Name)</th>
+                                    <th>ชื่อคอลัมน์ (Column)</th>
+                                    <th>ชนิดข้อมูล (Type)</th>
+                                    <th>คุณสมบัติ & เงื่อนไข (Attributes)</th>
+                                    <th>คำอธิบาย (Description)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span class="col-name">id</span></td>
+                                    <td>id</td>
+                                    <td><span class="col-type">integer</span></td>
+                                    <td><span class="col-tag tag-pk">PK</span> PrimaryGeneratedColumn</td>
+                                    <td>รหัสประจำตัวผู้ใช้งาน (Auto Increment)</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">fullName</span></td>
+                                    <td>fullName</td>
+                                    <td><span class="col-type">varchar(100)</span></td>
+                                    <td>Required</td>
+                                    <td>ชื่อ-นามสกุลของผู้เรียน</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">genderId</span></td>
+                                    <td>genderId</td>
+                                    <td><span class="col-type">integer</span></td>
+                                    <td><span class="col-tag tag-fk">FK</span> Default: 1</td>
+                                    <td>รหัสเพศอ้างอิงไปยังตาราง gender</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">birthDate</span></td>
+                                    <td>birthDate</td>
+                                    <td><span class="col-type">varchar / Date</span></td>
+                                    <td>Required</td>
+                                    <td>วันเดือนปีเกิดของผู้ใช้งาน</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">campusId</span></td>
+                                    <td>campusId</td>
+                                    <td><span class="col-type">integer</span></td>
+                                    <td><span class="col-tag tag-fk">FK</span> Nullable</td>
+                                    <td>รหัสวิทยาเขตที่ศึกษา</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">facultyId</span></td>
+                                    <td>facultyId</td>
+                                    <td><span class="col-type">integer</span></td>
+                                    <td><span class="col-tag tag-fk">FK</span> Nullable</td>
+                                    <td>รหัสคณะที่ศึกษา</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">majorId</span></td>
+                                    <td>majorId</td>
+                                    <td><span class="col-type">integer</span></td>
+                                    <td><span class="col-tag tag-fk">FK</span> Nullable</td>
+                                    <td>รหัสสาขาวิชาที่ศึกษา</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">username</span></td>
+                                    <td>username</td>
+                                    <td><span class="col-type">varchar(20)</span></td>
+                                    <td>Nullable</td>
+                                    <td>ชื่อบัญชีสำหรับเข้าสู่ระบบ</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">password</span></td>
+                                    <td>password</td>
+                                    <td><span class="col-type">varchar(80)</span></td>
+                                    <td>Nullable</td>
+                                    <td>รหัสผ่านที่เข้ารหัสแล้ว (Hashed Password)</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">status</span></td>
+                                    <td>status</td>
+                                    <td><span class="col-type">enum (Status)</span></td>
+                                    <td>Default: Status.ACTIVE</td>
+                                    <td>สถานะบัญชีผู้ใช้ (ACTIVE / INACTIVE)</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">behaviorScore</span></td>
+                                    <td>behaviorScore</td>
+                                    <td><span class="col-type">numeric(4,3)</span></td>
+                                    <td>Nullable</td>
+                                    <td>คะแนนพฤติกรรมการเรียนรู้</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">conceptMapState</span></td>
+                                    <td>conceptMapState</td>
+                                    <td><span class="col-type">jsonb</span></td>
+                                    <td><span class="col-tag tag-json">JSONB</span> Nullable</td>
+                                    <td>เก็บสถานะความเชี่ยวชาญ (BKT Concept Map & Progress %) ในแต่ละทักษะ</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">strengthWeaknessMatrix</span></td>
+                                    <td>strengthWeaknessMatrix</td>
+                                    <td><span class="col-type">jsonb</span></td>
+                                    <td><span class="col-tag tag-json">JSONB</span> Nullable</td>
+                                    <td>เก็บเมทริกซ์วิเคราะห์จุดแข็งและจุดอ่อนของผู้เรียน</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">role</span></td>
+                                    <td>role</td>
+                                    <td><span class="col-type">enum (UserRole)</span></td>
+                                    <td>Default: UserRole.USER</td>
+                                    <td>สิทธิ์การใช้งานระบบ (USER, ADMIN, STAFF)</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">createdAt / updatedAt</span></td>
+                                    <td>createdAt / updatedAt</td>
+                                    <td><span class="col-type">timestamp</span></td>
+                                    <td>Default: CURRENT_TIMESTAMP</td>
+                                    <td>วันเวลาที่สร้างและอัปเดตข้อมูลล่าสุด</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <h4 class="table-section-title">🔗 ความสัมพันธ์ระหว่างตาราง (Entity Relationships)</h4>
+                    <div class="relation-cards">
+                        <div class="relation-card">
+                            <div class="rel-icon" style="background: rgba(56, 189, 248, 0.15); color: var(--accent-blue);">ManyToOne</div>
+                            <div class="rel-info">
+                                <h4>genderId -> <a href="#entity-gender" class="rel-link" onclick="scrollToEntity('gender')">Gender</a></h4>
+                                <p>เชื่อมโยงเพศของผู้ใช้</p>
+                            </div>
+                        </div>
+                        <div class="relation-card">
+                            <div class="rel-icon" style="background: rgba(56, 189, 248, 0.15); color: var(--accent-blue);">ManyToOne</div>
+                            <div class="rel-info">
+                                <h4>campusId -> <a href="#entity-campus" class="rel-link" onclick="scrollToEntity('campus')">Campus</a></h4>
+                                <p>เชื่อมโยงข้อมูลวิทยาเขตของมหาวิทยาลัย</p>
+                            </div>
+                        </div>
+                        <div class="relation-card">
+                            <div class="rel-icon" style="background: rgba(56, 189, 248, 0.15); color: var(--accent-blue);">ManyToOne</div>
+                            <div class="rel-info">
+                                <h4>facultyId -> <a href="#entity-faculty" class="rel-link" onclick="scrollToEntity('faculty')">Faculty</a></h4>
+                                <p>เชื่อมโยงข้อมูลคณะที่สังกัด</p>
+                            </div>
+                        </div>
+                        <div class="relation-card">
+                            <div class="rel-icon" style="background: rgba(56, 189, 248, 0.15); color: var(--accent-blue);">ManyToOne</div>
+                            <div class="rel-info">
+                                <h4>majorId -> <a href="#entity-major" class="rel-link" onclick="scrollToEntity('major')">Major</a></h4>
+                                <p>เชื่อมโยงข้อมูลสาขาวิชา</p>
+                            </div>
+                        </div>
+                        <div class="relation-card">
+                            <div class="rel-icon" style="background: rgba(129, 140, 248, 0.15); color: var(--accent-purple);">OneToMany</div>
+                            <div class="rel-info">
+                                <h4>branches -> <a href="#entity-branch" class="rel-link" onclick="scrollToEntity('branch')">Branch[]</a></h4>
+                                <p>เส้นทางการเรียนรู้หรือแทร็กเป้าหมายที่ผู้เรียนเลือกศึกษา</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. gender -->
+            <div class="entity-card" id="entity-gender" data-module="user-academic" data-search="gender demographicเพศ">
+                <div class="entity-header">
+                    <div class="entity-title-group">
+                        <div class="entity-icon" style="background: rgba(129, 140, 248, 0.15); color: var(--accent-purple);">⚧️</div>
+                        <div class="entity-title">
+                            <h3>gender</h3>
+                            <span>Class: <strong>Gender</strong> | ไฟล์: entity/gender.entity.ts</span>
+                        </div>
+                    </div>
+                    <div class="entity-badges">
+                        <span class="badge badge-module">🟣 User Profile & Academic</span>
+                    </div>
+                </div>
+                <div class="entity-body">
+                    <div class="entity-desc">
+                        ตารางเก็บข้อมูลประเภทเพศสำหรับอ้างอิงในโปรไฟล์ผู้ใช้งาน
+                    </div>
+                    <h4 class="table-section-title">📄 โครงสร้างคอลัมน์ (Data Structure)</h4>
+                    <div class="schema-table-wrapper">
+                        <table class="schema-table">
+                            <thead>
+                                <tr>
+                                    <th>ชื่อฟิลด์</th>
+                                    <th>ชื่อคอลัมน์</th>
+                                    <th>ชนิดข้อมูล</th>
+                                    <th>คุณสมบัติ</th>
+                                    <th>คำอธิบาย</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span class="col-name">id</span></td>
+                                    <td>id</td>
+                                    <td><span class="col-type">integer</span></td>
+                                    <td><span class="col-tag tag-pk">PK</span> Auto Increment</td>
+                                    <td>รหัสประจำตัวเพศ</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">gender</span></td>
+                                    <td>gender</td>
+                                    <td><span class="col-type">varchar</span></td>
+                                    <td>Required</td>
+                                    <td>ชื่อประเภทเพศ (ชาย, หญิง, อื่นๆ)</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">createdAt / updatedAt</span></td>
+                                    <td>createdAt / updatedAt</td>
+                                    <td><span class="col-type">timestamp</span></td>
+                                    <td>CURRENT_TIMESTAMP</td>
+                                    <td>เวลาสร้าง/แก้ไขล่าสุด</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <h4 class="table-section-title">🔗 ความสัมพันธ์ระหว่างตาราง</h4>
+                    <div class="relation-cards">
+                        <div class="relation-card">
+                            <div class="rel-icon" style="background: rgba(129, 140, 248, 0.15); color: var(--accent-purple);">OneToMany</div>
+                            <div class="rel-info">
+                                <h4>อ้างอิงโดย -> <a href="#entity-userprofile" class="rel-link" onclick="scrollToEntity('userprofile')">Userprofile</a></h4>
+                                <p>ถูกอ้างอิงโดยคอลัมน์ genderId ใน Userprofile</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. campus -->
+            <div class="entity-card" id="entity-campus" data-module="user-academic" data-search="campus university วิทยาเขต">
+                <div class="entity-header">
+                    <div class="entity-title-group">
+                        <div class="entity-icon" style="background: rgba(56, 189, 248, 0.15); color: var(--accent-blue);">🏛️</div>
+                        <div class="entity-title">
+                            <h3>campus</h3>
+                            <span>Class: <strong>Campus</strong> | ไฟล์: entity/university/campus.entity.ts</span>
+                        </div>
+                    </div>
+                    <div class="entity-badges">
+                        <span class="badge badge-module">🟣 User Profile & Academic</span>
+                    </div>
+                </div>
+                <div class="entity-body">
+                    <div class="entity-desc">
+                        ตารางเก็บข้อมูลวิทยาเขตของมหาวิทยาลัย เป็นระดับบนสุดของโครงสร้างสถาบันการศึกษา (Campus -> Faculty -> Major)
+                    </div>
+                    <h4 class="table-section-title">📄 โครงสร้างคอลัมน์ (Data Structure)</h4>
+                    <div class="schema-table-wrapper">
+                        <table class="schema-table">
+                            <thead>
+                                <tr>
+                                    <th>ชื่อฟิลด์</th>
+                                    <th>ชื่อคอลัมน์</th>
+                                    <th>ชนิดข้อมูล</th>
+                                    <th>คุณสมบัติ</th>
+                                    <th>คำอธิบาย</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span class="col-name">id</span></td>
+                                    <td>id</td>
+                                    <td><span class="col-type">integer</span></td>
+                                    <td><span class="col-tag tag-pk">PK</span> Auto Increment</td>
+                                    <td>รหัสวิทยาเขต</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">campus</span></td>
+                                    <td>campus</td>
+                                    <td><span class="col-type">varchar</span></td>
+                                    <td>Required</td>
+                                    <td>ชื่อวิทยาเขต</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">createdAt / updatedAt</span></td>
+                                    <td>createdAt / updatedAt</td>
+                                    <td><span class="col-type">timestamp</span></td>
+                                    <td>CURRENT_TIMESTAMP</td>
+                                    <td>เวลาสร้าง/แก้ไขข้อมูล</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <h4 class="table-section-title">🔗 ความสัมพันธ์ระหว่างตาราง</h4>
+                    <div class="relation-cards">
+                        <div class="relation-card">
+                            <div class="rel-icon" style="background: rgba(129, 140, 248, 0.15); color: var(--accent-purple);">OneToMany</div>
+                            <div class="rel-info">
+                                <h4>faculties -> <a href="#entity-faculty" class="rel-link" onclick="scrollToEntity('faculty')">Faculty[]</a></h4>
+                                <p>หนึ่งวิทยาเขตมีหลายคณะ (Faculty)</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. faculty -->
+            <div class="entity-card" id="entity-faculty" data-module="user-academic" data-search="faculty คณะ university">
+                <div class="entity-header">
+                    <div class="entity-title-group">
+                        <div class="entity-icon" style="background: rgba(56, 189, 248, 0.15); color: var(--accent-blue);">🏢</div>
+                        <div class="entity-title">
+                            <h3>faculty</h3>
+                            <span>Class: <strong>Faculty</strong> | ไฟล์: entity/university/faculty.entity.ts</span>
+                        </div>
+                    </div>
+                    <div class="entity-badges">
+                        <span class="badge badge-module">🟣 User Profile & Academic</span>
+                    </div>
+                </div>
+                <div class="entity-body">
+                    <div class="entity-desc">
+                        ตารางเก็บข้อมูลคณะในมหาวิทยาลัย เชื่อมโยงกับวิทยาเขตและมีสาขาวิชาสังกัดอยู่ภายใน
+                    </div>
+                    <h4 class="table-section-title">📄 โครงสร้างคอลัมน์ (Data Structure)</h4>
+                    <div class="schema-table-wrapper">
+                        <table class="schema-table">
+                            <thead>
+                                <tr>
+                                    <th>ชื่อฟิลด์</th>
+                                    <th>ชื่อคอลัมน์</th>
+                                    <th>ชนิดข้อมูล</th>
+                                    <th>คุณสมบัติ</th>
+                                    <th>คำอธิบาย</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span class="col-name">id</span></td>
+                                    <td>id</td>
+                                    <td><span class="col-type">integer</span></td>
+                                    <td><span class="col-tag tag-pk">PK</span> Auto Increment</td>
+                                    <td>รหัสคณะ</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">faculty</span></td>
+                                    <td>faculty</td>
+                                    <td><span class="col-type">varchar</span></td>
+                                    <td>Required</td>
+                                    <td>ชื่อคณะ</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">campusId</span></td>
+                                    <td>campusId</td>
+                                    <td><span class="col-type">integer</span></td>
+                                    <td><span class="col-tag tag-fk">FK</span> Required</td>
+                                    <td>รหัสวิทยาเขตต้นสังกัด</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">createdAt / updatedAt</span></td>
+                                    <td>createdAt / updatedAt</td>
+                                    <td><span class="col-type">Date</span></td>
+                                    <td>Required</td>
+                                    <td>วันเวลาที่บันทึกข้อมูล</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <h4 class="table-section-title">🔗 ความสัมพันธ์ระหว่างตาราง</h4>
+                    <div class="relation-cards">
+                        <div class="relation-card">
+                            <div class="rel-icon" style="background: rgba(56, 189, 248, 0.15); color: var(--accent-blue);">ManyToOne</div>
+                            <div class="rel-info">
+                                <h4>campus -> <a href="#entity-campus" class="rel-link" onclick="scrollToEntity('campus')">Campus</a></h4>
+                                <p>สังกัดอยู่ภายใต้วิทยาเขต (campusId)</p>
+                            </div>
+                        </div>
+                        <div class="relation-card">
+                            <div class="rel-icon" style="background: rgba(129, 140, 248, 0.15); color: var(--accent-purple);">OneToMany</div>
+                            <div class="rel-info">
+                                <h4>majors -> <a href="#entity-major" class="rel-link" onclick="scrollToEntity('major')">Major[]</a></h4>
+                                <p>หนึ่งคณะมีหลายสาขาวิชา (Major)</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. major -->
+            <div class="entity-card" id="entity-major" data-module="user-academic" data-search="major สาขาวิชา university">
+                <div class="entity-header">
+                    <div class="entity-title-group">
+                        <div class="entity-icon" style="background: rgba(56, 189, 248, 0.15); color: var(--accent-blue);">🎓</div>
+                        <div class="entity-title">
+                            <h3>major</h3>
+                            <span>Class: <strong>Major</strong> | ไฟล์: entity/university/major.entity.ts</span>
+                        </div>
+                    </div>
+                    <div class="entity-badges">
+                        <span class="badge badge-module">🟣 User Profile & Academic</span>
+                    </div>
+                </div>
+                <div class="entity-body">
+                    <div class="entity-desc">
+                        ตารางเก็บข้อมูลสาขาวิชาในคณะของมหาวิทยาลัย
+                    </div>
+                    <h4 class="table-section-title">📄 โครงสร้างคอลัมน์ (Data Structure)</h4>
+                    <div class="schema-table-wrapper">
+                        <table class="schema-table">
+                            <thead>
+                                <tr>
+                                    <th>ชื่อฟิลด์</th>
+                                    <th>ชื่อคอลัมน์</th>
+                                    <th>ชนิดข้อมูล</th>
+                                    <th>คุณสมบัติ</th>
+                                    <th>คำอธิบาย</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span class="col-name">id</span></td>
+                                    <td>id</td>
+                                    <td><span class="col-type">integer</span></td>
+                                    <td><span class="col-tag tag-pk">PK</span> Auto Increment</td>
+                                    <td>รหัสสาขาวิชา</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">major</span></td>
+                                    <td>major</td>
+                                    <td><span class="col-type">varchar</span></td>
+                                    <td>Required</td>
+                                    <td>ชื่อสาขาวิชา</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">facultyId</span></td>
+                                    <td>facultyId</td>
+                                    <td><span class="col-type">integer</span></td>
+                                    <td><span class="col-tag tag-fk">FK</span> Required</td>
+                                    <td>รหัสคณะที่สังกัด</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">createdAt / updatedAt</span></td>
+                                    <td>createdAt / updatedAt</td>
+                                    <td><span class="col-type">Date</span></td>
+                                    <td>Required</td>
+                                    <td>วันเวลาสร้างและอัปเดตข้อมูล</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <h4 class="table-section-title">🔗 ความสัมพันธ์ระหว่างตาราง</h4>
+                    <div class="relation-cards">
+                        <div class="relation-card">
+                            <div class="rel-icon" style="background: rgba(56, 189, 248, 0.15); color: var(--accent-blue);">ManyToOne</div>
+                            <div class="rel-info">
+                                <h4>faculty -> <a href="#entity-faculty" class="rel-link" onclick="scrollToEntity('faculty')">Faculty</a></h4>
+                                <p>สังกัดอยู่ภายใต้คณะ (facultyId)</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 6. branch -->
+            <div class="entity-card" id="entity-branch" data-module="user-academic" data-search="branch user track goal แทร็กการเรียน">
+                <div class="entity-header">
+                    <div class="entity-title-group">
+                        <div class="entity-icon" style="background: rgba(129, 140, 248, 0.15); color: var(--accent-purple);">🔀</div>
+                        <div class="entity-title">
+                            <h3>branch</h3>
+                            <span>Class: <strong>Branch</strong> | ไฟล์: entity/branch.entity.ts</span>
+                        </div>
+                    </div>
+                    <div class="entity-badges">
+                        <span class="badge badge-module">🟣 User Profile & Academic</span>
+                    </div>
+                </div>
+                <div class="entity-body">
+                    <div class="entity-desc">
+                        ตารางจับคู่ระหว่างผู้เรียน (Userprofile) กับเป้าหมายหลักสูตร (Goal) ที่เลือกศึกษา พร้อมเก็บค่าประสบการณ์ (EXP) สะสมในเป้าหมายนั้น
+                    </div>
+                    <h4 class="table-section-title">📄 โครงสร้างคอลัมน์ (Data Structure)</h4>
+                    <div class="schema-table-wrapper">
+                        <table class="schema-table">
+                            <thead>
+                                <tr>
+                                    <th>ชื่อฟิลด์</th>
+                                    <th>ชื่อคอลัมน์</th>
+                                    <th>ชนิดข้อมูล</th>
+                                    <th>คุณสมบัติ</th>
+                                    <th>คำอธิบาย</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span class="col-name">id</span></td>
+                                    <td>id</td>
+                                    <td><span class="col-type">integer</span></td>
+                                    <td><span class="col-tag tag-pk">PK</span> Auto Increment</td>
+                                    <td>รหัสเส้นทางการเรียน</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">userId</span></td>
+                                    <td>userId</td>
+                                    <td><span class="col-type">integer</span></td>
+                                    <td><span class="col-tag tag-fk">FK</span> Required</td>
+                                    <td>รหัสผู้เรียน (อ้างอิง Userprofile)</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">goalId</span></td>
+                                    <td>goalId</td>
+                                    <td><span class="col-type">integer</span></td>
+                                    <td><span class="col-tag tag-fk">FK</span> Required</td>
+                                    <td>รหัสเป้าหมายหลักสูตร (อ้างอิง Goal)</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">expForGoal</span></td>
+                                    <td>exp_for_goal</td>
+                                    <td><span class="col-type">integer</span></td>
+                                    <td>Nullable</td>
+                                    <td>ค่าประสบการณ์ (EXP) สะสมในเป้าหมายนี้</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">createdAt / updatedAt</span></td>
+                                    <td>createdAt / updatedAt</td>
+                                    <td><span class="col-type">timestamp</span></td>
+                                    <td>CURRENT_TIMESTAMP</td>
+                                    <td>วันเวลาสร้างและแก้ไขข้อมูล</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <h4 class="table-section-title">🔗 ความสัมพันธ์ระหว่างตาราง</h4>
+                    <div class="relation-cards">
+                        <div class="relation-card">
+                            <div class="rel-icon" style="background: rgba(56, 189, 248, 0.15); color: var(--accent-blue);">ManyToOne</div>
+                            <div class="rel-info">
+                                <h4>user -> <a href="#entity-userprofile" class="rel-link" onclick="scrollToEntity('userprofile')">Userprofile</a></h4>
+                                <p>เชื่อมโยงผู้เรียนที่เป็นเจ้าของเส้นทางนี้ (userId)</p>
+                            </div>
+                        </div>
+                        <div class="relation-card">
+                            <div class="rel-icon" style="background: rgba(56, 189, 248, 0.15); color: var(--accent-blue);">ManyToOne</div>
+                            <div class="rel-info">
+                                <h4>goal -> <a href="#entity-goal" class="rel-link" onclick="scrollToEntity('goal')">Goal</a></h4>
+                                <p>เชื่อมโยงเป้าหมายหลักสูตร (goalId)</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 7. goal -->
+            <div class="entity-card" id="entity-goal" data-module="skill-tree" data-search="goal career pathway เป้าหมายอาชีพ">
+                <div class="entity-header">
+                    <div class="entity-title-group">
+                        <div class="entity-icon" style="background: rgba(251, 113, 133, 0.15); color: var(--accent-rose);">🎯</div>
+                        <div class="entity-title">
+                            <h3>goal</h3>
+                            <span>Class: <strong>Goal</strong> | ไฟล์: entity/goal.entity.ts</span>
+                        </div>
+                    </div>
+                    <div class="entity-badges">
+                        <span class="badge badge-module">🔴 Goal & Skill Tree</span>
+                    </div>
+                </div>
+                <div class="entity-body">
+                    <div class="entity-desc">
+                        ตารางเก็บเป้าหมายหลักสูตรหรืออาชีพเป้าหมาย (Career Pathway เช่น Data Analyst, Fullstack Developer) โดยจะผูกกับทักษะที่ต้องการผ่านตาราง GoalSkillRequire
+                    </div>
+                    <h4 class="table-section-title">📄 โครงสร้างคอลัมน์ (Data Structure)</h4>
+                    <div class="schema-table-wrapper">
+                        <table class="schema-table">
+                            <thead>
+                                <tr>
+                                    <th>ชื่อฟิลด์</th>
+                                    <th>ชื่อคอลัมน์</th>
+                                    <th>ชนิดข้อมูล</th>
+                                    <th>คุณสมบัติ</th>
+                                    <th>คำอธิบาย</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span class="col-name">id</span></td>
+                                    <td>id</td>
+                                    <td><span class="col-type">integer</span></td>
+                                    <td><span class="col-tag tag-pk">PK</span> Auto Increment</td>
+                                    <td>รหัสเป้าหมายหลักสูตร</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">goal</span></td>
+                                    <td>goal</td>
+                                    <td><span class="col-type">varchar</span></td>
+                                    <td>Nullable</td>
+                                    <td>คำอธิบายรายละเอียดเป้าหมาย</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">goalName</span></td>
+                                    <td>goal_name</td>
+                                    <td><span class="col-type">varchar(20)</span></td>
+                                    <td>Nullable</td>
+                                    <td>ชื่อเป้าหมาย/อาชีพเป้าหมาย</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">createdAt / updatedAt</span></td>
+                                    <td>createdAt / updatedAt</td>
+                                    <td><span class="col-type">timestamp</span></td>
+                                    <td>CURRENT_TIMESTAMP</td>
+                                    <td>เวลาสร้างและแก้ไขข้อมูล</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <h4 class="table-section-title">🔗 ความสัมพันธ์ระหว่างตาราง</h4>
+                    <div class="relation-cards">
+                        <div class="relation-card">
+                            <div class="rel-icon" style="background: rgba(129, 140, 248, 0.15); color: var(--accent-purple);">OneToMany</div>
+                            <div class="rel-info">
+                                <h4>branches -> <a href="#entity-branch" class="rel-link" onclick="scrollToEntity('branch')">Branch[]</a></h4>
+                                <p>ผู้เรียนหลายคนสามารถเลือกลงทะเบียนในเป้าหมายเดียวกันได้</p>
+                            </div>
+                        </div>
+                        <div class="relation-card">
+                            <div class="rel-icon" style="background: rgba(251, 113, 133, 0.15); color: var(--accent-rose);">Bridge FK</div>
+                            <div class="rel-info">
+                                <h4>อ้างอิงใน -> <a href="#entity-GoalskillRequire" class="rel-link" onclick="scrollToEntity('GoalskillRequire')">GoalSkillRequire</a></h4>
+                                <p>กำหนดรายการทักษะที่ต้องการของเป้าหมายนี้</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 8. skill -->
+            <div class="entity-card" id="entity-skill" data-module="skill-tree" data-search="skill competency ทักษะ concept node">
+                <div class="entity-header">
+                    <div class="entity-title-group">
+                        <div class="entity-icon" style="background: rgba(251, 113, 133, 0.15); color: var(--accent-rose);">🧠</div>
+                        <div class="entity-title">
+                            <h3>skill</h3>
+                            <span>Class: <strong>Skill</strong> | ไฟล์: entity/skill.entity.ts</span>
+                        </div>
+                    </div>
+                    <div class="entity-badges">
+                        <span class="badge badge-module">🔴 Goal & Skill Tree</span>
+                    </div>
+                </div>
+                <div class="entity-body">
+                    <div class="entity-desc">
+                        ตารางเก็บทักษะความรู้หรือคอนเซปต์เดี่ยว (Concept Node / Competency) ที่ใช้สร้าง Skill Tree และผูกกับโจทย์แบบฝึกหัด
+                    </div>
+                    <h4 class="table-section-title">📄 โครงสร้างคอลัมน์ (Data Structure)</h4>
+                    <div class="schema-table-wrapper">
+                        <table class="schema-table">
+                            <thead>
+                                <tr>
+                                    <th>ชื่อฟิลด์</th>
+                                    <th>ชื่อคอลัมน์</th>
+                                    <th>ชนิดข้อมูล</th>
+                                    <th>คุณสมบัติ</th>
+                                    <th>คำอธิบาย</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span class="col-name">skillId</span></td>
+                                    <td>skill_id</td>
+                                    <td><span class="col-type">integer</span></td>
+                                    <td><span class="col-tag tag-pk">PK</span> Primary Column</td>
+                                    <td>รหัสทักษะ</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">skillsName</span></td>
+                                    <td>skills_name</td>
+                                    <td><span class="col-type">varchar(30)</span></td>
+                                    <td>Required</td>
+                                    <td>ชื่อทักษะหรือหัวข้อความรู้</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">tier</span></td>
+                                    <td>tier</td>
+                                    <td><span class="col-type">varchar(1)</span></td>
+                                    <td>Nullable</td>
+                                    <td>ระดับชั้นของทักษะ (เช่น Tier A, B, C)</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">status</span></td>
+                                    <td>status</td>
+                                    <td><span class="col-type">enum (Status)</span></td>
+                                    <td>Default: Status.ACTIVE</td>
+                                    <td>สถานะการใช้งานทักษะ</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <h4 class="table-section-title">🔗 ความสัมพันธ์ระหว่างตาราง</h4>
+                    <div class="relation-cards">
+                        <div class="relation-card">
+                            <div class="rel-icon" style="background: rgba(251, 113, 133, 0.15); color: var(--accent-rose);">Skill Tree</div>
+                            <div class="rel-info">
+                                <h4>อ้างอิงใน -> <a href="#entity-skills_prerequisite" class="rel-link" onclick="scrollToEntity('skills_prerequisite')">SkillPrerequisite</a></h4>
+                                <p>กำหนดความสัมพันธ์ทักษะก่อนหน้า (Prerequisite Graph)</p>
+                            </div>
+                        </div>
+                        <div class="relation-card">
+                            <div class="rel-icon" style="background: rgba(251, 113, 133, 0.15); color: var(--accent-rose);">Goal Map</div>
+                            <div class="rel-info">
+                                <h4>อ้างอิงใน -> <a href="#entity-GoalskillRequire" class="rel-link" onclick="scrollToEntity('GoalskillRequire')">GoalSkillRequire</a></h4>
+                                <p>เชื่อมโยงว่าทักษะนี้จำเป็นสำหรับเป้าหมายใด</p>
+                            </div>
+                        </div>
+                        <div class="relation-card">
+                            <div class="rel-icon" style="background: rgba(52, 211, 153, 0.15); color: var(--accent-emerald);">Exercise Map</div>
+                            <div class="rel-info">
+                                <h4>อ้างอิงใน -> <a href="#entity-exercise" class="rel-link" onclick="scrollToEntity('exercise')">Exercise</a></h4>
+                                <p>โจทย์แบบฝึกหัดอ้างอิงทักษะที่ใช้ประเมิน (skillId)</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 9. skills_prerequisite -->
+            <div class="entity-card" id="entity-skills_prerequisite" data-module="skill-tree" data-search="skills_prerequisite prerequisite skill graph เงื่อนไขทักษะ">
+                <div class="entity-header">
+                    <div class="entity-title-group">
+                        <div class="entity-icon" style="background: rgba(251, 113, 133, 0.15); color: var(--accent-rose);">🌳</div>
+                        <div class="entity-title">
+                            <h3>skills_prerequisite</h3>
+                            <span>Class: <strong>SkillPrerequisite</strong> | ไฟล์: entity/skillPrerequisite.entity.ts</span>
+                        </div>
+                    </div>
+                    <div class="entity-badges">
+                        <span class="badge badge-module">🔴 Goal & Skill Tree</span>
+                        <span class="badge" style="background: var(--badge-pk-bg); color: var(--badge-pk-text);">Composite PK</span>
+                    </div>
+                </div>
+                <div class="entity-body">
+                    <div class="entity-desc">
+                        ตารางความสัมพันธ์ทักษะก่อนหน้า (Directed Graph) กำหนดว่าทักษะเป้าหมาย (skillId) จะปลดล็อกได้ก็ต่อเมื่อผ่านทักษะเงื่อนไข (prerequisiteSkillId) ตามระดับขั้นต่ำที่กำหนด (เงื่อนไขปลดล็อกมาตรฐาน: ความก้าวหน้าใน conceptMapState >= 60%)
+                    </div>
+                    <h4 class="table-section-title">📄 โครงสร้างคอลัมน์ (Data Structure)</h4>
+                    <div class="schema-table-wrapper">
+                        <table class="schema-table">
+                            <thead>
+                                <tr>
+                                    <th>ชื่อฟิลด์</th>
+                                    <th>ชื่อคอลัมน์</th>
+                                    <th>ชนิดข้อมูล</th>
+                                    <th>คุณสมบัติ</th>
+                                    <th>คำอธิบาย</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span class="col-name">skillId</span></td>
+                                    <td>skill_id</td>
+                                    <td><span class="col-type">integer</span></td>
+                                    <td><span class="col-tag tag-pk">PK</span> <span class="col-tag tag-fk">FK</span> Composite PK</td>
+                                    <td>รหัสทักษะเป้าหมายที่ต้องการปลดล็อก</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">prerequisiteSkillId</span></td>
+                                    <td>prerequisite_skill</td>
+                                    <td><span class="col-type">integer</span></td>
+                                    <td><span class="col-tag tag-pk">PK</span> <span class="col-tag tag-fk">FK</span> Composite PK</td>
+                                    <td>รหัสทักษะเงื่อนไขก่อนหน้าที่ต้องผ่านก่อน</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">prerequisiteLevel</span></td>
+                                    <td>Prerequisite_level</td>
+                                    <td><span class="col-type">integer</span></td>
+                                    <td>Nullable</td>
+                                    <td>ระดับความเชี่ยวชาญขั้นต่ำของทักษะเงื่อนไขที่ต้องการ</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <h4 class="table-section-title">🔗 ความสัมพันธ์ระหว่างตาราง</h4>
+                    <div class="relation-cards">
+                        <div class="relation-card">
+                            <div class="rel-icon" style="background: rgba(56, 189, 248, 0.15); color: var(--accent-blue);">ManyToOne</div>
+                            <div class="rel-info">
+                                <h4>skill -> <a href="#entity-skill" class="rel-link" onclick="scrollToEntity('skill')">Skill</a></h4>
+                                <p>เชื่อมโยงทักษะเป้าหมาย (skill_id)</p>
+                            </div>
+                        </div>
+                        <div class="relation-card">
+                            <div class="rel-icon" style="background: rgba(56, 189, 248, 0.15); color: var(--accent-blue);">ManyToOne</div>
+                            <div class="rel-info">
+                                <h4>prerequisiteSkill -> <a href="#entity-skill" class="rel-link" onclick="scrollToEntity('skill')">Skill</a></h4>
+                                <p>เชื่อมโยงทักษะเงื่อนไข (prerequisite_skill)</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 10. GoalskillRequire -->
+            <div class="entity-card" id="entity-GoalskillRequire" data-module="skill-tree" data-search="GoalskillRequire goal skill requirement map">
+                <div class="entity-header">
+                    <div class="entity-title-group">
+                        <div class="entity-icon" style="background: rgba(251, 113, 133, 0.15); color: var(--accent-rose);">📋</div>
+                        <div class="entity-title">
+                            <h3>GoalskillRequire</h3>
+                            <span>Class: <strong>GoalSkillRequire</strong> | ไฟล์: entity/goalSkillRequire.entity.ts</span>
+                        </div>
+                    </div>
+                    <div class="entity-badges">
+                        <span class="badge badge-module">🔴 Goal & Skill Tree</span>
+                        <span class="badge" style="background: var(--badge-pk-bg); color: var(--badge-pk-text);">Composite PK</span>
+                    </div>
+                </div>
+                <div class="entity-body">
+                    <div class="entity-desc">
+                        ตารางกลางเชื่อมความสัมพันธ์ (Join Table M:N) ระหว่างเป้าหมายอาชีพ (Goal) และทักษะที่ต้องการ (Skill) พร้อมระบุระดับที่ต้องบรรลุเพื่อสำเร็จเป้าหมาย
+                    </div>
+                    <h4 class="table-section-title">📄 โครงสร้างคอลัมน์ (Data Structure)</h4>
+                    <div class="schema-table-wrapper">
+                        <table class="schema-table">
+                            <thead>
+                                <tr>
+                                    <th>ชื่อฟิลด์</th>
+                                    <th>ชื่อคอลัมน์</th>
+                                    <th>ชนิดข้อมูล</th>
+                                    <th>คุณสมบัติ</th>
+                                    <th>คำอธิบาย</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span class="col-name">goalId</span></td>
+                                    <td>goal_id</td>
+                                    <td><span class="col-type">integer</span></td>
+                                    <td><span class="col-tag tag-pk">PK</span> <span class="col-tag tag-fk">FK</span> Composite PK</td>
+                                    <td>รหัสเป้าหมายหลักสูตร</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">skillId</span></td>
+                                    <td>skill_id</td>
+                                    <td><span class="col-type">integer</span></td>
+                                    <td><span class="col-tag tag-pk">PK</span> <span class="col-tag tag-fk">FK</span> Composite PK</td>
+                                    <td>รหัสทักษะที่ต้องการ</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">levelRequire</span></td>
+                                    <td>level_require</td>
+                                    <td><span class="col-type">integer</span></td>
+                                    <td>Nullable</td>
+                                    <td>ระดับความเชี่ยวชาญเป้าหมายที่ต้องการ</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <h4 class="table-section-title">🔗 ความสัมพันธ์ระหว่างตาราง</h4>
+                    <div class="relation-cards">
+                        <div class="relation-card">
+                            <div class="rel-icon" style="background: rgba(56, 189, 248, 0.15); color: var(--accent-blue);">ManyToOne</div>
+                            <div class="rel-info">
+                                <h4>goal -> <a href="#entity-goal" class="rel-link" onclick="scrollToEntity('goal')">Goal</a></h4>
+                                <p>อ้างอิงเป้าหมาย (goal_id)</p>
+                            </div>
+                        </div>
+                        <div class="relation-card">
+                            <div class="rel-icon" style="background: rgba(56, 189, 248, 0.15); color: var(--accent-blue);">ManyToOne</div>
+                            <div class="rel-info">
+                                <h4>skill -> <a href="#entity-skill" class="rel-link" onclick="scrollToEntity('skill')">Skill</a></h4>
+                                <p>อ้างอิงทักษะที่ต้องเรียนรู้ (skill_id)</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 11. exercise -->
+            <div class="entity-card" id="entity-exercise" data-module="exercise-session" data-search="exercise question bank โจทย์ แบบฝึกหัด mcq fillinblank">
+                <div class="entity-header">
+                    <div class="entity-title-group">
+                        <div class="entity-icon" style="background: rgba(52, 211, 153, 0.15); color: var(--accent-emerald);">📝</div>
+                        <div class="entity-title">
+                            <h3>exercise</h3>
+                            <span>Class: <strong>Exercise</strong> | ไฟล์: entity/exerciseAndSession/exercise.entity.ts</span>
+                        </div>
+                    </div>
+                    <div class="entity-badges">
+                        <span class="badge badge-module">🟢 Exercise & Session</span>
+                    </div>
+                </div>
+                <div class="entity-body">
+                    <div class="entity-desc">
+                        คลังโจทย์แบบฝึกหัด รองรับทั้งข้อสอบปรนัยหลายตัวเลือก (MCQ) และโจทย์เติมคำในช่องว่าง (Code blanks / Fill-in-the-blank) ผูกกับทักษะเพื่อใช้คำนวณความรู้
+                    </div>
+                    <h4 class="table-section-title">📄 โครงสร้างคอลัมน์ (Data Structure)</h4>
+                    <div class="schema-table-wrapper">
+                        <table class="schema-table">
+                            <thead>
+                                <tr>
+                                    <th>ชื่อฟิลด์</th>
+                                    <th>ชื่อคอลัมน์</th>
+                                    <th>ชนิดข้อมูล</th>
+                                    <th>คุณสมบัติ</th>
+                                    <th>คำอธิบาย</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span class="col-name">id</span></td>
+                                    <td>id</td>
+                                    <td><span class="col-type">integer</span></td>
+                                    <td><span class="col-tag tag-pk">PK</span> Auto Increment</td>
+                                    <td>รหัสโจทย์แบบฝึกหัด</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">description</span></td>
+                                    <td>description</td>
+                                    <td><span class="col-type">varchar / text</span></td>
+                                    <td>Required</td>
+                                    <td>คำถามหรือรายละเอียดของโจทย์</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">level</span></td>
+                                    <td>level</td>
+                                    <td><span class="col-type">integer</span></td>
+                                    <td><span class="col-tag tag-idx">INDEX</span> Required</td>
+                                    <td>ระดับความยากของโจทย์</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">status</span></td>
+                                    <td>status</td>
+                                    <td><span class="col-type">enum (Status)</span></td>
+                                    <td>Default: Status.ACTIVE</td>
+                                    <td>สถานะโจทย์</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">expectTime</span></td>
+                                    <td>expect_time</td>
+                                    <td><span class="col-type">integer</span></td>
+                                    <td>Nullable</td>
+                                    <td>เวลามาตรฐานที่คาดหวังในการตอบ (วินาที)</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">skillId</span></td>
+                                    <td>skill_id</td>
+                                    <td><span class="col-type">integer</span></td>
+                                    <td><span class="col-tag tag-idx">INDEX</span> <span class="col-tag tag-fk">FK</span></td>
+                                    <td>รหัสทักษะที่โจทย์ข้อนี้ทำการทดสอบ</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">fillInBlank</span></td>
+                                    <td>fillInBlank</td>
+                                    <td><span class="col-type">varchar</span></td>
+                                    <td>Nullable</td>
+                                    <td>คำตอบสำหรับโจทย์ประเภทเติมคำในช่องว่าง</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">isCasesensitive</span></td>
+                                    <td>isCasesensitive</td>
+                                    <td><span class="col-type">varchar</span></td>
+                                    <td>Default: "NO"</td>
+                                    <td>กำหนดว่าต้องตรวจตัวพิมพ์เล็ก-ใหญ่หรือไม่ ("YES"/"NO")</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">createdAt / updatedAt</span></td>
+                                    <td>createdAt / updatedAt</td>
+                                    <td><span class="col-type">timestamp</span></td>
+                                    <td>CURRENT_TIMESTAMP</td>
+                                    <td>เวลาสร้างและอัปเดตข้อมูล</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <h4 class="table-section-title">🔗 ความสัมพันธ์ระหว่างตาราง</h4>
+                    <div class="relation-cards">
+                        <div class="relation-card">
+                            <div class="rel-icon" style="background: rgba(56, 189, 248, 0.15); color: var(--accent-blue);">ManyToOne</div>
+                            <div class="rel-info">
+                                <h4>skill -> <a href="#entity-skill" class="rel-link" onclick="scrollToEntity('skill')">Skill</a></h4>
+                                <p>เชื่อมโยงกับทักษะที่ทดสอบ (skill_id)</p>
+                            </div>
+                        </div>
+                        <div class="relation-card">
+                            <div class="rel-icon" style="background: rgba(129, 140, 248, 0.15); color: var(--accent-purple);">OneToMany</div>
+                            <div class="rel-info">
+                                <h4>exerciseChoices -> <a href="#entity-exerciseChoice" class="rel-link" onclick="scrollToEntity('exerciseChoice')">ExerciseChoice[]</a></h4>
+                                <p>ตัวเลือกคำตอบ 1-4 ข้อสำหรับโจทย์ประเภทปรนัย</p>
+                            </div>
+                        </div>
+                        <div class="relation-card">
+                            <div class="rel-icon" style="background: rgba(129, 140, 248, 0.15); color: var(--accent-purple);">OneToMany</div>
+                            <div class="rel-info">
+                                <h4>sessionRelate -> <a href="#entity-sessionAndExercise" class="rel-link" onclick="scrollToEntity('sessionAndExercise')">SessionAndExercise[]</a></h4>
+                                <p>เชื่อมโยงการจัดชุดโจทย์เข้ากับรอบเซสชันแบบทดสอบ</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 12. exerciseChoice -->
+            <div class="entity-card" id="entity-exerciseChoice" data-module="exercise-session" data-search="exerciseChoice choice ตัวเลือกคำตอบ mcq">
+                <div class="entity-header">
+                    <div class="entity-title-group">
+                        <div class="entity-icon" style="background: rgba(52, 211, 153, 0.15); color: var(--accent-emerald);">☑️</div>
+                        <div class="entity-title">
+                            <h3>exerciseChoice</h3>
+                            <span>Class: <strong>ExerciseChoice</strong> | ไฟล์: entity/exerciseAndSession/exerciseChoice.entity.ts</span>
+                        </div>
+                    </div>
+                    <div class="entity-badges">
+                        <span class="badge badge-module">🟢 Exercise & Session</span>
+                    </div>
+                </div>
+                <div class="entity-body">
+                    <div class="entity-desc">
+                        ตารางเก็บตัวเลือกคำตอบสำหรับโจทย์แต่ละข้อ พร้อมระบุว่าตัวเลือกใดเป็นคำตอบที่ถูกต้อง
+                    </div>
+                    <h4 class="table-section-title">📄 โครงสร้างคอลัมน์ (Data Structure)</h4>
+                    <div class="schema-table-wrapper">
+                        <table class="schema-table">
+                            <thead>
+                                <tr>
+                                    <th>ชื่อฟิลด์</th>
+                                    <th>ชื่อคอลัมน์</th>
+                                    <th>ชนิดข้อมูล</th>
+                                    <th>คุณสมบัติ</th>
+                                    <th>คำอธิบาย</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span class="col-name">id</span></td>
+                                    <td>id</td>
+                                    <td><span class="col-type">integer</span></td>
+                                    <td><span class="col-tag tag-pk">PK</span> Auto Increment</td>
+                                    <td>รหัสตัวเลือกคำตอบ</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">exerciseId</span></td>
+                                    <td>exerciseId</td>
+                                    <td><span class="col-type">integer</span></td>
+                                    <td><span class="col-tag tag-fk">FK</span> Nullable</td>
+                                    <td>รหัสโจทย์ที่ตัวเลือกนี้สังกัดอยู่</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">script</span></td>
+                                    <td>script</td>
+                                    <td><span class="col-type">varchar(15)</span></td>
+                                    <td>Nullable</td>
+                                    <td>ข้อความตัวเลือกคำตอบ</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">isAnswer</span></td>
+                                    <td>isAnswer</td>
+                                    <td><span class="col-type">boolean</span></td>
+                                    <td>Required</td>
+                                    <td>ระบุว่าเป็นคำตอบที่ถูกต้องหรือไม่ (true/false)</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">createdAt / updatedAt</span></td>
+                                    <td>createdAt / updatedAt</td>
+                                    <td><span class="col-type">timestamp</span></td>
+                                    <td>CURRENT_TIMESTAMP</td>
+                                    <td>เวลาสร้างและแก้ไขข้อมูล</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <h4 class="table-section-title">🔗 ความสัมพันธ์ระหว่างตาราง</h4>
+                    <div class="relation-cards">
+                        <div class="relation-card">
+                            <div class="rel-icon" style="background: rgba(56, 189, 248, 0.15); color: var(--accent-blue);">ManyToOne</div>
+                            <div class="rel-info">
+                                <h4>exercise -> <a href="#entity-exercise" class="rel-link" onclick="scrollToEntity('exercise')">Exercise</a></h4>
+                                <p>สังกัดอยู่ภายใต้โจทย์ (exerciseId)</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 13. session -->
+            <div class="entity-card" id="entity-session" data-module="exercise-session" data-search="session รอบการสอบ exam session">
+                <div class="entity-header">
+                    <div class="entity-title-group">
+                        <div class="entity-icon" style="background: rgba(52, 211, 153, 0.15); color: var(--accent-emerald);">⏱️</div>
+                        <div class="entity-title">
+                            <h3>session</h3>
+                            <span>Class: <strong>Session</strong> | ไฟล์: entity/exerciseAndSession/session.entity.ts</span>
+                        </div>
+                    </div>
+                    <div class="entity-badges">
+                        <span class="badge badge-module">🟢 Exercise & Session</span>
+                    </div>
+                </div>
+                <div class="entity-body">
+                    <div class="entity-desc">
+                        ตารางเก็บบันทึกชุดการทดสอบหรือรอบเซสชันการทำโจทย์ในแต่ละครั้งของผู้เรียน
+                    </div>
+                    <h4 class="table-section-title">📄 โครงสร้างคอลัมน์ (Data Structure)</h4>
+                    <div class="schema-table-wrapper">
+                        <table class="schema-table">
+                            <thead>
+                                <tr>
+                                    <th>ชื่อฟิลด์</th>
+                                    <th>ชื่อคอลัมน์</th>
+                                    <th>ชนิดข้อมูล</th>
+                                    <th>คุณสมบัติ</th>
+                                    <th>คำอธิบาย</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span class="col-name">id</span></td>
+                                    <td>session_id</td>
+                                    <td><span class="col-type">integer</span></td>
+                                    <td><span class="col-tag tag-pk">PK</span> Auto Increment</td>
+                                    <td>รหัสรอบเซสชันแบบทดสอบ</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">createdAt</span></td>
+                                    <td>create_at</td>
+                                    <td><span class="col-type">timestamp</span></td>
+                                    <td>CURRENT_TIMESTAMP</td>
+                                    <td>วันเวลาที่เปิดเซสชัน</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <h4 class="table-section-title">🔗 ความสัมพันธ์ระหว่างตาราง</h4>
+                    <div class="relation-cards">
+                        <div class="relation-card">
+                            <div class="rel-icon" style="background: rgba(129, 140, 248, 0.15); color: var(--accent-purple);">OneToMany</div>
+                            <div class="rel-info">
+                                <h4>exerciseRelate -> <a href="#entity-sessionAndExercise" class="rel-link" onclick="scrollToEntity('sessionAndExercise')">SessionAndExercise[]</a></h4>
+                                <p>รายการโจทย์แบบฝึกหัดทั้งหมดที่อยู่ในเซสชันนี้</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 14. sessionAndExercise -->
+            <div class="entity-card" id="entity-sessionAndExercise" data-module="exercise-session" data-search="sessionAndExercise bridge session exercise">
+                <div class="entity-header">
+                    <div class="entity-title-group">
+                        <div class="entity-icon" style="background: rgba(52, 211, 153, 0.15); color: var(--accent-emerald);">🔗</div>
+                        <div class="entity-title">
+                            <h3>sessionAndExercise</h3>
+                            <span>Class: <strong>SessionAndExercise</strong> | ไฟล์: entity/exerciseAndSession/sessionAndExercise.entity.ts</span>
+                        </div>
+                    </div>
+                    <div class="entity-badges">
+                        <span class="badge badge-module">🟢 Exercise & Session</span>
+                    </div>
+                </div>
+                <div class="entity-body">
+                    <div class="entity-desc">
+                        ตารางกลางเชื่อมความสัมพันธ์ระหว่างเซสชัน (Session) กับโจทย์แบบฝึกหัด (Exercise) เพื่อระบุว่าในแต่ละเซสชันประกอบด้วยข้อสอบข้อใดบ้าง
+                    </div>
+                    <h4 class="table-section-title">📄 โครงสร้างคอลัมน์ (Data Structure)</h4>
+                    <div class="schema-table-wrapper">
+                        <table class="schema-table">
+                            <thead>
+                                <tr>
+                                    <th>ชื่อฟิลด์</th>
+                                    <th>ชื่อคอลัมน์</th>
+                                    <th>ชนิดข้อมูล</th>
+                                    <th>คุณสมบัติ</th>
+                                    <th>คำอธิบาย</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span class="col-name">id</span></td>
+                                    <td>id</td>
+                                    <td><span class="col-type">integer</span></td>
+                                    <td><span class="col-tag tag-pk">PK</span> Auto Increment</td>
+                                    <td>รหัสรายการข้อสอบในเซสชัน</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">exerciseId</span></td>
+                                    <td>exerciseId</td>
+                                    <td><span class="col-type">integer</span></td>
+                                    <td><span class="col-tag tag-idx">INDEX</span> <span class="col-tag tag-fk">FK</span> Required</td>
+                                    <td>รหัสข้อสอบ (อ้างอิง Exercise)</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">sessionId</span></td>
+                                    <td>sessionId</td>
+                                    <td><span class="col-type">integer</span></td>
+                                    <td><span class="col-tag tag-idx">INDEX</span> <span class="col-tag tag-fk">FK</span> Required</td>
+                                    <td>รหัสเซสชันการสอบ (อ้างอิง Session)</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <h4 class="table-section-title">🔗 ความสัมพันธ์ระหว่างตาราง</h4>
+                    <div class="relation-cards">
+                        <div class="relation-card">
+                            <div class="rel-icon" style="background: rgba(56, 189, 248, 0.15); color: var(--accent-blue);">ManyToOne</div>
+                            <div class="rel-info">
+                                <h4>exercise -> <a href="#entity-exercise" class="rel-link" onclick="scrollToEntity('exercise')">Exercise</a></h4>
+                                <p>เชื่อมโยงข้อสอบ</p>
+                            </div>
+                        </div>
+                        <div class="relation-card">
+                            <div class="rel-icon" style="background: rgba(56, 189, 248, 0.15); color: var(--accent-blue);">ManyToOne</div>
+                            <div class="rel-info">
+                                <h4>session -> <a href="#entity-session" class="rel-link" onclick="scrollToEntity('session')">Session</a></h4>
+                                <p>เชื่อมโยงเซสชัน</p>
+                            </div>
+                        </div>
+                        <div class="relation-card">
+                            <div class="rel-icon" style="background: rgba(251, 191, 36, 0.15); color: var(--accent-amber);">History Log</div>
+                            <div class="rel-info">
+                                <h4>อ้างอิงใน -> <a href="#entity-history" class="rel-link" onclick="scrollToEntity('history')">History</a></h4>
+                                <p>ถูกอ้างอิงโดย History เมื่อผู้เรียนทำการตอบข้อสอบในเซสชันนี้</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 15. history -->
+            <div class="entity-card" id="entity-history" data-module="history" data-search="history log learning attempt ประวัติสอบ การทำโจทย์">
+                <div class="entity-header">
+                    <div class="entity-title-group">
+                        <div class="entity-icon" style="background: rgba(251, 191, 36, 0.15); color: var(--accent-amber);">📊</div>
+                        <div class="entity-title">
+                            <h3>history</h3>
+                            <span>Class: <strong>History</strong> | ไฟล์: entity/history.entity.ts</span>
+                        </div>
+                    </div>
+                    <div class="entity-badges">
+                        <span class="badge badge-module">🟡 Student Learning History</span>
+                    </div>
+                </div>
+                <div class="entity-body">
+                    <div class="entity-desc">
+                        ตารางเก็บบันทึกประวัติการทำข้อสอบของผู้เรียนในแต่ละข้อ เวลาที่ใช้ (startTime -> endTime) และผลลัพธ์ความถูกต้อง (isCorrect) สำหรับนำไปคำนวณอัปเดตค่า BKT ใน Userprofile.conceptMapState
+                    </div>
+                    <h4 class="table-section-title">📄 โครงสร้างคอลัมน์ (Data Structure)</h4>
+                    <div class="schema-table-wrapper">
+                        <table class="schema-table">
+                            <thead>
+                                <tr>
+                                    <th>ชื่อฟิลด์</th>
+                                    <th>ชื่อคอลัมน์</th>
+                                    <th>ชนิดข้อมูล</th>
+                                    <th>คุณสมบัติ</th>
+                                    <th>คำอธิบาย</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span class="col-name">id</span></td>
+                                    <td>id</td>
+                                    <td><span class="col-type">integer</span></td>
+                                    <td><span class="col-tag tag-pk">PK</span> Auto Increment</td>
+                                    <td>รหัสบันทึกประวัติการตอบ</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">userId</span></td>
+                                    <td>userId</td>
+                                    <td><span class="col-type">integer</span></td>
+                                    <td><span class="col-tag tag-idx">INDEX</span> <span class="col-tag tag-fk">FK</span> Required</td>
+                                    <td>รหัสผู้เรียน (อ้างอิง Userprofile)</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">sessionAndExerciseId</span></td>
+                                    <td>sessionAndExerciseId</td>
+                                    <td><span class="col-type">integer</span></td>
+                                    <td><span class="col-tag tag-idx">INDEX</span> <span class="col-tag tag-fk">FK</span> Required</td>
+                                    <td>รหัสรายการข้อสอบในเซสชัน (อ้างอิง SessionAndExercise)</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">isCorrect</span></td>
+                                    <td>isCorrect</td>
+                                    <td><span class="col-type">boolean</span></td>
+                                    <td>Default: false</td>
+                                    <td>ผลการตอบว่าถูกต้องหรือไม่ (true = ถูก, false = ผิด)</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">isPretest</span></td>
+                                    <td>isPretest</td>
+                                    <td><span class="col-type">boolean</span></td>
+                                    <td>Default: false</td>
+                                    <td>ระบุว่าเป็นการสอบวัดผลก่อนเรียน (Pre-test) หรือไม่</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">startTime</span></td>
+                                    <td>startTime</td>
+                                    <td><span class="col-type">timestamp</span></td>
+                                    <td>Required</td>
+                                    <td>เวลาที่ผู้เรียนเริ่มทำโจทย์ข้อนี้</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="col-name">endTime</span></td>
+                                    <td>endTime</td>
+                                    <td><span class="col-type">timestamp</span></td>
+                                    <td>Default: CURRENT_TIMESTAMP</td>
+                                    <td>เวลาที่ส่งคำตอบเสร็จสิ้น (ใช้หาระยะเวลาที่ใช้ทำโจทย์)</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <h4 class="table-section-title">🔗 ความสัมพันธ์ระหว่างตาราง</h4>
+                    <div class="relation-cards">
+                        <div class="relation-card">
+                            <div class="rel-icon" style="background: rgba(56, 189, 248, 0.15); color: var(--accent-blue);">ManyToOne</div>
+                            <div class="rel-info">
+                                <h4>user -> <a href="#entity-userprofile" class="rel-link" onclick="scrollToEntity('userprofile')">Userprofile</a></h4>
+                                <p>เชื่อมโยงผู้เรียนที่ทำข้อสอบ (userId)</p>
+                            </div>
+                        </div>
+                        <div class="relation-card">
+                            <div class="rel-icon" style="background: rgba(56, 189, 248, 0.15); color: var(--accent-blue);">ManyToOne</div>
+                            <div class="rel-info">
+                                <h4>sessionAndExercise -> <a href="#entity-sessionAndExercise" class="rel-link" onclick="scrollToEntity('sessionAndExercise')">SessionAndExercise</a></h4>
+                                <p>เชื่อมโยงข้อสอบที่ทำในเซสชัน (sessionAndExerciseId)</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <footer>
+        <p>Generated for ADT Learning Project — Architectural & Database Entity Reference Documentation</p>
+    </footer>
+
+    <script>
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const icon = document.getElementById('theme-icon');
+            const label = document.getElementById('theme-label');
+
+            if (currentTheme === 'dark') {
+                html.setAttribute('data-theme', 'light');
+                icon.textContent = '🌙';
+                label.textContent = 'Dark Mode';
+            } else {
+                html.setAttribute('data-theme', 'dark');
+                icon.textContent = '☀️';
+                label.textContent = 'Light Mode';
+            }
+        }
+
+        function scrollToEntity(entityId) {
+            const el = document.getElementById('entity-' + entityId);
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                el.style.borderColor = 'var(--accent-blue)';
+                setTimeout(() => {
+                    el.style.borderColor = '';
+                }, 1800);
+            }
+        }
+
+        function filterEntities(moduleName, btnEl) {
+            const tabs = document.querySelectorAll('.filter-tab');
+            tabs.forEach(t => t.classList.remove('active'));
+            if (btnEl) btnEl.classList.add('active');
+
+            const cards = document.querySelectorAll('.entity-card');
+            cards.forEach(card => {
+                if (moduleName === 'all' || card.getAttribute('data-module') === moduleName) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        function handleSearch() {
+            const query = document.getElementById('searchInput').value.toLowerCase().trim();
+            const cards = document.querySelectorAll('.entity-card');
+
+            cards.forEach(card => {
+                const searchMeta = card.getAttribute('data-search').toLowerCase();
+                const content = card.textContent.toLowerCase();
+                if (query === '' || searchMeta.includes(query) || content.includes(query)) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+    </script>
+</body>
+</html>

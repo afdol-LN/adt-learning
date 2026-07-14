@@ -1,4 +1,5 @@
 import { Column, Entity, PrimaryColumn } from "typeorm";
+import { Status } from "../enums/status.enum";
 
 @Entity('skill')
 export class Skill {
@@ -11,6 +12,10 @@ export class Skill {
     @Column({ name: 'tier', type: 'varchar', length: 1, nullable: true })
     tier: string;
 
-    @Column({ name: 'status', type: 'integer', default: 1 })
-    status: number;
+    @Column({ 
+        type : 'enum',
+        enum : Status,
+        default : Status.ACTIVE
+    })
+    status: string;
 }
