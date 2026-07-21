@@ -17,6 +17,11 @@ export const dataSourceOptions: DataSourceOptions = {
   
   // เปิด logging เพื่อดูคำสั่ง SQL ที่ TypeORM สร้างขึ้น (ช่วย Debug ได้ดีมาก)
   logging: process.env.NODE_ENV !== 'production',
+
+  // ตั้งค่า SSL สำหรับการเชื่อมต่อกับ Supabase / Cloud Database
+  ssl: process.env.DATABASE_URL?.includes('supabase.co') || process.env.DATABASE_URL?.includes('sslmode=require')
+    ? { rejectUnauthorized: false }
+    : false,
 };
 
 // Export ตัว DataSource เพื่อให้ TypeORM CLI นำไปใช้

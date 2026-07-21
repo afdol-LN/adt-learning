@@ -22,7 +22,7 @@ export class authController extends BaseController<Userprofile> {
         return result;
     }
 
-    @Post('access_request')
+    @Post('/access_request')
     async accessRequest(@Body() accessRequest: userAccessRequestDto) {
         const result = await this.auth.accessRequest(accessRequest.authenToken, accessRequest.authenSignature);
         this.logger.log('access_request result : ', result);

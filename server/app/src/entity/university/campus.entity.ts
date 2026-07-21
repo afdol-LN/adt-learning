@@ -6,6 +6,12 @@ export class Campus {
     @PrimaryGeneratedColumn()
     id: number;
 
+    @Column({
+        nullable: false,
+        unique : true
+    })
+    campusId:string;
+
     @Column()
     campus: string;
 

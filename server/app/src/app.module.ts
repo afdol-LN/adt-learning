@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, NestModule } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -41,6 +41,13 @@ import { majorController } from './controller/major.controller';
 import { majorService } from './service/major.service';
 import { authService } from './service/auth.service';
 import { authController } from './controller/auth.controller';
+import { Hash } from './libs/hash';
+import { JwtService } from './libs/jwt';
+
+//middleware
+import { AuthMiddleWare } from './middleware/authMiddleWare';
+import { MiddlewareConsumer } from '@nestjs/common';
+import { RequestMethod } from '@nestjs/common';
 
 @Module({
   imports: [
@@ -73,7 +80,7 @@ import { authController } from './controller/auth.controller';
     campusController,
     facultyController,
     majorController,
-    authController
+    authController,
   ],
   providers: [
     AppService,
@@ -85,6 +92,20 @@ import { authController } from './controller/auth.controller';
     facultyService,
     majorService,
     authService,
+    Hash,
+    JwtService,
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(AuthMiddleWare)
+      .exclude(
+        { path: '/userprofile/register', method: RequestMethod.POST },
+        { path: '/authen/authen_request', method: RequestMethod.POST },
+        { path: '/authen/access_request', method: RequestMethod.POST },
+        // { path: '/userprofile/admin/user_list', method: RequestMethod.GET },
+      )
+      .forRoutes('*');
+  }
+}

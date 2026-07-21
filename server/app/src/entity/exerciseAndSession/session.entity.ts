@@ -14,6 +14,6 @@ export class Session {
   })
   createdAt: Date;
 
-  @OneToMany(()=>SessionAndExercise, SessionAndExercise=>SessionAndExercise.sessionId)
+  @OneToMany(() => SessionAndExercise, sessionAndExercise => sessionAndExercise.session)
   exerciseRelate: SessionAndExercise[];
 }

@@ -1,10 +1,12 @@
+import { Injectable } from '@nestjs/common';
 import { createHash, randomBytes } from 'crypto';
 
+@Injectable()
 export class Hash {
     salt : string;
     hash : string;
     constructor(){
-        this.salt = "67"
+        this.salt = "&"
     }
 
      getSalt() :  string{

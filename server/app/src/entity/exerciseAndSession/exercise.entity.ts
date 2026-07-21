@@ -47,7 +47,7 @@ export class Exercise {
   @Column({nullable: true, default : "NO"})
   isCasesensitive: string;
 
-  @OneToMany(()=> SessionAndExercise, sessionAndExercise => sessionAndExercise.exerciseId)
+  @OneToMany(() => SessionAndExercise, sessionAndExercise => sessionAndExercise.exercise)
   sessionRelate: SessionAndExercise[];
 
   @ManyToOne(() => Skill)

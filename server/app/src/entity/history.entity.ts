@@ -1,6 +1,7 @@
 import { Column, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { Userprofile } from './userprofile.entity';
 import { SessionAndExercise } from './exerciseAndSession/sessionAndExercise.entity';
+import { Branch } from './branch.entity';
 
 @Entity('history')
 export class History {
@@ -9,7 +10,7 @@ export class History {
 
   @Index()
   @Column({ nullable: false })
-  userId: number;
+  branchId: number;
 
   @Index()
   @Column({ nullable: false })
@@ -34,11 +35,11 @@ export class History {
   })
   endTime: Date;
 
-  @ManyToOne(() => Userprofile)
-  @JoinColumn({ name: 'userId', referencedColumnName: 'id' })
-  user: Userprofile;
+  @ManyToOne(() => Branch, branch => branch.history)
+  @JoinColumn({ name: 'branchId', referencedColumnName: 'id' })
+  branch: Branch;
 
-  @ManyToOne(() => SessionAndExercise)
+  @ManyToOne(() => SessionAndExercise, sessionAndExercise => sessionAndExercise.history)
   @JoinColumn({ name: 'sessionAndExerciseId', referencedColumnName: 'id' })
   sessionAndExercise: SessionAndExercise;
 }

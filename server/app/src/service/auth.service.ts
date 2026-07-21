@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { BaseService } from './base.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Userprofile } from 'src/entity/userprofile.entity';
@@ -23,7 +23,11 @@ export class authService extends BaseService<Userprofile> {
     const today: string = DateFormat.toDateString();
     try {
       // ดึง userprofile ทุกคนมาก่อน
-      const allUsers = await this.userReponsitory.find();
+      const allUsers = await this.userReponsitory.find({
+        where : {
+          status : "active"
+        }
+      });
       // วน loop hash username ทีละคน แล้วเทียบ
       const result = allUsers.find((user) => {
         const hashed = this.hash.hashWithSaltAndDate(
@@ -38,7 +42,7 @@ export class authService extends BaseService<Userprofile> {
         console.log(result)
         response = {
           isError: true,
-          erroMessage: 'Not found user',
+          errorMessage: 'Not found user',
         };
       } else {
         const payload = {
@@ -56,7 +60,7 @@ export class authService extends BaseService<Userprofile> {
     } catch (error) {
       response = {
         isError: true,
-        erroMessage: error.message,
+        errorMessage: error.message,
       };
     } finally {
       return response;
@@ -65,8 +69,14 @@ export class authService extends BaseService<Userprofile> {
   async accessRequest(authenToken: String, authenSignature: String) {
     // authenSignature = username + SAH256(password) + authentoken
     var response;
+    Logger.log("this is authenToken", authenToken);
+    Logger.log("this is authenSignature", authenSignature);
     try {
-      const AllUser = await this.userReponsitory.find();
+      const AllUser = await this.userReponsitory.find({
+        relations: {
+          branches: true,
+        },
+      });
       const result = AllUser.find((user) => {
         const hashed = this.hash.hashSha256(
           user.username + user.password + authenToken,
@@ -77,7 +87,7 @@ export class authService extends BaseService<Userprofile> {
       if (!result) {
         response = {
           isError: true,
-          erroMessage: 'Password or token incorrect',
+          errorMessage: 'Password or token incorrect',
         };
       } else {
         const payload = {
@@ -86,20 +96,25 @@ export class authService extends BaseService<Userprofile> {
           userId: result.id,
         };
         const accessToken = this.jwtservice.generateToken(payload);
+        const branchIds = result.branches && Array.isArray(result.branches) && result.branches.length > 0
+          ? result.branches.map((b) => b.id)
+          : null;
         response = {
           isError: false,
           data: {
             userName: result.username,
+            fullName: result.fullName,
             userRole: result.role,
             userId: result.id,
             accessToken: accessToken,
+            branchId: branchIds,
           },
         };
       }
     } catch (error) {
       response = {
         isError: true,
-        errorMesage: error.message,
+        errorMessage: error.message,
       };
     } finally {
       return response;
@@ -117,7 +132,7 @@ export class authService extends BaseService<Userprofile> {
       if (checkUser) {
         response = {
           isError: true,
-          erroMessage: 'Username already exists',
+          errorMessage: 'Username already exists',
         };
       } else {
         const hashPassword = this.hash.hashSha256(userprofile.password);
@@ -141,14 +156,14 @@ export class authService extends BaseService<Userprofile> {
         } else {
           response = {
             isError: true,
-            erroMessage: 'Register failed',
+            errorMessage: 'Register failed',
           };
         }
       }
     } catch (error) {
       response = {
         isError: true,
-        erroMessage: error.message,
+        errorMessage: error.message,
       };
     } finally {
       return response;

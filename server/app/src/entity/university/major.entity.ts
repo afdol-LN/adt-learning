@@ -6,16 +6,30 @@ export class Major {
     @PrimaryGeneratedColumn()
     id: number;
 
+    @Column({
+        nullable: false,
+        unique: true
+    })
+    majorId: string
+
     @Column()
     major: string;
 
     @Column()
     facultyId: number;
 
-    @Column()
+    @Column({
+        nullable: false,
+        default: () => 'CURRENT_TIMESTAMP',
+        type: 'timestamp',
+    })
     createdAt: Date;
 
-    @Column()
+    @Column({
+        nullable: false,
+        default: () => 'CURRENT_TIMESTAMP',
+        type: 'timestamp',
+    })
     updatedAt: Date;
 
     @ManyToOne(() => Faculty, faculty=>faculty.majors)

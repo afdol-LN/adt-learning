@@ -1,5 +1,7 @@
+import { Injectable } from '@nestjs/common';
 import * as jwt from 'jsonwebtoken';
 
+@Injectable()
 export class JwtService {
     private secretKey : string;
     private options : jwt.SignOptions;

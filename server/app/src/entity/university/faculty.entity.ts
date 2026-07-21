@@ -7,16 +7,30 @@ export class Faculty {
     @PrimaryGeneratedColumn()
     id: number;
 
+    @Column({
+        nullable:false,
+        unique: true
+    })
+    facultyId:string;
+ 
     @Column()
     faculty: string;
 
     @Column()
     campusId: number;
 
-    @Column()
+    @Column({
+        nullable: false,
+        default: () => 'CURRENT_TIMESTAMP',
+        type: 'timestamp',
+    })
     createdAt: Date;
 
-    @Column()
+    @Column({
+        nullable: false,
+        default: () => 'CURRENT_TIMESTAMP',
+        type: 'timestamp',
+    })
     updatedAt: Date;
 
     @ManyToOne(() => Campus, campus => campus.faculties)
