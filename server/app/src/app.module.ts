@@ -41,8 +41,11 @@ import { majorController } from './controller/major.controller';
 import { majorService } from './service/major.service';
 import { authService } from './service/auth.service';
 import { authController } from './controller/auth.controller';
+import { ktController } from './controller/kt.controller';
+import { ktService } from './service/kt.service';
 import { Hash } from './libs/hash';
 import { JwtService } from './libs/jwt';
+import { HttpModule } from '@nestjs/axios';
 
 //middleware
 import { AuthMiddleWare } from './middleware/authMiddleWare';
@@ -55,11 +58,12 @@ import { RequestMethod } from '@nestjs/common';
       isGlobal: true,
     }),
     TypeOrmModule.forRoot(dataSourceOptions),
+    // HttpModule,
 
     TypeOrmModule.forFeature([
       Campus,
       Faculty,
-      Major,
+      Major,  
       Gender,
       Userprofile,
       Branch,
@@ -81,6 +85,7 @@ import { RequestMethod } from '@nestjs/common';
     facultyController,
     majorController,
     authController,
+    // ktController,
   ],
   providers: [
     AppService,
@@ -92,20 +97,22 @@ import { RequestMethod } from '@nestjs/common';
     facultyService,
     majorService,
     authService,
+    // ktService,
     Hash,
     JwtService,
   ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer
-      .apply(AuthMiddleWare)
-      .exclude(
-        { path: '/userprofile/register', method: RequestMethod.POST },
-        { path: '/authen/authen_request', method: RequestMethod.POST },
-        { path: '/authen/access_request', method: RequestMethod.POST },
-        // { path: '/userprofile/admin/user_list', method: RequestMethod.GET },
-      )
-      .forRoutes('*');
+    // consumer
+    //   .apply(AuthMiddleWare)
+    //   .exclude(
+    //     { path: '/userprofile/register', method: RequestMethod.POST },
+    //     { path: '/authen/authen_request', method: RequestMethod.POST },
+    //     { path: '/authen/access_request', method: RequestMethod.POST },
+    //     { path: '/kt/(.*)', method: RequestMethod.ALL },
+    //     // { path: '/userprofile/admin/user_list', method: RequestMethod.GET },
+    //   )
+    //   .forRoutes('*');
   }
 }

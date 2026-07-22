@@ -11,5 +11,7 @@ export class campusService extends BaseService<Campus>{
         private readonly campusRepository: Repository<Campus>,
     ) {
         super(campusRepository);
-    }    
+    }
+    
+
 }
