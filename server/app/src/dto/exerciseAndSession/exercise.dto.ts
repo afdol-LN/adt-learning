@@ -1,23 +1,37 @@
 import { Status } from 'src/enums/status.enum';
+import { ExerciseType } from 'src/enums/exercise-type.enum';
+import { ExerciseChoiceInputDto } from './exerciseChoice.dto';
+
+export type IsCaseSensitive = 'YES' | 'NO';
 
 export class CreateExerciseDto {
-  description: string;
-  level: number;
+  description!: string;
+  skillId!: number;
+  skillLevel!: number;
+  type!: ExerciseType;
   status?: Status;
   expectTime?: number;
-  skillId: number;
+
+  // Required when type === ExerciseType.FILL_IN_BLANK
   fillInBlank?: string;
-  isCasesensitive?: string;
+  isCasesensitive?: IsCaseSensitive;
+
+  // Required when type === ExerciseType.CHOICE
+  choices?: ExerciseChoiceInputDto[];
 }
 
 export class UpdateExerciseDto {
   description?: string;
-  level?: number;
+  skillId?: number;
+  skillLevel?: number;
+  type?: ExerciseType;
   status?: Status;
   expectTime?: number;
-  skillId?: number;
+
   fillInBlank?: string;
-  isCasesensitive?: string;
+  isCasesensitive?: IsCaseSensitive;
+
+  choices?: ExerciseChoiceInputDto[];
 }
 
 export class ResultPerExerciseDto{
@@ -27,5 +41,5 @@ export class ResultPerExerciseDto{
   isCorrect: boolean;
   startTime: string;
   endTime: string;
-  
+
 }

@@ -108,14 +108,15 @@ async function seedMasterData() {
     // 6. Skill
     Logger.log('Seeding Skill...');
     await db.query(`
-      INSERT INTO "skill" ("skill_id", "skills_name", "tier", "status")
+      INSERT INTO "skill" ("skill_id", "skillCode", "skills_name", "tier", "status")
       VALUES
-        (1, 'TypeScript', 'A', 'active'::skill_status_enum),
-        (2, 'NestJS', 'A', 'active'::skill_status_enum),
-        (3, 'PostgreSQL', 'A', 'active'::skill_status_enum),
-        (4, 'React', 'B', 'active'::skill_status_enum),
-        (5, 'Docker', 'B', 'active'::skill_status_enum)
+        (1, 'TYPESCRIPT', 'TypeScript', 'A', 'active'::skill_status_enum),
+        (2, 'NESTJS', 'NestJS', 'A', 'active'::skill_status_enum),
+        (3, 'POSTGRESQL', 'PostgreSQL', 'A', 'active'::skill_status_enum),
+        (4, 'REACT', 'React', 'B', 'active'::skill_status_enum),
+        (5, 'DOCKER', 'Docker', 'B', 'active'::skill_status_enum)
       ON CONFLICT ("skill_id") DO UPDATE SET
+        "skillCode" = EXCLUDED."skillCode",
         "skills_name" = EXCLUDED."skills_name",
         "tier" = EXCLUDED."tier",
         "status" = EXCLUDED."status";
@@ -136,17 +137,19 @@ async function seedMasterData() {
     // 8. Exercise
     Logger.log('Seeding Exercise...');
     await db.query(`
-      INSERT INTO "exercise" ("id", "description", "level", "status", "expect_time", "skill_id", "fillInBlank", "isCasesensitive", "createdAt", "updatedAt")
+      INSERT INTO "exercise" ("id", "description", "level", "skill_level", "type", "status", "expect_time", "skill_id", "fillInBlank", "isCasesensitive", "createdAt", "updatedAt")
       VALUES
-        (1, 'ผลลัพธ์ของโค้ด TypeScript: const x: number = 10; console.log(typeof x); คืออะไร?', 1, 'ACTIVE', 60, 1, NULL, 'NO', NOW(), NOW()),
-        (2, 'คีย์เวิร์ดใดที่ใช้ประกาศตัวแปรที่มีค่าคงที่ (Constant) ใน TypeScript (พิมพ์คำศัพท์ 1 คำ)?', 1, 'ACTIVE', 45, 1, 'const', 'NO', NOW(), NOW()),
-        (3, 'ใน NestJS เดคคอเรเตอร์ (Decorator) ใดใช้สำหรับระบุว่าคลาสเป็น Controller?', 2, 'ACTIVE', 60, 2, NULL, 'NO', NOW(), NOW()),
-        (4, 'ใน NestJS หากต้องการฉีด Dependency (DI) เรามักใช้คีย์เวิร์ดใดหน้าพารามิเตอร์ใน constructor (เช่น ___ constructor(private readonly service: AppService))?', 2, 'ACTIVE', 45, 2, 'Injectable', 'NO', NOW(), NOW()),
-        (5, 'คำสั่ง SQL ใดใช้สำหรับดึงข้อมูลจากตาราง (Table)?', 1, 'ACTIVE', 45, 3, 'SELECT', 'NO', NOW(), NOW()),
-        (6, 'ใน React ฮุก (Hook) ใดใช้สำหรับจัดการ State ภายใน Functional Component?', 2, 'ACTIVE', 60, 4, NULL, 'NO', NOW(), NOW())
+        (1, 'ผลลัพธ์ของโค้ด TypeScript: const x: number = 10; console.log(typeof x); คืออะไร?', 1, 1, 'CHOICE', 'active', 60, 1, NULL, 'NO', NOW(), NOW()),
+        (2, 'คีย์เวิร์ดใดที่ใช้ประกาศตัวแปรที่มีค่าคงที่ (Constant) ใน TypeScript (พิมพ์คำศัพท์ 1 คำ)?', 1, 1, 'FILL_IN_BLANK', 'active', 45, 1, 'const', 'NO', NOW(), NOW()),
+        (3, 'ใน NestJS เดคคอเรเตอร์ (Decorator) ใดใช้สำหรับระบุว่าคลาสเป็น Controller?', 2, 2, 'CHOICE', 'active', 60, 2, NULL, 'NO', NOW(), NOW()),
+        (4, 'ใน NestJS หากต้องการฉีด Dependency (DI) เรามักใช้คีย์เวิร์ดใดหน้าพารามิเตอร์ใน constructor (เช่น ___ constructor(private readonly service: AppService))?', 2, 2, 'FILL_IN_BLANK', 'active', 45, 2, 'Injectable', 'NO', NOW(), NOW()),
+        (5, 'คำสั่ง SQL ใดใช้สำหรับดึงข้อมูลจากตาราง (Table)?', 1, 1, 'FILL_IN_BLANK', 'active', 45, 3, 'SELECT', 'NO', NOW(), NOW()),
+        (6, 'ใน React ฮุก (Hook) ใดใช้สำหรับจัดการ State ภายใน Functional Component?', 2, 2, 'CHOICE', 'active', 60, 4, NULL, 'NO', NOW(), NOW())
       ON CONFLICT ("id") DO UPDATE SET
         "description" = EXCLUDED."description",
         "level" = EXCLUDED."level",
+        "skill_level" = EXCLUDED."skill_level",
+        "type" = EXCLUDED."type",
         "skill_id" = EXCLUDED."skill_id",
         "fillInBlank" = EXCLUDED."fillInBlank",
         "updatedAt" = NOW();

@@ -6,7 +6,7 @@ export class JwtService {
     private secretKey : string;
     private options : jwt.SignOptions;
     constructor(){
-        this.secretKey = process.env.JWT_SECRET!;
+        this.secretKey = process.env.JWT_SECRET! || 'mySecretKey';
         this.options = {
             expiresIn : '1d'
         };

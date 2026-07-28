@@ -1,11 +1,10 @@
-import { Controller, Logger, Get, Param, Query } from '@nestjs/common';
+import { Controller, Logger, Get, Param, ParseIntPipe, Query } from '@nestjs/common';
 import { exerciseService } from 'src/service/exercise.service';
 import { BaseController } from './base.controller';
 import { Exercise } from 'src/entity/exerciseAndSession/exercise.entity';
-import { Post } from '@nestjs/common';
+import { Post, Put } from '@nestjs/common';
 import { Body } from '@nestjs/common';
-import { CreateExerciseDto } from 'src/dto/exerciseAndSession/exercise.dto';
-import { CreateExerciseChoiceDto } from 'src/dto/exerciseAndSession/exerciseChoice.dto';
+import { CreateExerciseDto, UpdateExerciseDto } from 'src/dto/exerciseAndSession/exercise.dto';
 
 @Controller('/exercise')
 export class exerciseController extends BaseController<Exercise> {
@@ -32,12 +31,16 @@ export class exerciseController extends BaseController<Exercise> {
     return await this.exerciseService.findPretestByGoal(goalId, userId, level);
   }
 
-  @Post('/create_exercise_choice')
-  async createExercise(
-    @Body('exercise') exercise: CreateExerciseDto,
-    @Body('exerciseChoices') exerciseChoices: CreateExerciseChoiceDto[],
-  ) {
-    const result = await this.exerciseService.createExercise(exercise, exerciseChoices);
-    return result;
+  @Post()
+  async create(@Body() dto: CreateExerciseDto): Promise<Exercise> {
+    return await this.exerciseService.createExercise(dto);
+  }
+
+  @Put(':id')
+  async update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateExerciseDto,
+  ): Promise<Exercise> {
+    return await this.exerciseService.updateExercise(id, dto);
   }
 }

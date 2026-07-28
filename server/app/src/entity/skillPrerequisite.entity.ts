@@ -15,7 +15,7 @@ export class SkillPrerequisite {
     @ManyToOne(() => Skill)
     @JoinColumn({ name: 'skill_id', referencedColumnName: 'skillId' })
     skill: Skill;
-
+ 
     @ManyToOne(() => Skill)
     @JoinColumn({ name: 'prerequisite_skill', referencedColumnName: 'skillId' })
     prerequisiteSkill: Skill;

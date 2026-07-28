@@ -1,4 +1,5 @@
 import { Status } from 'src/enums/status.enum';
+import { ExerciseType } from 'src/enums/exercise-type.enum';
 import { Column, Entity, Index, ManyToOne, JoinColumn, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
 import { Skill } from '../skill.entity';
 import { ExerciseChoice } from './exerciseChoice.entity';
@@ -29,6 +30,16 @@ export class Exercise {
   @Column({ name: 'skill_id', type: 'integer'})
   skillId: number;
 
+  @Column({ name: 'skill_level', type: 'integer' })
+  skillLevel: number;
+
+  @Column({
+    type: 'enum',
+    enum: ExerciseType,
+    default: ExerciseType.CHOICE,
+  })
+  type: ExerciseType;
+
   @Column({
     type: 'timestamp',
     default: () => 'CURRENT_TIMESTAMP',
@@ -41,8 +52,8 @@ export class Exercise {
   })
   updatedAt: Date;
 
-  @Column({nullable: true})
-  fillInBlank : string
+  @Column({ type: 'varchar', nullable: true })
+  fillInBlank: string | null;
 
   @Column({nullable: true, default : "NO"})
   isCasesensitive: string;

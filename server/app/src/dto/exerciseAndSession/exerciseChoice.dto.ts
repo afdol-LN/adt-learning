@@ -1,3 +1,8 @@
+export class ExerciseChoiceInputDto {
+  script!: string;
+  isAnswer!: boolean;
+}
+
 export class CreateExerciseChoiceDto {
   exerciseId?: number;
   choiceNo?: number;

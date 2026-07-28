@@ -41,6 +41,8 @@ import { majorController } from './controller/major.controller';
 import { majorService } from './service/major.service';
 import { authService } from './service/auth.service';
 import { authController } from './controller/auth.controller';
+import { skillController } from './controller/skill.controller';
+import { skillService } from './service/skill.service';
 import { ktController } from './controller/kt.controller';
 import { ktService } from './service/kt.service';
 import { Hash } from './libs/hash';
@@ -85,6 +87,7 @@ import { RequestMethod } from '@nestjs/common';
     facultyController,
     majorController,
     authController,
+    skillController,
     // ktController,
   ],
   providers: [
@@ -97,6 +100,7 @@ import { RequestMethod } from '@nestjs/common';
     facultyService,
     majorService,
     authService,
+    skillService,
     // ktService,
     Hash,
     JwtService,

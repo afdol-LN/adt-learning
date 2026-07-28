@@ -29,7 +29,10 @@ export class authService extends BaseService<Userprofile> {
         }
       });
       // วน loop hash username ทีละคน แล้วเทียบ
+      console.log('data before hashed : username',this.hash.getSalt(),today)
+      
       const result = allUsers.find((user) => {
+        console.log("username : ", user.username)
         const hashed = this.hash.hashWithSaltAndDate(
           user.username,
           this.hash.getSalt(),
@@ -57,7 +60,7 @@ export class authService extends BaseService<Userprofile> {
           },
         };
       }
-    } catch (error) {
+    } catch (error : any) {
       response = {
         isError: true,
         errorMessage: error.message,
@@ -111,7 +114,7 @@ export class authService extends BaseService<Userprofile> {
           },
         };
       }
-    } catch (error) {
+    } catch (error: any) {
       response = {
         isError: true,
         errorMessage: error.message,
@@ -160,7 +163,7 @@ export class authService extends BaseService<Userprofile> {
           };
         }
       }
-    } catch (error) {
+    } catch (error : any) {
       response = {
         isError: true,
         errorMessage: error.message,

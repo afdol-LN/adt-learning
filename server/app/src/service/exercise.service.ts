@@ -1,4 +1,4 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { BadRequestException, Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { BaseService } from "src/service/base.service";
 import { Exercise } from "src/entity/exerciseAndSession/exercise.entity";
@@ -6,9 +6,11 @@ import { In, Repository } from "typeorm";
 import { ExerciseChoice } from "src/entity/exerciseAndSession/exerciseChoice.entity";
 import { Goal } from "src/entity/goal.entity";
 import { GoalSkillRequire } from "src/entity/goalSkillRequire.entity";
+import { Skill } from "src/entity/skill.entity";
 import { Status } from "src/enums/status.enum";
-import { CreateExerciseChoiceDto } from "src/dto/exerciseAndSession/exerciseChoice.dto";
-import { CreateExerciseDto } from "src/dto/exerciseAndSession/exercise.dto";
+import { ExerciseType } from "src/enums/exercise-type.enum";
+import { CreateExerciseDto, UpdateExerciseDto } from "src/dto/exerciseAndSession/exercise.dto";
+import { ExerciseChoiceInputDto } from "src/dto/exerciseAndSession/exerciseChoice.dto";
 
 @Injectable()
 export class exerciseService extends BaseService<Exercise> {
@@ -22,8 +24,134 @@ export class exerciseService extends BaseService<Exercise> {
         private readonly goalRepository: Repository<Goal>,
         @InjectRepository(GoalSkillRequire)
         private readonly goalSkillRequireRepository: Repository<GoalSkillRequire>,
+        @InjectRepository(Skill)
+        private readonly skillRepository: Repository<Skill>,
     ) {
         super(exerciseRepository);
+    }
+
+    async findAll(): Promise<Exercise[]> {
+        return this.exerciseRepository.find({
+            relations: { skill: true },
+            order: { id: 'DESC' },
+        });
+    }
+
+    async findOne(id: number): Promise<Exercise> {
+        const result = await this.exerciseRepository.findOne({
+            where: { id },
+            relations: { skill: true, exerciseChoices: true },
+        });
+        if (!result) {
+            throw new NotFoundException(`Exercise ${id} not found`);
+        }
+        return result;
+    }
+
+    async remove(id: number): Promise<void> {
+        const existing = await this.findOne(id);
+        existing.status = Status.INACTIVE;
+        await this.exerciseRepository.save(existing);
+    }
+
+    async createExercise(dto: CreateExerciseDto): Promise<Exercise> {
+        await this.validateSkillExists(dto.skillId);
+        this.validateExercisePayload(dto.type, dto.fillInBlank, dto.choices);
+
+        const exercise = this.exerciseRepository.create({
+            description: dto.description,
+            skillId: dto.skillId,
+            skillLevel: dto.skillLevel,
+            level: dto.skillLevel,
+            type: dto.type,
+            status: dto.status ?? Status.ACTIVE,
+            expectTime: dto.expectTime,
+            fillInBlank: dto.type === ExerciseType.FILL_IN_BLANK ? dto.fillInBlank : undefined,
+            isCasesensitive: dto.type === ExerciseType.FILL_IN_BLANK ? (dto.isCasesensitive ?? 'NO') : 'NO',
+        });
+        const saved = await this.exerciseRepository.save(exercise);
+
+        if (dto.type === ExerciseType.CHOICE && dto.choices) {
+            await this.replaceChoices(saved.id, dto.choices);
+        }
+
+        return this.findOne(saved.id);
+    }
+
+    async updateExercise(id: number, dto: UpdateExerciseDto): Promise<Exercise> {
+        const existing = await this.findOne(id);
+
+        if (dto.skillId !== undefined) {
+            await this.validateSkillExists(dto.skillId);
+        }
+
+        const nextType = dto.type ?? existing.type;
+        const nextFillInBlank = dto.fillInBlank ?? existing.fillInBlank ?? undefined;
+        const nextChoices = dto.choices ?? (nextType === existing.type ? existing.exerciseChoices : undefined);
+        this.validateExercisePayload(nextType, nextFillInBlank, nextChoices);
+
+        existing.description = dto.description ?? existing.description;
+        existing.skillId = dto.skillId ?? existing.skillId;
+        existing.skillLevel = dto.skillLevel ?? existing.skillLevel;
+        existing.level = dto.skillLevel ?? existing.level;
+        existing.type = nextType;
+        existing.status = dto.status ?? existing.status;
+        existing.expectTime = dto.expectTime ?? existing.expectTime;
+        existing.fillInBlank = nextType === ExerciseType.FILL_IN_BLANK ? (nextFillInBlank ?? null) : null;
+        existing.isCasesensitive = nextType === ExerciseType.FILL_IN_BLANK
+            ? (dto.isCasesensitive ?? existing.isCasesensitive ?? 'NO')
+            : 'NO';
+
+        await this.exerciseRepository.save(existing);
+
+        if (nextType === ExerciseType.CHOICE && dto.choices) {
+            await this.replaceChoices(id, dto.choices);
+        } else if (nextType === ExerciseType.FILL_IN_BLANK && existing.exerciseChoices?.length) {
+            await this.exerciseChoiceRepository.delete({ exerciseId: id });
+        }
+
+        return this.findOne(id);
+    }
+
+    private async replaceChoices(exerciseId: number, choices: ExerciseChoiceInputDto[]): Promise<void> {
+        await this.exerciseChoiceRepository.delete({ exerciseId });
+        const choiceEntities = choices.map(choice =>
+            this.exerciseChoiceRepository.create({
+                exerciseId,
+                script: choice.script,
+                isAnswer: choice.isAnswer,
+            }),
+        );
+        await this.exerciseChoiceRepository.save(choiceEntities);
+    }
+
+    private async validateSkillExists(skillId: number): Promise<void> {
+        const skill = await this.skillRepository.findOne({ where: { skillId } });
+        if (!skill) {
+            throw new BadRequestException(`Skill ${skillId} does not exist`);
+        }
+    }
+
+    private validateExercisePayload(
+        type: ExerciseType,
+        fillInBlank: string | undefined,
+        choices: ExerciseChoiceInputDto[] | undefined,
+    ): void {
+        if (type === ExerciseType.FILL_IN_BLANK) {
+            if (!fillInBlank || fillInBlank.trim() === '') {
+                throw new BadRequestException('fillInBlank answer is required for FILL_IN_BLANK exercises');
+            }
+        } else if (type === ExerciseType.CHOICE) {
+            if (!choices || choices.length < 2) {
+                throw new BadRequestException('At least 2 choices are required for CHOICE exercises');
+            }
+            const correctCount = choices.filter(choice => choice.isAnswer).length;
+            if (correctCount !== 1) {
+                throw new BadRequestException('Exactly one correct choice is required for CHOICE exercises');
+            }
+        } else {
+            throw new BadRequestException(`Unsupported exercise type: ${type}`);
+        }
     }
 
     async findPretestByGoal(goalId?: number | string, userId?: number | string, level?: number) {
@@ -212,20 +340,5 @@ export class exerciseService extends BaseService<Exercise> {
                 answer: 1
             }
         ];
-    }
-
-    async createExercise(exercise: CreateExerciseDto, exerciseChoices: CreateExerciseChoiceDto[]){
-        const result = await this.exerciseRepository.save(exercise);
-        this.logger.log("exercise result",result)
-        exerciseChoices.forEach(exerciseChoice => {
-            exerciseChoice.exerciseId = result.id;
-        });
-        const resultOfChoice = await this.exerciseChoiceRepository.save(exerciseChoices);
-        this.logger.log("exercise choice result",resultOfChoice)
-        const response = {
-            exercise: result,
-            exerciseChoices: resultOfChoice
-        }
-        return response;
     }
 }

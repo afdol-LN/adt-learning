@@ -1,15 +1,22 @@
-import { Column, Entity, PrimaryColumn } from "typeorm";
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 import { Status } from "../enums/status.enum";
+import { SkillPrerequisite } from "./skillPrerequisite.entity";
 
 @Entity('skill')
 export class Skill {
-    @PrimaryColumn({ name: 'skill_id', type: 'integer' })
+    @PrimaryGeneratedColumn({ name: 'skill_id' })
     skillId: number;
+
+    @Column({
+        nullable: false,
+        unique: true,
+    })
+    skillCode : string
 
     @Column({ name: 'skills_name', type: 'varchar', length: 30 })
     skillsName: string;
 
-    @Column({ name: 'tier', type: 'varchar', length: 1, nullable: true })
+    @Column({ name: 'tier', type: 'varchar', length: 10, nullable: true })
     tier: string;
 
     @Column({ 
@@ -18,4 +25,7 @@ export class Skill {
         default : Status.ACTIVE
     })
     status: string;
+
+    @OneToMany(() => SkillPrerequisite, prequisite => prequisite.skill)
+    skillPrequisite: SkillPrerequisite[]
 }
