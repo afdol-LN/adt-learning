@@ -161,7 +161,7 @@ export class userProfileService extends BaseService<Userprofile> {
               majorName: userProfile.major?.major || '-',
               goals:
                 userProfile.branches
-                  ?.map((branch) => branch.goal?.goalName || branch.goal?.goal)
+                  ?.map((branch) => branch.goal?.goal)
                   .filter(Boolean)
                   .join('-') || '-',
               sessionCount,

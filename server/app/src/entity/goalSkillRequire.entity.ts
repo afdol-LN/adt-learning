@@ -13,7 +13,7 @@ export class GoalSkillRequire {
     @Column({ name: 'level_require', type: 'integer', nullable: true })
     levelRequire: number;
 
-    @ManyToOne(() => Goal)
+    @ManyToOne(() => Goal, goal => goal.goalSkillRequire)
     @JoinColumn({ name: 'goal_id', referencedColumnName: 'id' })
     goal: Goal;
 

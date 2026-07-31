@@ -163,7 +163,7 @@ export class exerciseService extends BaseService<Exercise> {
             if (numericGoalId === -1 && typeof goalId === 'string') {
                 const foundGoal = await this.goalRepository.findOne({
                     where: [
-                        { goalName: goalId },
+                        { goalDescription: goalId },
                         { goal: goalId }
                     ]
                 });
