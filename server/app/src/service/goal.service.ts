@@ -2,15 +2,15 @@ import { BadRequestException, Injectable, NotFoundException } from "@nestjs/comm
 import { InjectDataSource, InjectRepository } from "@nestjs/typeorm";
 import { DataSource, EntityManager, Repository } from "typeorm";
 import { BaseService } from "./base.service";
-import { Goal } from "../entity/goal.entity";
-import { GoalSkillRequire } from "../entity/goalSkillRequire.entity";
-import { Skill } from "../entity/skill.entity";
-import { Status } from "../enums/status.enum";
+import { Goal } from "src/entity/goal.entity";
+import { GoalSkillRequire } from "src/entity/goalSkillRequire.entity";
+import { Skill } from "src/entity/skill.entity";
+import { Status } from "src/enums/status.enum";
 import {
   CreateGoalWithSkillRequireDto,
   GoalSkillRequireItemDto,
   UpdateGoalWithSkillRequireDto,
-} from "../dto/goal.dto";
+} from "src/dto/goal.dto";
 
 const GOAL_RELATIONS = {
   goalSkillRequire: { skill: { skillPrequisite: { prerequisiteSkill: true } } },

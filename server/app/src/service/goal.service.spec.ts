@@ -2,10 +2,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
 import { getRepositoryToken, getDataSourceToken } from '@nestjs/typeorm';
 import { goalService } from './goal.service';
-import { Goal } from '../entity/goal.entity';
-import { GoalSkillRequire } from '../entity/goalSkillRequire.entity';
-import { Skill } from '../entity/skill.entity';
-import { Status } from '../enums/status.enum';
+import { Goal } from 'src/entity/goal.entity';
+import { GoalSkillRequire } from 'src/entity/goalSkillRequire.entity';
+import { Skill } from 'src/entity/skill.entity';
+import { Status } from 'src/enums/status.enum';
 
 describe('goalService', () => {
   let service: goalService;
