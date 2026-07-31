@@ -43,6 +43,8 @@ import { authService } from './service/auth.service';
 import { authController } from './controller/auth.controller';
 import { skillController } from './controller/skill.controller';
 import { skillService } from './service/skill.service';
+import { goalController } from './controller/goal.controller';
+import { goalService } from './service/goal.service';
 import { ktController } from './controller/kt.controller';
 import { ktService } from './service/kt.service';
 import { Hash } from './libs/hash';
@@ -65,7 +67,7 @@ import { RequestMethod } from '@nestjs/common';
     TypeOrmModule.forFeature([
       Campus,
       Faculty,
-      Major,  
+      Major,
       Gender,
       Userprofile,
       Branch,
@@ -88,6 +90,7 @@ import { RequestMethod } from '@nestjs/common';
     majorController,
     authController,
     skillController,
+    goalController,
     // ktController,
   ],
   providers: [
@@ -101,6 +104,7 @@ import { RequestMethod } from '@nestjs/common';
     majorService,
     authService,
     skillService,
+    goalService,
     // ktService,
     Hash,
     JwtService,
