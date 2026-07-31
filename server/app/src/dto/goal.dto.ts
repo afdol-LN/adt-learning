@@ -1,9 +1,26 @@
+import { Status } from "src/enums/status.enum";
+
 export class CreateGoalDto {
-  goal?: string;
-  goalName?: string;
+  goal!: string;
+  goalDescription?: string;
+  status?: Status;
 }
 
 export class UpdateGoalDto {
   goal?: string;
-  goalName?: string;
+  goalDescription?: string;
+  status?: Status;
+}
+
+export class GoalSkillRequireItemDto {
+  skillId!: number;
+  levelRequire?: number;
+}
+
+export class CreateGoalWithSkillRequireDto extends CreateGoalDto {
+  skillRequires!: GoalSkillRequireItemDto[];
+}
+
+export class UpdateGoalWithSkillRequireDto extends UpdateGoalDto {
+  skillRequires?: GoalSkillRequireItemDto[];
 }
