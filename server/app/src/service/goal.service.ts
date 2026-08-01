@@ -81,18 +81,30 @@ export class goalService extends BaseService<Goal> {
   async updateGoalWithSkillRequire(id: number, dto: UpdateGoalWithSkillRequireDto): Promise<Goal> {
     const { skillRequires, ...goalData } = dto;
 
-    await this.findOne(id); // throws NotFoundException if missing
+    const existingGoal = await this.findOne(id); // throws NotFoundException if missing
 
     if (goalData.goal !== undefined && goalData.goal.trim() === '') {
       throw new BadRequestException('Goal name is required');
     }
+
+    const existingSkillIds = new Set(
+      (existingGoal.goalSkillRequire ?? []).map((r) => r.skillId),
+    );
 
     await this.dataSource.transaction(async (manager) => {
       const goalRepo = manager.getRepository(Goal);
       const requireRepo = manager.getRepository(GoalSkillRequire);
 
       if (skillRequires) {
-        await this.validateSkillRequires(manager, skillRequires);
+        // Only newly-added skill requirements need to pass the active-status
+        // check. Skill IDs already associated with this goal before the edit
+        // are allowed through even if they've since become inactive -
+        // otherwise an admin could never save any edit to a goal once one of
+        // its required skills is deactivated (full-replace resend lockout).
+        const newSkillRequires = skillRequires.filter(
+          (s) => !existingSkillIds.has(s.skillId),
+        );
+        await this.validateSkillRequires(manager, newSkillRequires);
       }
 
       if (Object.keys(goalData).length > 0) {
