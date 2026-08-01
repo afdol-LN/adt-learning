@@ -1,4 +1,11 @@
-import { Column, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  Index,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import { Userprofile } from './userprofile.entity';
 import { SessionAndExercise } from './exerciseAndSession/sessionAndExercise.entity';
 import { Branch } from './branch.entity';
@@ -35,11 +42,14 @@ export class History {
   })
   endTime: Date;
 
-  @ManyToOne(() => Branch, branch => branch.history)
+  @ManyToOne(() => Branch, (branch) => branch.history)
   @JoinColumn({ name: 'branchId', referencedColumnName: 'id' })
   branch: Branch;
 
-  @ManyToOne(() => SessionAndExercise, sessionAndExercise => sessionAndExercise.history)
+  @ManyToOne(
+    () => SessionAndExercise,
+    (sessionAndExercise) => sessionAndExercise.history,
+  )
   @JoinColumn({ name: 'sessionAndExerciseId', referencedColumnName: 'id' })
   sessionAndExercise: SessionAndExercise;
 }

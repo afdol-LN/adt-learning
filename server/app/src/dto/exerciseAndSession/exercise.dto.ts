@@ -34,12 +34,11 @@ export class UpdateExerciseDto {
   choices?: ExerciseChoiceInputDto[];
 }
 
-export class ResultPerExerciseDto{
+export class ResultPerExerciseDto {
   userId: number;
   exerciseId: number;
   userAnswer: string;
   isCorrect: boolean;
   startTime: string;
   endTime: string;
-
 }

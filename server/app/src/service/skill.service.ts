@@ -1,15 +1,19 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import { InjectDataSource, InjectRepository } from "@nestjs/typeorm";
-import { DataSource, EntityManager, Repository } from "typeorm";
-import { BaseService } from "./base.service";
-import { Skill } from "src/entity/skill.entity";
-import { SkillPrerequisite } from "src/entity/skillPrerequisite.entity";
-import { Status } from "src/enums/status.enum";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import { DataSource, EntityManager, Repository } from 'typeorm';
+import { BaseService } from './base.service';
+import { Skill } from 'src/entity/skill.entity';
+import { SkillPrerequisite } from 'src/entity/skillPrerequisite.entity';
+import { Status } from 'src/enums/status.enum';
 import {
   CreateSkillWithPrerequisiteDto,
   SkillPrerequisiteItemDto,
   UpdateSkillWithPrerequisiteDto,
-} from "src/dto/skill.dto";
+} from 'src/dto/skill.dto';
 
 @Injectable()
 export class skillService extends BaseService<Skill> {
@@ -45,12 +49,18 @@ export class skillService extends BaseService<Skill> {
     await this.skillRepository.save(existing);
   }
 
-  async createSkillWithPrerequisite(dto: CreateSkillWithPrerequisiteDto): Promise<Skill> {
+  async createSkillWithPrerequisite(
+    dto: CreateSkillWithPrerequisiteDto,
+  ): Promise<Skill> {
     const { prerequisites, ...skillData } = dto;
 
-    const existing = await this.skillRepository.findOne({ where: { skillCode: skillData.skillCode} });
+    const existing = await this.skillRepository.findOne({
+      where: { skillCode: skillData.skillCode },
+    });
     if (existing) {
-      throw new BadRequestException(`Skill ${skillData.skillCode} already exists`);
+      throw new BadRequestException(
+        `Skill ${skillData.skillCode} already exists`,
+      );
     }
 
     const skill = await this.dataSource.transaction(async (manager) => {
@@ -59,7 +69,11 @@ export class skillService extends BaseService<Skill> {
 
       const newSkill = await skillRepo.save(skillRepo.create(skillData));
 
-      await this.validatePrerequisites(manager, newSkill.skillId, prerequisites);
+      await this.validatePrerequisites(
+        manager,
+        newSkill.skillId,
+        prerequisites,
+      );
 
       const prereqRows = prerequisites.map((p) =>
         skillPrerequisiteRepo.create({
@@ -76,7 +90,10 @@ export class skillService extends BaseService<Skill> {
     return this.findOne(skill.skillId);
   }
 
-  async updateSkillWithPrerequisite(skillId: number, dto: UpdateSkillWithPrerequisiteDto): Promise<Skill> {
+  async updateSkillWithPrerequisite(
+    skillId: number,
+    dto: UpdateSkillWithPrerequisiteDto,
+  ): Promise<Skill> {
     const { prerequisites, ...skillData } = dto;
 
     await this.findOne(skillId); // throws NotFoundException if missing
@@ -117,11 +134,17 @@ export class skillService extends BaseService<Skill> {
     const skillRepo = manager.getRepository(Skill);
     for (const p of prerequisites) {
       if (p.prerequisiteSkillId === skillId) {
-        throw new BadRequestException(`Skill ${skillId} cannot be its own prerequisite`);
+        throw new BadRequestException(
+          `Skill ${skillId} cannot be its own prerequisite`,
+        );
       }
-      const found = await skillRepo.findOne({ where: { skillId: p.prerequisiteSkillId } });
+      const found = await skillRepo.findOne({
+        where: { skillId: p.prerequisiteSkillId },
+      });
       if (!found) {
-        throw new BadRequestException(`Prerequisite skill ${p.prerequisiteSkillId} does not exist`);
+        throw new BadRequestException(
+          `Prerequisite skill ${p.prerequisiteSkillId} does not exist`,
+        );
       }
     }
   }

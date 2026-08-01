@@ -19,16 +19,11 @@
 //   branches: Branch[];
 // }
 
-
 export interface userProfileMenageList {
-  fullName: string,
-  status: string,
-  campusName : string
-  facultyName: string,
-  majorName : string,
-  goals : string,
+  fullName: string;
+  status: string;
+  campusName: string;
+  facultyName: string;
+  majorName: string;
+  goals: string;
 }
-
-
-
-

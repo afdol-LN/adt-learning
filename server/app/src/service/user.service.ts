@@ -66,7 +66,7 @@ export class userProfileService extends BaseService<Userprofile> {
   }
 
   async fillAllForAdminManage(): Promise<fillAllForAdminManageResponseDto> {
-    var response: fillAllForAdminManageResponseDto;
+    let response: fillAllForAdminManageResponseDto;
 
     try {
       const result = await this.userProfileRepository.find({
@@ -76,9 +76,9 @@ export class userProfileService extends BaseService<Userprofile> {
           faculty: true,
           major: true,
           branches: {
-            history:{
-              sessionAndExercise :{
-                session:true
+            history: {
+              sessionAndExercise: {
+                session: true,
               },
             },
             goal: true,

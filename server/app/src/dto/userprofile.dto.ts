@@ -3,7 +3,7 @@ import { Request } from 'express';
 export class CreateUserprofileDto {
   // firstName: string;   // merge → fullName before save
   // lastName: string;    // merge → fullName before save
-  fullName : string;
+  fullName: string;
   genderId: number;
   birthDate: string;
   campusId?: number;
@@ -40,12 +40,10 @@ export class userAccessRequestDto {
   authenSignature: string;
 }
 
-
-export interface AuthenRequestDto extends Request{
+export interface AuthenRequestDto extends Request {
   user?: {
-    userId : number;
-    fullName : string;
-    userRole : string;
-  }
+    userId: number;
+    fullName: string;
+    userRole: string;
+  };
 }
-  

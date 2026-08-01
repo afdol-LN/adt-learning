@@ -1,4 +1,4 @@
-import { Status } from "src/enums/status.enum";
+import { Status } from 'src/enums/status.enum';
 
 export class CreateGoalDto {
   goal!: string;

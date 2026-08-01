@@ -13,7 +13,9 @@ export class UserAdminItemDto {
   correctPercent: number;
 }
 
-export class fillAllForAdminManageResponseDto implements restfulResponse<UserAdminItemDto[] | null> {
+export class fillAllForAdminManageResponseDto implements restfulResponse<
+  UserAdminItemDto[] | null
+> {
   isError: boolean;
   data: UserAdminItemDto[] | null;
   errorMessage: string;

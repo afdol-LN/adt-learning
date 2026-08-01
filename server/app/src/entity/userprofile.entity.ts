@@ -1,100 +1,111 @@
-import { Column, Entity, JoinColumn, OneToMany, OneToOne, PrimaryGeneratedColumn, ManyToOne } from "typeorm";
-import { Gender } from "./gender.entity";
-import { UserRole } from "src/enums/user-role.enum";
-import { Campus } from "./university/campus.entity";
-import { Faculty } from "./university/faculty.entity";
-import { Major } from "./university/major.entity";
-import { Branch } from "./branch.entity";
-import { Status } from "../enums/status.enum";
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  OneToMany,
+  OneToOne,
+  PrimaryGeneratedColumn,
+  ManyToOne,
+} from 'typeorm';
+import { Gender } from './gender.entity';
+import { UserRole } from 'src/enums/user-role.enum';
+import { Campus } from './university/campus.entity';
+import { Faculty } from './university/faculty.entity';
+import { Major } from './university/major.entity';
+import { Branch } from './branch.entity';
+import { Status } from '../enums/status.enum';
 
 @Entity('userprofile')
 export class Userprofile {
-    @PrimaryGeneratedColumn()
-    id: number;
+  @PrimaryGeneratedColumn()
+  id: number;
 
-    @Column({ name: 'fullName', length: 100 })
-    fullName: string;
+  @Column({ name: 'fullName', length: 100 })
+  fullName: string;
 
-    //เพิ่ม default = 1
-    @Column({default: 1})
-    genderId: number;
+  //เพิ่ม default = 1
+  @Column({ default: 1 })
+  genderId: number;
 
-    //แก้ String -> Date
-    @Column()
-    birthDate: string;
+  //แก้ String -> Date
+  @Column()
+  birthDate: string;
 
-    // ข้อมูลการศึกษา
-    @Column({ nullable: true })
-    campusId: number;
-    
-    @Column({ nullable: true })
-    facultyId: number;
+  // ข้อมูลการศึกษา
+  @Column({ nullable: true })
+  campusId: number;
 
-    @Column({ nullable: true })
-    majorId: number;
+  @Column({ nullable: true })
+  facultyId: number;
 
-    @Column({ name: 'username', nullable: true, length: 20 })
-    username: string;
+  @Column({ nullable: true })
+  majorId: number;
 
-    @Column({ name: 'password', nullable: true, length: 80 })
-    password: string;
-    
-    @Column({
-        type: 'enum',
-        enum : Status,
-        default : Status.ACTIVE,
-    })
-    status: string;
+  @Column({ name: 'username', nullable: true, length: 20 })
+  username: string;
 
+  @Column({ name: 'password', nullable: true, length: 80 })
+  password: string;
 
-    // ************* ด๊อลงงงงงงงงงงงงงงงงงงงงงงงงงง
-    @Column({ name: 'behaviorScore', type: 'numeric', precision: 4, scale: 3, nullable: true })
-    behaviorScore: number;
+  @Column({
+    type: 'enum',
+    enum: Status,
+    default: Status.ACTIVE,
+  })
+  status: string;
 
-    @Column({ name: 'conceptMapState', type: 'jsonb', nullable: true })
-    conceptMapState: any;
+  // ************* ด๊อลงงงงงงงงงงงงงงงงงงงงงงงงงง
+  @Column({
+    name: 'behaviorScore',
+    type: 'numeric',
+    precision: 4,
+    scale: 3,
+    nullable: true,
+  })
+  behaviorScore: number;
 
-    @Column({ name: 'strengthWeaknessMatrix', type: 'jsonb', nullable: true })
-    strengthWeaknessMatrix: any;
-    // ******************
+  @Column({ name: 'conceptMapState', type: 'jsonb', nullable: true })
+  conceptMapState: any;
 
-    @Column({
-        type: 'timestamp',
-        default: () => 'CURRENT_TIMESTAMP',
-    })
-    createdAt: Date;
+  @Column({ name: 'strengthWeaknessMatrix', type: 'jsonb', nullable: true })
+  strengthWeaknessMatrix: any;
+  // ******************
 
-    @Column({
-        type: 'timestamp',
-        default: () => 'CURRENT_TIMESTAMP',
-    })
-    updatedAt: Date;
+  @Column({
+    type: 'timestamp',
+    default: () => 'CURRENT_TIMESTAMP',
+  })
+  createdAt: Date;
 
-    @Column({
-        type: 'enum',
-        enum: UserRole,
-        default: UserRole.USER,
-    })
-    role: UserRole;
+  @Column({
+    type: 'timestamp',
+    default: () => 'CURRENT_TIMESTAMP',
+  })
+  updatedAt: Date;
 
-    @ManyToOne(() => Gender)
-    @JoinColumn({ name: 'genderId', referencedColumnName: 'id' })
-    gender: Gender;
+  @Column({
+    type: 'enum',
+    enum: UserRole,
+    default: UserRole.USER,
+  })
+  role: UserRole;
 
-    @ManyToOne(() => Campus)
-    @JoinColumn({ name: 'campusId', referencedColumnName: 'id' })
-    campus: Campus;
+  @ManyToOne(() => Gender)
+  @JoinColumn({ name: 'genderId', referencedColumnName: 'id' })
+  gender: Gender;
 
-    @ManyToOne(() => Faculty)
-    @JoinColumn({ name: 'facultyId', referencedColumnName: 'id' })
-    faculty: Faculty;
+  @ManyToOne(() => Campus)
+  @JoinColumn({ name: 'campusId', referencedColumnName: 'id' })
+  campus: Campus;
 
-    @ManyToOne(() => Major)
-    @JoinColumn({ name: 'majorId', referencedColumnName: 'id' })
-    major: Major;
+  @ManyToOne(() => Faculty)
+  @JoinColumn({ name: 'facultyId', referencedColumnName: 'id' })
+  faculty: Faculty;
 
-    @OneToMany(() => Branch, branch => branch.user)
-    branches: Branch[];
+  @ManyToOne(() => Major)
+  @JoinColumn({ name: 'majorId', referencedColumnName: 'id' })
+  major: Major;
 
-    
+  @OneToMany(() => Branch, (branch) => branch.user)
+  branches: Branch[];
 }

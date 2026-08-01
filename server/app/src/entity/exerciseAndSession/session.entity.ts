@@ -1,4 +1,11 @@
-import { Column, Entity, JoinTable, ManyToMany, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinTable,
+  ManyToMany,
+  OneToMany,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import { Exercise } from './exercise.entity';
 import { SessionAndExercise } from './sessionAndExercise.entity';
 
@@ -14,6 +21,9 @@ export class Session {
   })
   createdAt: Date;
 
-  @OneToMany(() => SessionAndExercise, sessionAndExercise => sessionAndExercise.session)
+  @OneToMany(
+    () => SessionAndExercise,
+    (sessionAndExercise) => sessionAndExercise.session,
+  )
   exerciseRelate: SessionAndExercise[];
 }

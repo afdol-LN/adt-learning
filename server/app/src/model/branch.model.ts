@@ -1,5 +1,3 @@
-
-
 // export interface Branch {
 //     id : number,
 //     user: Userprofile,

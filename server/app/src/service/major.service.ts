@@ -43,7 +43,8 @@ export class majorService extends BaseService<Major> {
       return {
         isError: true,
         data: null,
-        errorMassege: error instanceof Error ? error.message : 'Internal Server Error',
+        errorMassege:
+          error instanceof Error ? error.message : 'Internal Server Error',
       };
     }
   }

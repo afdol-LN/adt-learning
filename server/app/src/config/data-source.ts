@@ -8,20 +8,22 @@ export const dataSourceOptions: DataSourceOptions = {
   type: 'postgres',
   url: process.env.DATABASE_URL,
   // ชี้เป้าหมายไปที่ไฟล์ Entity และ Migration ที่ถูก Build แล้ว (ในโฟลเดอร์ dist)
-  entities: ['dist/**/*.entity.js'], 
+  entities: ['dist/**/*.entity.js'],
   migrations: ['dist/migrations/*.js'],
-  
+
   // synchronize ควรเป็น false เสมอเมื่อใช้ร่วมกับ Migration
   // และห้ามเปิดเป็น true ใน Production เด็ดขาดเพราะมันอาจลบตารางคุณทิ้งได้
-  synchronize: false, 
-  
+  synchronize: false,
+
   // เปิด logging เพื่อดูคำสั่ง SQL ที่ TypeORM สร้างขึ้น (ช่วย Debug ได้ดีมาก)
   logging: process.env.NODE_ENV !== 'production',
 
   // ตั้งค่า SSL สำหรับการเชื่อมต่อกับ Supabase / Cloud Database
-  ssl: process.env.DATABASE_URL?.includes('supabase.co') || process.env.DATABASE_URL?.includes('sslmode=require')
-    ? { rejectUnauthorized: false }
-    : false,
+  ssl:
+    process.env.DATABASE_URL?.includes('supabase.co') ||
+    process.env.DATABASE_URL?.includes('sslmode=require')
+      ? { rejectUnauthorized: false }
+      : false,
 };
 
 // Export ตัว DataSource เพื่อให้ TypeORM CLI นำไปใช้

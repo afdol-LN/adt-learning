@@ -16,23 +16,24 @@ export class authService extends BaseService<Userprofile> {
     @InjectRepository(Userprofile)
     private readonly userReponsitory: Repository<Userprofile>,
   ) {
-    super(userReponsitory);''
+    super(userReponsitory);
+    ('');
   }
-  async authenRequest(authenRequest: String) {
-    var response;
+  async authenRequest(authenRequest: string) {
+    let response;
     const today: string = DateFormat.toDateString();
     try {
       // ดึง userprofile ทุกคนมาก่อน
       const allUsers = await this.userReponsitory.find({
-        where : {
-          status : "active"
-        }
+        where: {
+          status: 'active',
+        },
       });
       // วน loop hash username ทีละคน แล้วเทียบ
-      console.log('data before hashed : username',this.hash.getSalt(),today)
-      
+      console.log('data before hashed : username', this.hash.getSalt(), today);
+
       const result = allUsers.find((user) => {
-        console.log("username : ", user.username)
+        console.log('username : ', user.username);
         const hashed = this.hash.hashWithSaltAndDate(
           user.username,
           this.hash.getSalt(),
@@ -42,7 +43,7 @@ export class authService extends BaseService<Userprofile> {
         return hashed == authenRequest; // authenRequest คือ hashed string ที่ส่งมา
       });
       if (!result) {
-        console.log(result)
+        console.log(result);
         response = {
           isError: true,
           errorMessage: 'Not found user',
@@ -60,7 +61,7 @@ export class authService extends BaseService<Userprofile> {
           },
         };
       }
-    } catch (error : any) {
+    } catch (error: any) {
       response = {
         isError: true,
         errorMessage: error.message,
@@ -69,11 +70,11 @@ export class authService extends BaseService<Userprofile> {
       return response;
     }
   }
-  async accessRequest(authenToken: String, authenSignature: String) {
+  async accessRequest(authenToken: string, authenSignature: string) {
     // authenSignature = username + SAH256(password) + authentoken
-    var response;
-    Logger.log("this is authenToken", authenToken);
-    Logger.log("this is authenSignature", authenSignature);
+    let response;
+    Logger.log('this is authenToken', authenToken);
+    Logger.log('this is authenSignature', authenSignature);
     try {
       const AllUser = await this.userReponsitory.find({
         relations: {
@@ -99,9 +100,12 @@ export class authService extends BaseService<Userprofile> {
           userId: result.id,
         };
         const accessToken = this.jwtservice.generateToken(payload);
-        const branchIds = result.branches && Array.isArray(result.branches) && result.branches.length > 0
-          ? result.branches.map((b) => b.id)
-          : null;
+        const branchIds =
+          result.branches &&
+          Array.isArray(result.branches) &&
+          result.branches.length > 0
+            ? result.branches.map((b) => b.id)
+            : null;
         response = {
           isError: false,
           data: {
@@ -126,7 +130,7 @@ export class authService extends BaseService<Userprofile> {
 
   //register
   async register(userprofile: CreateUserprofileDto) {
-    var response;
+    let response;
     try {
       // check username duplicate
       const checkUser = await this.userReponsitory.findOne({
@@ -163,7 +167,7 @@ export class authService extends BaseService<Userprofile> {
           };
         }
       }
-    } catch (error : any) {
+    } catch (error: any) {
       response = {
         isError: true,
         errorMessage: error.message,

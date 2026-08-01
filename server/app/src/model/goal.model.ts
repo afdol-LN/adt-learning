@@ -6,9 +6,7 @@
 //     goalName: string,
 // }
 
-
 // export interface GoalWithSkillRequire{
 //     goal:Goal,
 //     goalPrequire : GoalSkillRequire[]
 // }
-

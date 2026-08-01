@@ -20,12 +20,16 @@ export class ktService {
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
   ) {
-    this.baseUrl = this.configService.get<string>('BKT_ENGINE_URL') || 'http://localhost:8000';
+    this.baseUrl =
+      this.configService.get<string>('BKT_ENGINE_URL') ||
+      'http://localhost:8000';
   }
 
   async registerSkill(
     dto: SkillRegisterDto,
-  ): Promise<restfulResponse<{ skillId: string; pL0: number; pT: number } | null>> {
+  ): Promise<
+    restfulResponse<{ skillId: string; pL0: number; pT: number } | null>
+  > {
     try {
       const payload = {
         skill_id: dto.skillId,
@@ -50,7 +54,10 @@ export class ktService {
         error?.response?.data?.detail ||
         error?.message ||
         'Failed to register skill in KT Engine';
-      this.logger.error(`Error registering skill: ${msg}`, error?.response?.data);
+      this.logger.error(
+        `Error registering skill: ${msg}`,
+        error?.response?.data,
+      );
       return {
         isError: true,
         data: null,
@@ -59,9 +66,7 @@ export class ktService {
     }
   }
 
-  async registerItem(
-    dto: ItemRegisterDto,
-  ): Promise<
+  async registerItem(dto: ItemRegisterDto): Promise<
     restfulResponse<{
       itemId: string;
       skillId: string;
@@ -98,7 +103,10 @@ export class ktService {
         error?.response?.data?.detail ||
         error?.message ||
         'Failed to register item in KT Engine';
-      this.logger.error(`Error registering item: ${msg}`, error?.response?.data);
+      this.logger.error(
+        `Error registering item: ${msg}`,
+        error?.response?.data,
+      );
       return {
         isError: true,
         data: null,
@@ -139,7 +147,10 @@ export class ktService {
         error?.response?.data?.detail ||
         error?.message ||
         'Failed to process attempt in KT Engine';
-      this.logger.error(`Error processing KT attempt: ${msg}`, error?.response?.data);
+      this.logger.error(
+        `Error processing KT attempt: ${msg}`,
+        error?.response?.data,
+      );
       return {
         isError: true,
         data: null,
@@ -154,7 +165,9 @@ export class ktService {
   ): Promise<restfulResponse<MasteryResponseDto | null>> {
     try {
       const response = await firstValueFrom(
-        this.httpService.get(`${this.baseUrl}/kt/mastery/${studentId}/${skillId}`),
+        this.httpService.get(
+          `${this.baseUrl}/kt/mastery/${studentId}/${skillId}`,
+        ),
       );
       const data = response.data;
       return {
@@ -172,7 +185,10 @@ export class ktService {
         error?.response?.data?.detail ||
         error?.message ||
         'Failed to fetch mastery from KT Engine';
-      this.logger.error(`Error fetching mastery: ${msg}`, error?.response?.data);
+      this.logger.error(
+        `Error fetching mastery: ${msg}`,
+        error?.response?.data,
+      );
       return {
         isError: true,
         data: null,

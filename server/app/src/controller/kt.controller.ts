@@ -20,7 +20,9 @@ export class ktController {
 
   @Post('/item')
   async createItem(@Body() dto: ItemRegisterDto) {
-    this.logger.log(`Registering item: ${dto.itemId} for skill: ${dto.skillId}`);
+    this.logger.log(
+      `Registering item: ${dto.itemId} for skill: ${dto.skillId}`,
+    );
     return await this.ktService.registerItem(dto);
   }
 

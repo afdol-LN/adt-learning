@@ -1,6 +1,14 @@
 import { Status } from 'src/enums/status.enum';
 import { ExerciseType } from 'src/enums/exercise-type.enum';
-import { Column, Entity, Index, ManyToOne, JoinColumn, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
+import {
+  Column,
+  Entity,
+  Index,
+  ManyToOne,
+  JoinColumn,
+  PrimaryGeneratedColumn,
+  OneToMany,
+} from 'typeorm';
 import { Skill } from '../skill.entity';
 import { ExerciseChoice } from './exerciseChoice.entity';
 import { SessionAndExercise } from './sessionAndExercise.entity';
@@ -27,7 +35,7 @@ export class Exercise {
   expectTime: number;
 
   @Index()
-  @Column({ name: 'skill_id', type: 'integer'})
+  @Column({ name: 'skill_id', type: 'integer' })
   skillId: number;
 
   @Column({ name: 'skill_level', type: 'integer' })
@@ -55,16 +63,19 @@ export class Exercise {
   @Column({ type: 'varchar', nullable: true })
   fillInBlank: string | null;
 
-  @Column({nullable: true, default : "NO"})
+  @Column({ nullable: true, default: 'NO' })
   isCasesensitive: string;
 
-  @OneToMany(() => SessionAndExercise, sessionAndExercise => sessionAndExercise.exercise)
+  @OneToMany(
+    () => SessionAndExercise,
+    (sessionAndExercise) => sessionAndExercise.exercise,
+  )
   sessionRelate: SessionAndExercise[];
 
   @ManyToOne(() => Skill)
   @JoinColumn({ name: 'skill_id', referencedColumnName: 'skillId' })
   skill: Skill;
 
-  @OneToMany(() => ExerciseChoice, exerciseChoice => exerciseChoice.exercise)
+  @OneToMany(() => ExerciseChoice, (exerciseChoice) => exerciseChoice.exercise)
   exerciseChoices?: ExerciseChoice[];
 }
