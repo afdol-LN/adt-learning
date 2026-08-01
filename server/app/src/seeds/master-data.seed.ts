@@ -94,14 +94,15 @@ async function seedMasterData() {
     // 5. Goal
     Logger.log('Seeding Goal...');
     await db.query(`
-      INSERT INTO "goal" ("id", "goal", "goal_name", "createdAt", "updatedAt")
+      INSERT INTO "goal" ("id", "goal", "goal_description", "status", "createdAt", "updatedAt")
       VALUES
-        (1, 'Become a Full Stack Web Developer proficient in Frontend & Backend', 'Full Stack Dev', NOW(), NOW()),
-        (2, 'Become a Backend Engineer specializing in Scalable APIs', 'Backend Dev', NOW(), NOW()),
-        (3, 'Become a Data Scientist & AI Engineer', 'AI / Data Dev', NOW(), NOW())
+        (1, 'Become a Full Stack Web Developer proficient in Frontend & Backend', 'Full Stack Dev', 'active', NOW(), NOW()),
+        (2, 'Become a Backend Engineer specializing in Scalable APIs', 'Backend Dev', 'active', NOW(), NOW()),
+        (3, 'Become a Data Scientist & AI Engineer', 'AI / Data Dev', 'active', NOW(), NOW())
       ON CONFLICT ("id") DO UPDATE SET
         "goal" = EXCLUDED."goal",
-        "goal_name" = EXCLUDED."goal_name",
+        "goal_description" = EXCLUDED."goal_description",
+        "status" = EXCLUDED."status",
         "updatedAt" = NOW();
     `);
 
