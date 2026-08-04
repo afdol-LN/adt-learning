@@ -1,0 +1,34 @@
+services:
+  main-server:
+    build:
+      context: .
+      dockerfile: ./app/dockerfile
+      target: dev
+    container_name: adt-learning-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: ${DATABASE_URL}
+    volumes:
+      - .:/app
+      - /app/node_modules
+
+  bkt-engine:
+    build:
+      context: .
+      dockerfile: ./btk-engine/dockerfile
+    container_name: bkt-engine
+    restart : unless-stopped
+    ports:
+      - "8000:80"
+    volumes:
+      - ./server/btk-engine/app:/code/app
+    environment:
+      PYTHONUNBUFFERED: "1"
+
+
+networks:
+  default:
+    name: adt-learning-net  
