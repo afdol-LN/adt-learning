@@ -6,6 +6,7 @@ import {
   Post,
   Put,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import {
   CreateGoalWithSkillRequireDto,
   UpdateGoalWithSkillRequireDto,
@@ -14,6 +15,7 @@ import { Goal } from 'src/entity/goal.entity';
 import { goalService } from 'src/service/goal.service';
 import { BaseController } from './base.controller';
 
+@ApiTags('Goal')
 @Controller('/goal')
 export class goalController extends BaseController<Goal> {
   constructor(private readonly goalService: goalService) {
@@ -34,4 +36,6 @@ export class goalController extends BaseController<Goal> {
   ): Promise<Goal> {
     return await this.goalService.updateGoalWithSkillRequire(id, dto);
   }
+
+  
 }

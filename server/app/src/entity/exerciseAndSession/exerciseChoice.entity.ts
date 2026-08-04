@@ -15,7 +15,7 @@ export class ExerciseChoice {
   @Column({ name: 'exerciseId', nullable: true })
   exerciseId: number;
 
-  @Column({ name: 'script', type: 'varchar', length: 15, nullable: true })
+  @Column({ name: 'script', type: 'varchar', length: 80, nullable: true })
   script: string;
 
   @Column({ name: 'isAnswer' })

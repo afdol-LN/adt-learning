@@ -1,21 +1,29 @@
 import {
+  Body,
   Controller,
-  Logger,
   Get,
+  Logger,
   Param,
   ParseIntPipe,
+  Post,
+  Put,
   Query,
+  Req,
 } from '@nestjs/common';
-import { exerciseService } from 'src/service/exercise.service';
-import { BaseController } from './base.controller';
-import { Exercise } from 'src/entity/exerciseAndSession/exercise.entity';
-import { Post, Put } from '@nestjs/common';
-import { Body } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import {
   CreateExerciseDto,
   UpdateExerciseDto,
 } from 'src/dto/exerciseAndSession/exercise.dto';
+import { PretestSubmitDto } from 'src/dto/exerciseAndSession/pretestSubmit.dto';
+import type { AuthenRequestDto } from 'src/dto/userprofile.dto';
+import { Exercise } from 'src/entity/exerciseAndSession/exercise.entity';
+import { exerciseService } from 'src/service/exercise.service';
+import { BaseController } from './base.controller';
+import { UseGuards } from '@nestjs/common';
+import { AdminMiddleware } from 'src/middleware/adminMiddleWare';
 
+@ApiTags('Exercise')
 @Controller('/exercise')
 export class exerciseController extends BaseController<Exercise> {
   constructor(private readonly exerciseService: exerciseService) {
@@ -26,21 +34,33 @@ export class exerciseController extends BaseController<Exercise> {
   async getPretestWithBody(
     @Body()
     body: {
-      userId?: number | string;
-      goalId?: number | string;
+      userId?: number ;
+      goalId?: number ;
       branchId?: string;
       level?: number;
     },
   ) {
     Logger.log(
       `[exerciseController] /pretest POST request body: ${JSON.stringify(body)}`,
-    );
+    ); 
     const targetGoalId = body?.goalId ?? body?.branchId;
     return await this.exerciseService.findPretestByGoal(
       targetGoalId,
       body?.userId,
       body?.level,
     );
+  }
+
+  @Post('/pretest/submit')
+  async submitPretest(
+    @Req() req: AuthenRequestDto,
+    @Body() dto: PretestSubmitDto,
+  ) {
+    Logger.log(
+      `[exerciseController] /pretest/submit POST request body: ${JSON.stringify(dto)}`,
+    );
+    await this.exerciseService.submitPretest(req.user!.userId, dto);
+    return { success: true };
   }
 
   @Get('/pretest/:goalId')

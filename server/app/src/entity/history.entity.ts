@@ -42,6 +42,9 @@ export class History {
   })
   endTime: Date;
 
+  @Column({ type: 'varchar', nullable: true })
+  chosenAnswer: string;
+
   @ManyToOne(() => Branch, (branch) => branch.history)
   @JoinColumn({ name: 'branchId', referencedColumnName: 'id' })
   branch: Branch;

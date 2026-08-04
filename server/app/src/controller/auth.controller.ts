@@ -1,10 +1,12 @@
 import { Controller, Post } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { BaseController } from './base.controller';
 import { Userprofile } from 'src/entity/userprofile.entity';
 import { authService } from 'src/service/auth.service';
 import { Body } from '@nestjs/common';
 import { userAccessRequestDto } from 'src/dto/userprofile.dto';
 import { Logger } from '@nestjs/common';
+@ApiTags('Auth')
 @Controller('/authen')
 export class authController extends BaseController<Userprofile> {
   private readonly logger = new Logger(authController.name);

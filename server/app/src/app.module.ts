@@ -14,6 +14,7 @@ import { Major } from './entity/university/major.entity';
 import { Gender } from './entity/gender.entity';
 import { Userprofile } from './entity/userprofile.entity';
 import { Branch } from './entity/branch.entity';
+import { History } from './entity/history.entity';
 
 // Session & Exercise entities
 import { Session } from './entity/exerciseAndSession/session.entity';
@@ -29,6 +30,8 @@ import { GoalSkillRequire } from './entity/goalSkillRequire.entity';
 // Controllers & Services
 import { userController } from './controller/user.controller';
 import { userProfileService } from './service/user.service';
+import { branchController } from './controller/branch.controller';
+import { branchService } from './service/branch.service';
 import { exerciseController } from './controller/exercise.controller';
 import { exerciseService } from './service/exercise.service';
 import { genderController } from './controller/gender.controller';
@@ -45,12 +48,14 @@ import { skillController } from './controller/skill.controller';
 import { skillService } from './service/skill.service';
 import { goalController } from './controller/goal.controller';
 import { goalService } from './service/goal.service';
+import { historyController } from './controller/history.controller';
+import { historyService } from './service/history.service';
 import { ktController } from './controller/kt.controller';
 import { ktService } from './service/kt.service';
 import { Hash } from './libs/hash';
 import { JwtService } from './libs/jwt';
 import { HttpModule } from '@nestjs/axios';
-
+import { ScheduleModule } from '@nestjs/schedule';
 //middleware
 import { AuthMiddleWare } from './middleware/authMiddleWare';
 import { MiddlewareConsumer } from '@nestjs/common';
@@ -58,6 +63,7 @@ import { RequestMethod } from '@nestjs/common';
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
     }),
@@ -78,11 +84,13 @@ import { RequestMethod } from '@nestjs/common';
       Skill,
       SkillPrerequisite,
       GoalSkillRequire,
+      History,
     ]),
   ],
   controllers: [
     AppController,
     userController,
+    branchController,
     exerciseController,
     genderController,
     campusController,
@@ -91,12 +99,14 @@ import { RequestMethod } from '@nestjs/common';
     authController,
     skillController,
     goalController,
+    historyController,
     // ktController,
   ],
   providers: [
     AppService,
     Logger,
     userProfileService,
+    branchService,
     exerciseService,
     genderService,
     campusService,
@@ -105,6 +115,7 @@ import { RequestMethod } from '@nestjs/common';
     authService,
     skillService,
     goalService,
+    historyService,
     // ktService,
     Hash,
     JwtService,
@@ -112,15 +123,17 @@ import { RequestMethod } from '@nestjs/common';
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    // consumer
-    //   .apply(AuthMiddleWare)
-    //   .exclude(
-    //     { path: '/userprofile/register', method: RequestMethod.POST },
-    //     { path: '/authen/authen_request', method: RequestMethod.POST },
-    //     { path: '/authen/access_request', method: RequestMethod.POST },
-    //     { path: '/kt/(.*)', method: RequestMethod.ALL },
-    //     // { path: '/userprofile/admin/user_list', method: RequestMethod.GET },
-    //   )
-    //   .forRoutes('*');
+    consumer
+      .apply(AuthMiddleWare)
+      .exclude(
+        { path: '/userprofile/register', method: RequestMethod.POST },
+        { path: '/authen/authen_request', method: RequestMethod.POST },
+        { path: '/authen/access_request', method: RequestMethod.POST },
+        { path: '/kt/(.*)', method: RequestMethod.ALL },
+        { path: '/docs', method: RequestMethod.GET },
+        { path: '/docs/(.*)', method: RequestMethod.GET },
+        { path: '/docs-json', method: RequestMethod.GET },
+      )
+      .forRoutes('*');
   }
 }

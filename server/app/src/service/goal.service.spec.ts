@@ -156,4 +156,34 @@ describe('goalService', () => {
     expect(skillRepo.findOne).toHaveBeenCalledTimes(1);
     expect(skillRepo.findOne).toHaveBeenCalledWith({ where: { skillId: 7 } });
   });
+
+  it('rejects duplicate skillId on create', async () => {
+    await expect(
+      service.createGoalWithSkillRequire({
+        goal: 'Become a frontend engineer',
+        skillRequires: [
+          { skillId: 5, levelRequire: 2 },
+          { skillId: 5, levelRequire: 3 },
+        ],
+      }),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('rejects duplicate skillId on update', async () => {
+    goalRepo.findOne.mockResolvedValue({
+      id: 1,
+      goal: 'Old name',
+      status: Status.ACTIVE,
+      goalSkillRequire: [{ goalId: 1, skillId: 5, levelRequire: 3 }],
+    });
+
+    await expect(
+      service.updateGoalWithSkillRequire(1, {
+        skillRequires: [
+          { skillId: 5, levelRequire: 3 },
+          { skillId: 5, levelRequire: 2 },
+        ],
+      }),
+    ).rejects.toThrow(BadRequestException);
+  });
 });

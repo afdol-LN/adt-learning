@@ -1,4 +1,14 @@
+import { IsInt } from 'class-validator';
 import { Status } from 'src/enums/status.enum';
+import { CreateGoalSkillRequireDto } from './goalSkillRequire.dto';
+export class GoalInfoWithPrerequisite{
+  id!: number;
+  goal : string;
+  goalDescription : string;
+  status : string;
+  goalSkillRequire: CreateGoalSkillRequireDto[];
+  
+}
 
 export class CreateGoalDto {
   goal!: string;

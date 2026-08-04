@@ -1,8 +1,10 @@
 import { Controller, Get, Param } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { Major } from 'src/entity/university/major.entity';
 import { majorService } from 'src/service/major.service';
 import { BaseController } from './base.controller';
 
+@ApiTags('Major')
 @Controller('/major')
 export class majorController extends BaseController<Major> {
   constructor(private readonly majorService: majorService) {

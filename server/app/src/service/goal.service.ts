@@ -28,7 +28,11 @@ export class goalService extends BaseService<Goal> {
   }
 
   async findAll(): Promise<Goal[]> {
-    return this.goalRepository.find({ relations: GOAL_RELATIONS });
+    return this.goalRepository.find({ 
+      where : { 
+        status : 'active'
+      },
+      relations: GOAL_RELATIONS });
   }
 
   async findOne(id: number): Promise<Goal> {
@@ -53,6 +57,14 @@ export class goalService extends BaseService<Goal> {
 
     if (!goalData.goal || goalData.goal.trim() === '') {
       throw new BadRequestException('Goal name is required');
+    }
+
+    if (skillRequires && skillRequires.length > 0) {
+      const skillIds = skillRequires.map((s) => s.skillId);
+      const hasDuplicates = skillIds.some((id, index) => skillIds.indexOf(id) !== index);
+      if (hasDuplicates) {
+        throw new BadRequestException('Duplicate skillId in skillRequires is not allowed');
+      }
     }
 
     const goal = await this.dataSource.transaction(async (manager) => {
@@ -85,6 +97,14 @@ export class goalService extends BaseService<Goal> {
 
     if (goalData.goal !== undefined && goalData.goal.trim() === '') {
       throw new BadRequestException('Goal name is required');
+    }
+
+    if (skillRequires && skillRequires.length > 0) {
+      const skillIds = skillRequires.map((s) => s.skillId);
+      const hasDuplicates = skillIds.some((id, index) => skillIds.indexOf(id) !== index);
+      if (hasDuplicates) {
+        throw new BadRequestException('Duplicate skillId in skillRequires is not allowed');
+      }
     }
 
     const existingSkillIds = new Set(

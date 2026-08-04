@@ -38,6 +38,9 @@ export class Userprofile {
   @Column({ nullable: true })
   facultyId: number;
 
+  @Column({nullable: true})
+  year : number;
+
   @Column({ nullable: true })
   majorId: number;
 
@@ -66,6 +69,37 @@ export class Userprofile {
 
   @Column({ name: 'conceptMapState', type: 'jsonb', nullable: true })
   conceptMapState: any;
+    // conceptMapState format data
+  // {
+  //   "1": {
+  //   "pL": 0.50,
+  //   "progress": 53,
+  //   "status": "unlocked",
+  //   "attemptCount": 4,
+  //   "level" : 1
+  //   },
+  //   "1": {
+  //   "pL": 0.4,
+  //   "progress": 40,
+  //   "status": "unlocked",
+  //   "attemptCount": 3,
+  //   "level" : 2
+  //   },
+  //    "2": {
+  //   "pL": 0.96,
+  //   "progress": 100,
+  //   "status": "completed",
+  //   "attemptCount": 12,
+  //   "level": 2
+  //    },
+  //    "3": {
+  //    "pL": 0.10,
+  //    "progress": 11,
+  //    "status": "locked",
+  //    "attemptCount": 0,
+  //   "level": 2
+  //    },
+  // }
 
   @Column({ name: 'strengthWeaknessMatrix', type: 'jsonb', nullable: true })
   strengthWeaknessMatrix: any;

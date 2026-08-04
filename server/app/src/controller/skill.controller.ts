@@ -6,6 +6,7 @@ import {
   Post,
   Put,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import {
   CreateSkillWithPrerequisiteDto,
   UpdateSkillWithPrerequisiteDto,
@@ -14,6 +15,7 @@ import { Skill } from 'src/entity/skill.entity';
 import { skillService } from 'src/service/skill.service';
 import { BaseController } from './base.controller';
 
+@ApiTags('Skill')
 @Controller('/skill')
 export class skillController extends BaseController<Skill> {
   constructor(private readonly skillService: skillService) {

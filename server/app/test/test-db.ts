@@ -4,8 +4,8 @@ async function insertSeedData(): Promise<void> {
   const client = new Client({
     host: 'localhost',
     port: 5432,
-    user: 'dev',              // ⚠️ เปลี่ยนเป็นชื่อ User ของคุณ
-    password: '1234',         // ⚠️ เปลี่ยนเป็นรหัสผ่านของคุณ
+    user: 'dev', // ⚠️ เปลี่ยนเป็นชื่อ User ของคุณ
+    password: '1234', // ⚠️ เปลี่ยนเป็นรหัสผ่านของคุณ
     database: 'adt_learning', // ⚠️ เปลี่ยนเป็นชื่อ Database ของคุณ
   });
 
@@ -37,7 +37,9 @@ async function insertSeedData(): Promise<void> {
           [name],
         );
         campusIds.push(existing.rows[0].id);
-        console.log(`  ⚠ Campus "${name}" มีอยู่แล้ว → id=${existing.rows[0].id}`);
+        console.log(
+          `  ⚠ Campus "${name}" มีอยู่แล้ว → id=${existing.rows[0].id}`,
+        );
       }
     }
 
@@ -66,7 +68,9 @@ async function insertSeedData(): Promise<void> {
           [f.facultyName],
         );
         facultyIds.push(existing.rows[0].id);
-        console.log(`  ⚠ Faculty "${f.facultyName}" มีอยู่แล้ว → id=${existing.rows[0].id}`);
+        console.log(
+          `  ⚠ Faculty "${f.facultyName}" มีอยู่แล้ว → id=${existing.rows[0].id}`,
+        );
       }
     }
 
@@ -95,7 +99,9 @@ async function insertSeedData(): Promise<void> {
           [m.majorName],
         );
         majorIds.push(existing.rows[0].id);
-        console.log(`  ⚠ Major "${m.majorName}" มีอยู่แล้ว → id=${existing.rows[0].id}`);
+        console.log(
+          `  ⚠ Major "${m.majorName}" มีอยู่แล้ว → id=${existing.rows[0].id}`,
+        );
       }
     }
 
@@ -130,13 +136,23 @@ async function insertSeedData(): Promise<void> {
            ("firstName", "lastName", "birthDate", "campusId", "facultyId", "majorId", "genderId", "role", "createdAt", "updatedAt")
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
          RETURNING id`,
-        [u.firstName, u.lastName, u.birthDate, u.campusId, u.facultyId, u.majorId, u.gender, u.role],
+        [
+          u.firstName,
+          u.lastName,
+          u.birthDate,
+          u.campusId,
+          u.facultyId,
+          u.majorId,
+          u.gender,
+          u.role,
+        ],
       );
-      console.log(`  ✔ Userprofile "${u.firstName} ${u.lastName}" → id=${res.rows[0].id}`);
+      console.log(
+        `  ✔ Userprofile "${u.firstName} ${u.lastName}" → id=${res.rows[0].id}`,
+      );
     }
 
     console.log('\n🎉 INSERT ข้อมูลทั้งหมดสำเร็จ!');
-
   } catch (error) {
     console.error('❌ เกิดข้อผิดพลาด:', (error as Error).message);
   } finally {
@@ -147,4 +163,3 @@ async function insertSeedData(): Promise<void> {
 
 // เรียกใช้ฟังก์ชัน
 insertSeedData();
-

@@ -23,6 +23,9 @@ export class Branch {
   @Column({ name: 'exp_for_goal', type: 'integer', nullable: true })
   expForGoal: number;
 
+  @Column({ default: false })
+  isAlreadyPretest: boolean;
+
   @Column({
     type: 'timestamp',
     default: () => 'CURRENT_TIMESTAMP',

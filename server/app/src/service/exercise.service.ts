@@ -19,6 +19,13 @@ import {
   UpdateExerciseDto,
 } from 'src/dto/exerciseAndSession/exercise.dto';
 import { ExerciseChoiceInputDto } from 'src/dto/exerciseAndSession/exerciseChoice.dto';
+import { DataSource } from 'typeorm';
+import { PretestSubmitDto } from 'src/dto/exerciseAndSession/pretestSubmit.dto';
+import { Branch } from 'src/entity/branch.entity';
+import { Session } from 'src/entity/exerciseAndSession/session.entity';
+import { SessionAndExercise } from 'src/entity/exerciseAndSession/sessionAndExercise.entity';
+import { History } from 'src/entity/history.entity';
+import { ForbiddenException } from '@nestjs/common';
 
 @Injectable()
 export class exerciseService extends BaseService<Exercise> {
@@ -34,8 +41,50 @@ export class exerciseService extends BaseService<Exercise> {
     private readonly goalSkillRequireRepository: Repository<GoalSkillRequire>,
     @InjectRepository(Skill)
     private readonly skillRepository: Repository<Skill>,
+    private readonly dataSource: DataSource,
   ) {
     super(exerciseRepository);
+  }
+
+  async submitPretest(userId: number, dto: PretestSubmitDto): Promise<void> {
+    await this.dataSource.transaction(async (manager) => {
+      const branch = await manager.findOne(Branch, {
+        where: { id: dto.branchId },
+      });
+
+      if (!branch) {
+        throw new NotFoundException(`Branch ${dto.branchId} not found`);
+      }
+
+      if (branch.userId !== userId) {
+        throw new ForbiddenException('Branch does not belong to the user');
+      }
+
+      const session = manager.create(Session, {});
+      const savedSession = await manager.save(session);
+
+      for (const answer of dto.answers) {
+        const sessionAndExercise = manager.create(SessionAndExercise, {
+          sessionId: savedSession.id,
+          exerciseId: answer.exerciseId,
+        });
+        const savedSessionAndExercise = await manager.save(sessionAndExercise);
+
+        const history = manager.create(History, {
+          branchId: branch.id,
+          sessionAndExerciseId: savedSessionAndExercise.id,
+          isCorrect: answer.isCorrect,
+          isPretest: true,
+          startTime: new Date(answer.startTime),
+          endTime: new Date(answer.endTime),
+          chosenAnswer: answer.chosenAnswer,
+        });
+        await manager.save(history);
+      }
+
+      branch.isAlreadyPretest = true;
+      await manager.save(branch);
+    });
   }
 
   async findAll(): Promise<Exercise[]> {

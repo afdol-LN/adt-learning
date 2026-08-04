@@ -48,6 +48,12 @@ export class Exercise {
   })
   type: ExerciseType;
 
+  @Column({default:0.1, name:'p_g', type: 'float'})
+  p_g : number
+
+  @Column({default:0.1, name:'p_s', type : 'float'})
+  p_s :number
+
   @Column({
     type: 'timestamp',
     default: () => 'CURRENT_TIMESTAMP',
