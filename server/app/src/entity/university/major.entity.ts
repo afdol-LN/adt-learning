@@ -39,6 +39,9 @@ export class Major {
   })
   updatedAt: Date;
 
+  @Column({ nullable: false, default: false })
+  isAboutCs: boolean;
+
   @ManyToOne(() => Faculty, (faculty) => faculty.majors)
   faculty: Faculty;
 }

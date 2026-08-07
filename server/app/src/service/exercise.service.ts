@@ -7,7 +7,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { BaseService } from 'src/service/base.service';
 import { Exercise } from 'src/entity/exerciseAndSession/exercise.entity';
-import { In, Repository } from 'typeorm';
+import { EntityManager, In, Repository } from 'typeorm';
 import { ExerciseChoice } from 'src/entity/exerciseAndSession/exerciseChoice.entity';
 import { Goal } from 'src/entity/goal.entity';
 import { GoalSkillRequire } from 'src/entity/goalSkillRequire.entity';
@@ -33,8 +33,6 @@ export class exerciseService extends BaseService<Exercise> {
   constructor(
     @InjectRepository(Exercise)
     private readonly exerciseRepository: Repository<Exercise>,
-    @InjectRepository(ExerciseChoice)
-    private readonly exerciseChoiceRepository: Repository<ExerciseChoice>,
     @InjectRepository(Goal)
     private readonly goalRepository: Repository<Goal>,
     @InjectRepository(GoalSkillRequire)
@@ -115,28 +113,32 @@ export class exerciseService extends BaseService<Exercise> {
     await this.validateSkillExists(dto.skillId);
     this.validateExercisePayload(dto.type, dto.fillInBlank, dto.choices);
 
-    const exercise = this.exerciseRepository.create({
-      description: dto.description,
-      skillId: dto.skillId,
-      skillLevel: dto.skillLevel,
-      level: dto.skillLevel,
-      type: dto.type,
-      status: dto.status ?? Status.ACTIVE,
-      expectTime: dto.expectTime,
-      fillInBlank:
-        dto.type === ExerciseType.FILL_IN_BLANK ? dto.fillInBlank : undefined,
-      isCasesensitive:
-        dto.type === ExerciseType.FILL_IN_BLANK
-          ? (dto.isCasesensitive ?? 'NO')
-          : 'NO',
+    const savedId = await this.dataSource.transaction(async (manager) => {
+      const exercise = manager.create(Exercise, {
+        description: dto.description,
+        skillId: dto.skillId,
+        skillLevel: dto.skillLevel,
+        level: dto.skillLevel,
+        type: dto.type,
+        status: dto.status ?? Status.ACTIVE,
+        expectTime: dto.expectTime,
+        fillInBlank:
+          dto.type === ExerciseType.FILL_IN_BLANK ? dto.fillInBlank : undefined,
+        isCasesensitive:
+          dto.type === ExerciseType.FILL_IN_BLANK
+            ? (dto.isCasesensitive ?? 'NO')
+            : 'NO',
+      });
+      const saved = await manager.save(exercise);
+
+      if (dto.type === ExerciseType.CHOICE && dto.choices) {
+        await this.replaceChoices(saved.id, dto.choices, manager);
+      }
+
+      return saved.id;
     });
-    const saved = await this.exerciseRepository.save(exercise);
 
-    if (dto.type === ExerciseType.CHOICE && dto.choices) {
-      await this.replaceChoices(saved.id, dto.choices);
-    }
-
-    return this.findOne(saved.id);
+    return this.findOne(savedId);
   }
 
   async updateExercise(id: number, dto: UpdateExerciseDto): Promise<Exercise> {
@@ -170,16 +172,18 @@ export class exerciseService extends BaseService<Exercise> {
         ? (dto.isCasesensitive ?? existing.isCasesensitive ?? 'NO')
         : 'NO';
 
-    await this.exerciseRepository.save(existing);
+    await this.dataSource.transaction(async (manager) => {
+      await manager.save(existing);
 
-    if (nextType === ExerciseType.CHOICE && dto.choices) {
-      await this.replaceChoices(id, dto.choices);
-    } else if (
-      nextType === ExerciseType.FILL_IN_BLANK &&
-      existing.exerciseChoices?.length
-    ) {
-      await this.exerciseChoiceRepository.delete({ exerciseId: id });
-    }
+      if (nextType === ExerciseType.CHOICE && dto.choices) {
+        await this.replaceChoices(id, dto.choices, manager);
+      } else if (
+        nextType === ExerciseType.FILL_IN_BLANK &&
+        existing.exerciseChoices?.length
+      ) {
+        await manager.getRepository(ExerciseChoice).delete({ exerciseId: id });
+      }
+    });
 
     return this.findOne(id);
   }
@@ -187,16 +191,18 @@ export class exerciseService extends BaseService<Exercise> {
   private async replaceChoices(
     exerciseId: number,
     choices: ExerciseChoiceInputDto[],
+    manager: EntityManager,
   ): Promise<void> {
-    await this.exerciseChoiceRepository.delete({ exerciseId });
+    const choiceRepo = manager.getRepository(ExerciseChoice);
+    await choiceRepo.delete({ exerciseId });
     const choiceEntities = choices.map((choice) =>
-      this.exerciseChoiceRepository.create({
+      choiceRepo.create({
         exerciseId,
         script: choice.script,
         isAnswer: choice.isAnswer,
       }),
     );
-    await this.exerciseChoiceRepository.save(choiceEntities);
+    await choiceRepo.save(choiceEntities);
   }
 
   private async validateSkillExists(skillId: number): Promise<void> {
@@ -223,7 +229,17 @@ export class exerciseService extends BaseService<Exercise> {
           'At least 2 choices are required for CHOICE exercises',
         );
       }
-      const correctCount = choices.filter((choice) => choice.isAnswer).length;
+      const hasEmptyScript = choices.some(
+        (choice) => !choice.script || choice.script.trim() === '',
+      );
+      if (hasEmptyScript) {
+        throw new BadRequestException(
+          'Each choice must have a non-empty script',
+        );
+      }
+      const correctCount = choices.filter(
+        (choice) => choice.isAnswer === true,
+      ).length;
       if (correctCount !== 1) {
         throw new BadRequestException(
           'Exactly one correct choice is required for CHOICE exercises',

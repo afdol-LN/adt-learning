@@ -81,4 +81,13 @@ export class userController extends BaseController<Userprofile> {
   async createAdminUser(@Body() userprofile: CreateUserprofileDto) {
     return await this.userService.createAdminUser(userprofile);
   }
+
+  @UseGuards(AdminMiddleware)
+  @Put('/admin/update_user/:id')
+  async updateAdminUser(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() userprofile: UpdateUserprofileDto,
+  ) {
+    return await this.userService.updateAdminUser(id, userprofile);
+  }
 }

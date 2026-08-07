@@ -11,6 +11,11 @@ export class UserAdminItemDto {
   sessionCount: number;
   dayStreak: number;
   correctPercent: number;
+  birthDate: string;
+  genderId: number;
+  genderName: string;
+  username: string;
+  role: string;
 }
 
 export class fillAllForAdminManageResponseDto implements restfulResponse<

@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Post, Req, Param, ParseIntPipe } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Req,
+  Param,
+  ParseIntPipe,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { CreateBranchForSelfDto, responseGetBranch } from 'src/dto/branch.dto';
 import type { AuthenRequestDto } from 'src/dto/userprofile.dto';
@@ -8,6 +17,7 @@ import { historyService } from 'src/service/history.service';
 import { responseBranchDashboard } from 'src/dto/branchDashboard.dto';
 import { RestAPIResponse } from 'src/dto/RestAPI.dto';
 import { BaseController } from './base.controller';
+import { AdminMiddleware } from 'src/middleware/adminMiddleWare';
 
 @ApiTags('Branch')
 @Controller('/branch')
@@ -17,6 +27,14 @@ export class branchController extends BaseController<Branch> {
     private readonly historyService: historyService,
   ) {
     super(branchService);
+  }
+
+  @Get('/user/:userId')
+  @UseGuards(AdminMiddleware)
+  async getUserBranches(
+    @Param('userId', ParseIntPipe) userId: number,
+  ): Promise<responseGetBranch> {
+    return await this.branchService.findAllForUser(userId);
   }
 
   // Separate route rather than overriding the inherited generic
@@ -61,7 +79,8 @@ export class branchController extends BaseController<Branch> {
       return {
         isError: true,
         data: null,
-        errorMassege: error instanceof Error ? error.message : 'An unknown error occurred',
+        errorMassege:
+          error instanceof Error ? error.message : 'An unknown error occurred',
       };
     }
   }
@@ -85,7 +104,8 @@ export class branchController extends BaseController<Branch> {
       return {
         isError: true,
         data: null,
-        errorMassege: error instanceof Error ? error.message : 'An unknown error occurred',
+        errorMassege:
+          error instanceof Error ? error.message : 'An unknown error occurred',
       };
     }
   }

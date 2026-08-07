@@ -39,23 +39,22 @@ export class CreateBranchForSelfDto {
   expForGoal?: number;
 }
 
-
-export class BranchInfo{
+export class BranchInfo {
   @IsInt()
-  id! : number;
-
-  @IsInt()
-  userId! : number;
+  id!: number;
 
   @IsInt()
-  goalId! : number;
+  userId!: number;
 
   @IsInt()
-  expForGoal! : number;
+  goalId!: number;
 
-  isAlreadyPretest! : boolean;
+  @IsInt()
+  expForGoal!: number;
 
-  goal! : GoalInfoWithPrerequisite;
+  isAlreadyPretest!: boolean;
+
+  goal!: GoalInfoWithPrerequisite;
 }
 
 export type responseGetBranch = RestAPIResponse<BranchInfo[]>;

@@ -1,11 +1,18 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { BaseService } from './base.service';
 import { History } from 'src/entity/history.entity';
 import { Branch } from 'src/entity/branch.entity';
 import { Skill } from 'src/entity/skill.entity';
-import { SessionHistoryItemDto, SessionQuestionHistoryDto } from 'src/dto/historyResponse.dto';
+import {
+  SessionHistoryItemDto,
+  SessionQuestionHistoryDto,
+} from 'src/dto/historyResponse.dto';
 import { BranchDashboardDto } from 'src/dto/branchDashboard.dto';
 
 @Injectable()
@@ -21,14 +28,20 @@ export class historyService extends BaseService<History> {
     super(historyRepository);
   }
 
-  async validateBranchOwnership(branchId: number, userId: number, loadGoalRelation = false): Promise<Branch> {
+  async validateBranchOwnership(
+    branchId: number,
+    userId: number,
+    loadGoalRelation = false,
+  ): Promise<Branch> {
     const branch = await this.branchRepository.findOne({
       where: { id: branchId },
-      relations: loadGoalRelation ? {
-        goal: {
-          goalSkillRequire: true,
-        },
-      } : {},
+      relations: loadGoalRelation
+        ? {
+            goal: {
+              goalSkillRequire: true,
+            },
+          }
+        : {},
     });
 
     if (!branch) {
@@ -42,7 +55,10 @@ export class historyService extends BaseService<History> {
     return branch;
   }
 
-  async getRawHistoriesForBranch(branchId: number, userId: number): Promise<History[]> {
+  async getRawHistoriesForBranch(
+    branchId: number,
+    userId: number,
+  ): Promise<History[]> {
     await this.validateBranchOwnership(branchId, userId, false);
 
     return await this.historyRepository.find({
@@ -95,7 +111,7 @@ export class historyService extends BaseService<History> {
     const histories = await this.getRawHistoriesForBranch(branchId, userId);
     const allSkills = await this.skillRepository.find({
       relations: {
-      skillPrequisite: true,
+        skillPrequisite: true,
       },
     });
 
@@ -112,7 +128,10 @@ export class historyService extends BaseService<History> {
         );
         const total = skillHistories.length;
         const correct = skillHistories.filter((h) => h.isCorrect).length;
-        const progressPercent = total > 0 ? Math.min(100, Math.round(((correct / total) / 0.75) * 100)) : 0;
+        const progressPercent =
+          total > 0
+            ? Math.min(100, Math.round((correct / total / 0.75) * 100))
+            : 0;
 
         return {
           skillId: skill.skillId,
@@ -130,7 +149,10 @@ export class historyService extends BaseService<History> {
       });
   }
 
-  async getBranchStats(branchId: number, userId: number): Promise<BranchDashboardDto> {
+  async getBranchStats(
+    branchId: number,
+    userId: number,
+  ): Promise<BranchDashboardDto> {
     const branch = await this.validateBranchOwnership(branchId, userId, true);
     const histories = await this.historyRepository.find({
       where: { branchId },
@@ -155,7 +177,10 @@ export class historyService extends BaseService<History> {
       );
       const total = skillHistories.length;
       const correct = skillHistories.filter((h) => h.isCorrect).length;
-      const progress = total > 0 ? Math.min(100, Math.round(((correct / total) / 0.75) * 100)) : 0;
+      const progress =
+        total > 0
+          ? Math.min(100, Math.round((correct / total / 0.75) * 100))
+          : 0;
       skillProgressMap.set(skill.skillId, progress);
     }
 
@@ -174,7 +199,8 @@ export class historyService extends BaseService<History> {
         skillsUnlockedCount++;
       } else {
         const allParentsPassed = prereqs.every((prereq) => {
-          const parentProgress = skillProgressMap.get(prereq.prerequisiteSkillId) || 0;
+          const parentProgress =
+            skillProgressMap.get(prereq.prerequisiteSkillId) || 0;
           return parentProgress === 100;
         });
         if (allParentsPassed) {
@@ -222,7 +248,9 @@ export class historyService extends BaseService<History> {
     }
 
     // 5. Compute goal progress percent (average of goal skill requires)
-    const goalSkillIds = (branch.goal?.goalSkillRequire || []).map((req) => req.skillId);
+    const goalSkillIds = (branch.goal?.goalSkillRequire || []).map(
+      (req) => req.skillId,
+    );
     let goalProgressPercent = 0;
     if (goalSkillIds.length > 0) {
       const totalProgress = goalSkillIds.reduce((sum, skillId) => {
@@ -239,7 +267,10 @@ export class historyService extends BaseService<History> {
     };
   }
 
-  async getSessionsForBranch(branchId: number, userId: number): Promise<SessionHistoryItemDto[]> {
+  async getSessionsForBranch(
+    branchId: number,
+    userId: number,
+  ): Promise<SessionHistoryItemDto[]> {
     const histories = await this.getRawHistoriesForBranch(branchId, userId);
 
     const sessionsMap = new Map<number, SessionHistoryItemDto>();
@@ -301,6 +332,8 @@ export class historyService extends BaseService<History> {
       sessionDto.questions.push(questionDto);
     }
 
-    return Array.from(sessionsMap.values()).sort((a, b) => b.sessionId - a.sessionId);
+    return Array.from(sessionsMap.values()).sort(
+      (a, b) => b.sessionId - a.sessionId,
+    );
   }
 }

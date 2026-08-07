@@ -1,16 +1,20 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import { InjectDataSource, InjectRepository } from "@nestjs/typeorm";
-import { DataSource, EntityManager, Repository } from "typeorm";
-import { BaseService } from "./base.service";
-import { Goal } from "src/entity/goal.entity";
-import { GoalSkillRequire } from "src/entity/goalSkillRequire.entity";
-import { Skill } from "src/entity/skill.entity";
-import { Status } from "src/enums/status.enum";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import { DataSource, EntityManager, Repository } from 'typeorm';
+import { BaseService } from './base.service';
+import { Goal } from 'src/entity/goal.entity';
+import { GoalSkillRequire } from 'src/entity/goalSkillRequire.entity';
+import { Skill } from 'src/entity/skill.entity';
+import { Status } from 'src/enums/status.enum';
 import {
   CreateGoalWithSkillRequireDto,
   GoalSkillRequireItemDto,
   UpdateGoalWithSkillRequireDto,
-} from "src/dto/goal.dto";
+} from 'src/dto/goal.dto';
 
 const GOAL_RELATIONS = {
   goalSkillRequire: { skill: { skillPrequisite: { prerequisiteSkill: true } } },
@@ -28,11 +32,12 @@ export class goalService extends BaseService<Goal> {
   }
 
   async findAll(): Promise<Goal[]> {
-    return this.goalRepository.find({ 
-      where : { 
-        status : 'active'
+    return this.goalRepository.find({
+      where: {
+        status: 'active',
       },
-      relations: GOAL_RELATIONS });
+      relations: GOAL_RELATIONS,
+    });
   }
 
   async findOne(id: number): Promise<Goal> {
@@ -52,7 +57,9 @@ export class goalService extends BaseService<Goal> {
     await this.goalRepository.save(existing);
   }
 
-  async createGoalWithSkillRequire(dto: CreateGoalWithSkillRequireDto): Promise<Goal> {
+  async createGoalWithSkillRequire(
+    dto: CreateGoalWithSkillRequireDto,
+  ): Promise<Goal> {
     const { skillRequires, ...goalData } = dto;
 
     if (!goalData.goal || goalData.goal.trim() === '') {
@@ -61,9 +68,13 @@ export class goalService extends BaseService<Goal> {
 
     if (skillRequires && skillRequires.length > 0) {
       const skillIds = skillRequires.map((s) => s.skillId);
-      const hasDuplicates = skillIds.some((id, index) => skillIds.indexOf(id) !== index);
+      const hasDuplicates = skillIds.some(
+        (id, index) => skillIds.indexOf(id) !== index,
+      );
       if (hasDuplicates) {
-        throw new BadRequestException('Duplicate skillId in skillRequires is not allowed');
+        throw new BadRequestException(
+          'Duplicate skillId in skillRequires is not allowed',
+        );
       }
     }
 
@@ -90,7 +101,10 @@ export class goalService extends BaseService<Goal> {
     return this.findOne(goal.id);
   }
 
-  async updateGoalWithSkillRequire(id: number, dto: UpdateGoalWithSkillRequireDto): Promise<Goal> {
+  async updateGoalWithSkillRequire(
+    id: number,
+    dto: UpdateGoalWithSkillRequireDto,
+  ): Promise<Goal> {
     const { skillRequires, ...goalData } = dto;
 
     const existingGoal = await this.findOne(id); // throws NotFoundException if missing
@@ -101,9 +115,13 @@ export class goalService extends BaseService<Goal> {
 
     if (skillRequires && skillRequires.length > 0) {
       const skillIds = skillRequires.map((s) => s.skillId);
-      const hasDuplicates = skillIds.some((id, index) => skillIds.indexOf(id) !== index);
+      const hasDuplicates = skillIds.some(
+        (id, index) => skillIds.indexOf(id) !== index,
+      );
       if (hasDuplicates) {
-        throw new BadRequestException('Duplicate skillId in skillRequires is not allowed');
+        throw new BadRequestException(
+          'Duplicate skillId in skillRequires is not allowed',
+        );
       }
     }
 

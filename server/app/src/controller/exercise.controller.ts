@@ -34,15 +34,15 @@ export class exerciseController extends BaseController<Exercise> {
   async getPretestWithBody(
     @Body()
     body: {
-      userId?: number ;
-      goalId?: number ;
+      userId?: number;
+      goalId?: number;
       branchId?: string;
       level?: number;
     },
   ) {
     Logger.log(
       `[exerciseController] /pretest POST request body: ${JSON.stringify(body)}`,
-    ); 
+    );
     const targetGoalId = body?.goalId ?? body?.branchId;
     return await this.exerciseService.findPretestByGoal(
       targetGoalId,

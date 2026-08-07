@@ -19,11 +19,11 @@ export class Skill {
   @Column({ name: 'tier', type: 'varchar', length: 10, nullable: true })
   tier: string;
 
-  @Column({name:'p_l_0', type:'float', default:0.25})
-  p_l_0 : number;
+  @Column({ name: 'p_l_0', type: 'float', default: 0.25 })
+  p_l_0: number;
 
-  @Column({name:'p_t', type:'float', default: 0.1})
-  p_t : number
+  @Column({ name: 'p_t', type: 'float', default: 0.1 })
+  p_t: number;
 
   @Column({
     type: 'enum',

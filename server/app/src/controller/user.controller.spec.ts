@@ -10,7 +10,9 @@ describe('userController', () => {
   let userService: { update: jest.Mock };
 
   beforeEach(async () => {
-    userService = { update: jest.fn((id, data) => Promise.resolve({ id, ...data })) };
+    userService = {
+      update: jest.fn((id, data) => Promise.resolve({ id, ...data })),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [userController],
@@ -29,7 +31,12 @@ describe('userController', () => {
       user: { userId: 7, fullName: 'Test User', userRole: 'user' },
     } as AuthenRequestDto;
 
-    await controller.updateMe(req, { campusId: 1, facultyId: 2, majorId: 3, year: 2 });
+    await controller.updateMe(req, {
+      campusId: 1,
+      facultyId: 2,
+      majorId: 3,
+      year: 2,
+    });
 
     expect(userService.update).toHaveBeenCalledWith(7, {
       campusId: 1,

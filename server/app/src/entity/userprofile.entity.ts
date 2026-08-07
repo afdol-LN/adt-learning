@@ -38,8 +38,8 @@ export class Userprofile {
   @Column({ nullable: true })
   facultyId: number;
 
-  @Column({nullable: true})
-  year : number;
+  @Column({ nullable: true })
+  year: number;
 
   @Column({ nullable: true })
   majorId: number;
@@ -69,7 +69,7 @@ export class Userprofile {
 
   @Column({ name: 'conceptMapState', type: 'jsonb', nullable: true })
   conceptMapState: any;
-    // conceptMapState format data
+  // conceptMapState format data
   // {
   //   "1": {
   //   "pL": 0.50,

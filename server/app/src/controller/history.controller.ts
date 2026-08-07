@@ -32,7 +32,8 @@ export class historyController extends BaseController<History> {
       return {
         isError: true,
         data: null,
-        errorMassege: error instanceof Error ? error.message : 'An unknown error occurred',
+        errorMassege:
+          error instanceof Error ? error.message : 'An unknown error occurred',
       };
     }
   }

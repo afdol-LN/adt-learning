@@ -36,6 +36,4 @@ export class goalController extends BaseController<Goal> {
   ): Promise<Goal> {
     return await this.goalService.updateGoalWithSkillRequire(id, dto);
   }
-
-  
 }

@@ -7,7 +7,10 @@ import { BaseService } from './base.service';
 import { fillAllForAdminManageResponseDto } from 'src/dto/fillAllForAdminManage.dto';
 import { Hash } from 'src/libs/hash';
 import { UserRole } from 'src/enums/user-role.enum';
-import { CreateUserprofileDto } from 'src/dto/userprofile.dto';
+import {
+  CreateUserprofileDto,
+  UpdateUserprofileDto,
+} from 'src/dto/userprofile.dto';
 
 // import { Override } from "typescript";
 
@@ -167,6 +170,11 @@ export class userProfileService extends BaseService<Userprofile> {
               sessionCount,
               dayStreak: dayStreak,
               correctPercent: correctPercent,
+              birthDate: userProfile.birthDate,
+              genderId: userProfile.genderId,
+              genderName: userProfile.gender?.gender || '-',
+              username: userProfile.username,
+              role: userProfile.role,
             };
           }),
           errorMessage: '',
@@ -255,6 +263,44 @@ export class userProfileService extends BaseService<Userprofile> {
       }
     } catch (error: any) {
       Logger.error('Error in createAdminUser:', error);
+      response = {
+        isError: true,
+        data: null,
+        errorMessage: error.message || 'Internal server error',
+      };
+    }
+    return response;
+  }
+
+  async updateAdminUser(id: number, data: UpdateUserprofileDto) {
+    let response;
+    try {
+      const checkUser = await this.userProfileRepository.findOne({
+        where: { id },
+      });
+      if (!checkUser) {
+        response = {
+          isError: true,
+          data: null,
+          errorMessage: 'User not found',
+        };
+        return response;
+      }
+
+      const { password, ...rest } = data;
+      Object.assign(checkUser, rest);
+      if (password) {
+        checkUser.password = this.hash.hashSha256(password);
+      }
+
+      const updated = await this.userProfileRepository.save(checkUser);
+      response = {
+        isError: false,
+        data: updated,
+        errorMessage: 'Update user successful',
+      };
+    } catch (error: any) {
+      Logger.error('Error in updateAdminUser:', error);
       response = {
         isError: true,
         data: null,

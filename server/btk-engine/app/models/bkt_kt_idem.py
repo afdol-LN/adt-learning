@@ -12,12 +12,14 @@ skill, since items that test the same skill can have very different
 difficulty. P(L0) and P(T) remain per-skill.
 """
 
-def ratio_time_response_exercise(response_tiem : float, expection_time : float)->float:
+def ratio_time_response_exercise(response_time : float, expection_time : float)->float:
     """this calculate ratio between response time and exeption time per exercise"""
-    if response_tiem < expection_time or response_tiem == expection_time :
+    if response_time < expection_time or response_time == expection_time :
         return 1.0
     else : 
-        return response_tiem / expection_time
+        #สูตรผิดอยู่ไปอิงตาม notion 
+        #เช่น expection_time = 60, response_time = 120 จะได้ return 0.5 
+        return expection_time / response_time
 
 def posterior_given_evidence(
         p_l_prior: float, correct: bool, p_g: float, p_s: float
@@ -26,6 +28,7 @@ def posterior_given_evidence(
     Bayes' rule update: given the prior P(L) that a student knows the
     skill BEFORE this observation, compute the posterior P(L | evidence)
     using this item's guess/slip parameters.
+    
     """
     if correct : 
         numerator = p_l_prior * (1 - p_s)
@@ -77,3 +80,6 @@ def update_mastery(
         "p_l_posterior" : p_l_posterior,
         "p_l_next": p_l_next,
     }
+    
+    
+    

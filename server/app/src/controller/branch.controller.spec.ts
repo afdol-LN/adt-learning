@@ -8,10 +8,14 @@ describe('branchController', () => {
   let service: { create: jest.Mock };
 
   const makeRequest = (userId: number): AuthenRequestDto =>
-    ({ user: { userId, fullName: 'Test User', userRole: 'user' } }) as AuthenRequestDto;
+    ({
+      user: { userId, fullName: 'Test User', userRole: 'user' },
+    }) as AuthenRequestDto;
 
   beforeEach(async () => {
-    service = { create: jest.fn((data) => Promise.resolve({ id: 1, ...data })) };
+    service = {
+      create: jest.fn((data) => Promise.resolve({ id: 1, ...data })),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [branchController],
@@ -41,7 +45,7 @@ describe('branchController', () => {
     await controller.createForSelf(req, {
       goalId: 7,
       expForGoal: 3,
-      ...( { userId: 999 } as any ),
+      ...({ userId: 999 } as any),
     });
 
     expect(service.create).toHaveBeenCalledWith({
