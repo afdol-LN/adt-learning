@@ -1,0 +1,52 @@
+
+
+POST http://localhost:3000/userprofile/register HTTP/1.1
+Content-Type: application/json
+
+{
+    "fullName" : "afdol leenud",
+    "genderId" : 1,
+    "birthDate" : "28-04-2005",
+    "username" : "papaya",
+    "password" : "1234"
+}
+
+###
+
+POST http://localhost:3000/userprofile/register HTTP/1.1
+Content-Type: application/json
+
+{
+    "fullName" : "ball mdd",
+    "genderId" : 1,
+    "birthDate" : "28-04-2005",
+    "username" : "ball",
+    "password" : "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f"
+}
+
+####
+
+POST http://localhost:3000/authen/authen_request HTTP/1.1
+Content-Type: application/json
+
+{
+    "authenRequest" : "694c7fb91c810015590d46e840d6125f5885b3c7f4e1a49a9e1d41f78edc0d2b"
+}
+
+###
+POST http://localhost:3000/authen/access_request HTTP/1.1
+Content-Type: application/json
+
+{
+    "authenToken" : "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImJhbGwiLCJpYXQiOjE3ODM3NzkyMTQsImV4cCI6MTc4Mzg2NTYxNH0.iC0djuUoj0F-I59Jjbsdgnw0wauGJpeUn2QXI8h8BhY",
+    "authenSignature" : "7c90d7f830928bd9b2d1e873932acba6e8585fd416034f7e81968daebe414adf"
+}
+
+####
+
+GET http://localhost:3000/userprofile/admin/user_list HTTP/1.1
+Content-Type: application/json
+
+{
+    
+}

@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>สรุปโครงสร้าง BKT & Adaptive Learning Integration</title>
+    <!-- Google Fonts: Inter & Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            /* Capuchina Warm Palette */
+            --bg-primary: #FAF8F5;
+            --bg-secondary: #F3ECE5;
+            --text-primary: #3E2723;
+            --text-secondary: #5D4037;
+            --accent-color: #D84315;
+            --accent-light: #FFEBEE;
+            --border-color: #D7CCC8;
+            
+            --code-bg: #2E1C1A;
+            --code-text: #F5EBE6;
+            
+            --card-shadow: 0 4px 20px rgba(93, 64, 55, 0.08);
+            --border-radius: 12px;
+        }
+
+        body {
+            font-family: 'Inter', 'Sarabun', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            margin: 0;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #FFFFFF;
+            padding: 40px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--card-shadow);
+            border: 1px solid var(--border-color);
+        }
+
+        h1, h2, h3 {
+            font-family: 'Outfit', 'Sarabun', sans-serif;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-top: 0;
+        }
+
+        h1 {
+            font-size: 2rem;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            border-left: 4px solid var(--accent-color);
+            padding-left: 12px;
+        }
+
+        h3 {
+            font-size: 1.15rem;
+            margin-top: 25px;
+            color: var(--text-secondary);
+        }
+
+        p, li {
+            font-size: 1rem;
+            color: var(--text-secondary);
+        }
+
+        ul, ol {
+            padding-left: 20px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        /* Highlight block style similar to Antigravity */
+        .alert-block {
+            background-color: var(--bg-secondary);
+            border-left: 4px solid var(--accent-color);
+            padding: 20px;
+            border-radius: 0 var(--border-radius) var(--border-radius) 0;
+            margin: 25px 0;
+        }
+
+        .alert-block p {
+            margin: 0;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .alert-block span {
+            display: block;
+            margin-top: 8px;
+            font-size: 0.95rem;
+            font-weight: 400;
+            color: var(--text-secondary);
+        }
+
+        /* Code block styling */
+        pre {
+            background-color: var(--code-bg);
+            color: var(--code-text);
+            padding: 20px;
+            border-radius: var(--border-radius);
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9rem;
+            overflow-x: auto;
+            border: 1px solid rgba(93, 64, 55, 0.2);
+            line-height: 1.4;
+        }
+
+        code {
+            font-family: 'Courier New', Courier, monospace;
+            background-color: var(--bg-secondary);
+            color: var(--accent-color);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        pre code {
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+        }
+
+        /* Visual steps layout */
+        .flow-container {
+            position: relative;
+            margin: 30px 0;
+            padding-left: 20px;
+            border-left: 2px dashed var(--border-color);
+        }
+
+        .flow-step {
+            position: relative;
+            margin-bottom: 25px;
+        }
+
+        .flow-step::before {
+            content: "";
+            position: absolute;
+            left: -27px;
+            top: 4px;
+            width: 12px;
+            height: 12px;
+            background-color: var(--accent-color);
+            border-radius: 50%;
+            border: 3px solid #FFF;
+        }
+
+        .flow-step-title {
+            font-weight: 600;
+            font-size: 1.05rem;
+            color: var(--text-primary);
+            margin-bottom: 5px;
+        }
+
+        .flow-step-desc {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+
+        /* Table design */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+        }
+
+        th, td {
+            border: 1px solid var(--border-color);
+            padding: 12px 15px;
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        tr:nth-child(even) {
+            background-color: rgba(243, 236, 229, 0.3);
+        }
+
+        .footer {
+            margin-top: 50px;
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            border-top: 1px solid var(--border-color);
+            padding-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>โครงสร้าง BKT & Adaptive Learning Integration</h1>
+    
+    <div class="alert-block">
+        <p>💡 บทสรุปการเชื่อมโยงระบบ BKT (Bayesian Knowledge Tracing)</p>
+        <span>เอกสารนี้สรุปแนวคิดของระบบเดิม ทฤษฎีปรับปรุงใหม่ด้วยตัวแปรเวลา (Method 1) และการเชื่อมต่อข้อมูลประวัติเพื่ออัปเดตโมเดลออฟไลน์ด้วย pyBKT</span>
+    </div>
+
+    <h2>1. คอนเซปต์ BKT & KT-IDEM ที่ใช้งานปัจจุบัน</h2>
+    <p>โมเดลในระบบปัจจุบันใช้การคิดความสามารถแยกรายบุคคลสำหรับระดับความรู้ แต่ค่าพารามิเตอร์ของโจทย์จะอิงตามระดับความยากง่าย:</p>
+    <ul>
+        <li><strong>ระดับนักเรียน (Student-specific)</strong>: เก็บค่าความน่าจะเป็นของความรู้รายบุคคล <code>P(L)</code> ของใครของมันแยกจากกันเด็ดขาด ผลสอบของนาย A จะไม่กระทบความรู้ของนาย B</li>
+        <li><strong>ระดับโจทย์และทักษะ (Item & Skill Parameters)</strong>: ค่า <code>P(G)</code> (Guess) และ <code>P(S)</code> (Slip) เป็นคุณสมบัติประจำข้อสอบที่ผูกอยู่กับตัวโจทย์เอง</li>
+    </ul>
+
+    <h2>2. แนวคิดการใช้เวลาประเมินความชำนาญ (Method 1)</h2>
+    <p>หากผู้เรียนทำโจทย์ถูกแต่ใช้เวลานาน (Struggling) ระบบจะประเมินว่า <em>"ยังไม่ชำนาญจริง"</em> และอัปเดตความรู้ใหม่เพิ่มขึ้น<strong>น้อยกว่า</strong>คนทำที่ทำได้เร็วอย่างคล่องแคล่ว (Fluent):</p>
+    
+    <h3>สูตรการคำนวณที่เพิ่มระบบเวลา:</h3>
+    <ol>
+        <li>คำนวณค่าตัวคูณความเร็ว <code>Speed Factor (&beta;)</code>:
+            <ul>
+                <li>ถ้าทำเสร็จเร็วกว่าหรือเท่ากับเวลาแนะนำ: <code>&beta; = 1.0</code></li>
+                <li>ถ้าทำช้ากว่าเวลาแนะนำ: <code>&beta; = 1.0 / (เวลาที่ใช้จริง / เวลาแนะนำ)</code> (มีค่าต่ำสุดที่ <code>0.1</code>)</li>
+            </ul>
+        </li>
+        <li>นำค่า <code>&beta;</code> ไปคูณลดทอนอัตราการเรียนรู้ชั่วคราวในการคำนวณรอบนั้น:
+            <pre>new P(T) = P(T) &times; &beta;</pre>
+        </li>
+        <li>คำนวณหาความรู้ใหม่หลังทำข้อนี้ด้วยสูตร BKT ปกติแต่ใช้ <code>new P(T)</code> ด้านบน</li>
+    </ol>
+
+    <h2>3. การไหลของข้อมูลทีละฟังก์ชัน (Step-by-Step Data Flow)</h2>
+    <p>ตัวอย่างการคำนวณการคูณเศษส่วน เริ่มต้นด้วยผู้เรียนมีระดับความรู้เดิม <code>P(L_current) = 0.50</code>, ทักษะมี <code>P(T) = 0.20</code>, และโจทย์ข้อนั้นมีเวลาแนะนำ <code>expect_time = 30 วินาที</code></p>
+    
+    <div class="flow-container">
+        <div class="flow-step">
+            <div class="flow-step-title">ขั้นตอนที่ 1: รับข้อมูลเข้าการทำโจทย์ (Attempt Input)</div>
+            <div class="flow-step-desc">
+                - <strong>นายหนึ่ง (ทำเร็ว)</strong>: ใช้เวลา 15 วินาที, ตอบถูก<br>
+                - <strong>นายสอง (ทำช้า)</strong>: ใช้เวลา 90 วินาที, ตอบถูก
+            </div>
+        </div>
+        
+        <div class="flow-step">
+            <div class="flow-step-title">ขั้นตอนที่ 2: คำนวณความเร็ว (calculate_speed_factor)</div>
+            <div class="flow-step-desc">
+                - นายหนึ่ง: สัดส่วนเวลา 15/30 = 0.5 (เร็วกว่ากำหนด) &rarr; <code>speed_factor = 1.0</code><br>
+                - นายสอง: สัดส่วนเวลา 90/30 = 3.0 (ช้ากว่ากำหนด 3 เท่า) &rarr; <code>speed_factor = 1.0 / 3.0 = 0.33</code>
+            </div>
+        </div>
+        
+        <div class="flow-step">
+            <div class="flow-step-title">ขั้นตอนที่ 3: คำนวณความน่าจะเป็นหลังตอบถูก (posterior_given_evidence)</div>
+            <div class="flow-step-desc">
+                เนื่องจากได้คะแนนถูกเหมือนกันและเริ่มที่จุดเดียวกัน ทั้งคู่จะได้ค่าความรู้หลังคำนวณเบื้องต้นเท่ากัน:<br>
+                <code>p_l_posterior = 0.7826 (78.26%)</code>
+            </div>
+        </div>
+        
+        <div class="flow-step">
+            <div class="flow-step-title">ขั้นตอนที่ 4: อัปเดตทรานซิชันการเรียนรู้ (apply_learning_transition)</div>
+            <div class="flow-step-desc">
+                - นายหนึ่ง: <code>effective_p_t = 0.20 &times; 1.0 = 0.20</code> &rarr; <strong>ความรู้ใหม่เพิ่มเป็น 82.61%</strong> (ผ่านเกณฑ์เร็วขึ้น)<br>
+                - นายสอง: <code>effective_p_t = 0.20 &times; 0.33 = 0.066</code> &rarr; <strong>ความรู้ใหม่เพิ่มเป็น 79.71%</strong> (อัปเดตเพิ่มช้าลงเพราะติดขัด)
+            </div>
+        </div>
+    </div>
+
+    <h2>4. การอัปเดตค่า pG และ pS ของโจทย์ด้วย pyBKT (Cron Job)</h2>
+    <p>เพื่อให้ตัวแปรตั้งต้น $P(G)$ และ $P(S)$ ในฐานข้อมูลตรงกับพฤติกรรมจริงของมนุษย์หมู่มาก ระบบจะดึง Log ในฐานข้อมูลมาคำนวณย้อนหลังผ่าน <code>pyBKT</code> ด้วยระบบ Cron Job</p>
+    
+    <h3>ข้อมูล Log ขั้นต่ำที่ต้องจัดเก็บต่อ 1 ครั้งการทำโจทย์:</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>ฟิลด์ข้อมูล</th>
+                <th>คำอธิบาย</th>
+                <th>ความสอดคล้องกับตารางปัจจุบันใน NestJS</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Learner ID</strong></td>
+                <td>รหัสผู้เรียนเพื่อจัดกลุ่มประวัติส่วนบุคคล</td>
+                <td><code>branch.userId</code> (เชื่อมผ่าน <code>history.branchId</code>)</td>
+            </tr>
+            <tr>
+                <td><strong>Problem Name</strong></td>
+                <td>ไอดีประจำโจทย์แต่ละข้อ</td>
+                <td><code>sessionAndExercise.exerciseId</code> (เชื่อมผ่าน <code>history.sessionAndExerciseId</code>)</td>
+            </tr>
+            <tr>
+                <td><strong>Skill Name</strong></td>
+                <td>ทักษะวิชาของข้อสอบนั้น</td>
+                <td><code>exercise.skillId</code> (เชื่อมผ่าน <code>exercise</code>)</td>
+            </tr>
+            <tr>
+                <td><strong>Correctness</strong></td>
+                <td>ผลการตอบ (1 = ถูก, 0 = ผิด)</td>
+                <td><code>history.isCorrect</code> (แปลง true &rarr; 1, false &rarr; 0)</td>
+            </tr>
+            <tr>
+                <td><strong>Order / Time</strong></td>
+                <td>เวลาเพื่อนำมาจัดคิวเรียงลำดับลำดับก่อนหลัง</td>
+                <td><code>history.endTime</code></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="alert-block" style="border-left-color: #E64A19;">
+        <p>⚠️ ข้อสังเกตโครงสร้างฐานข้อมูลปัจจุบัน</p>
+        <span>ตาราง <code>history</code> มีข้อมูลครบถ้วนสำหรับใช้ป้อนให้ pyBKT แล้ว แต่ในตาราง <strong><code>exercise</code> ยังขาดฟิลด์ <code>p_g</code> และ <code>p_s</code></strong> คุณต้องแก้ไขไฟล์ <code>exercise.entity.ts</code> เพื่อเพิ่มคอลัมน์เก็บตัวแปร 2 ตัวนี้เพื่อให้การอัปเดตด้วยระบบ Cron Job สำเร็จ</span>
+    </div>
+
+    <div class="footer">
+        <p>Google Antigravity Design Spec • Capuchina Theme</p>
+    </div>
+</div>
+
+</body>
+</html>
