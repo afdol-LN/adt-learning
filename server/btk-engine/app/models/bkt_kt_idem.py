@@ -45,9 +45,10 @@ def apply_learning_transition(p_l_posterior: float, p_t:float, ratio:float) -> f
     """
     After incorporating evidence from the current attempt, the student may
     still transition from "not knowing" to "knowing" before the NEXT
-    attempt. This is the standard BKT learning update.
+    attempt. This is the standard BKT learning update, scaled by how
+    promptly the student answered.
     """
-    return p_l_posterior + (1 - p_l_posterior) * p_t
+    return p_l_posterior + (1 - p_l_posterior) * p_t * ratio
 
 def update_mastery(
         p_l_current: float,
@@ -72,7 +73,7 @@ def update_mastery(
     p_l_posterior = posterior_given_evidence(
         p_l_prior=p_l_current, correct=correct, p_g=p_g, p_s=p_s
     )
-    time_ratio = ratio_time_response_exercise(response_tiem=response_time , expection_time=expect_time)
+    time_ratio = ratio_time_response_exercise(response_time=response_time, expection_time=expect_time)
     p_l_next = apply_learning_transition(p_l_posterior=p_l_posterior, p_t=p_t, ratio = time_ratio)
 
     return{
