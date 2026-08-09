@@ -33,6 +33,7 @@ import {
   PretestMasteryCalculator,
   PretestAnswerStat,
 } from 'src/libs/bkt/pretestMastery';
+import { DifficultySeed } from 'src/libs/bkt/questionSelection';
 
 @Injectable()
 export class exerciseService extends BaseService<Exercise> {
@@ -187,6 +188,8 @@ export class exerciseService extends BaseService<Exercise> {
     this.validateExercisePayload(dto.type, dto.fillInBlank, dto.choices);
 
     const savedId = await this.dataSource.transaction(async (manager) => {
+      const nChoices =
+        dto.type === ExerciseType.CHOICE ? (dto.choices?.length ?? 0) : 0;
       const exercise = manager.create(Exercise, {
         description: dto.description,
         skillId: dto.skillId,
@@ -201,6 +204,8 @@ export class exerciseService extends BaseService<Exercise> {
           dto.type === ExerciseType.FILL_IN_BLANK
             ? (dto.isCasesensitive ?? 'NO')
             : 'NO',
+        p_s: DifficultySeed.seedPS(dto.skillLevel),
+        p_g: DifficultySeed.seedPG(dto.type, dto.skillLevel, nChoices),
       });
       const saved = await manager.save(exercise);
 
@@ -233,6 +238,10 @@ export class exerciseService extends BaseService<Exercise> {
     existing.skillId = dto.skillId ?? existing.skillId;
     existing.skillLevel = dto.skillLevel ?? existing.skillLevel;
     existing.level = dto.skillLevel ?? existing.level;
+    const nextNChoices =
+      nextType === ExerciseType.CHOICE ? (nextChoices?.length ?? 0) : 0;
+    existing.p_s = DifficultySeed.seedPS(existing.skillLevel);
+    existing.p_g = DifficultySeed.seedPG(nextType, existing.skillLevel, nextNChoices);
     existing.type = nextType;
     existing.status = dto.status ?? existing.status;
     existing.expectTime = dto.expectTime ?? existing.expectTime;
