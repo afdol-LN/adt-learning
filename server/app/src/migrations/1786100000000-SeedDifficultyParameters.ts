@@ -8,7 +8,7 @@ export class SeedDifficultyParameters1786100000000
   name = 'SeedDifficultyParameters1786100000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`UPDATE skill SET p_t = 0.10 WHERE p_t IS NULL`);
+    await queryRunner.query(`UPDATE skill SET "pT" = 0.10 WHERE "pT" IS NULL`);
 
     const exercises: { id: number; level: number; type: string }[] =
       await queryRunner.query(`SELECT id, level, type FROM exercise`);
@@ -26,13 +26,13 @@ export class SeedDifficultyParameters1786100000000
         nChoices || 4,
       );
       await queryRunner.query(
-        `UPDATE exercise SET p_g = $1, p_s = $2 WHERE id = $3`,
+        `UPDATE exercise SET "pG" = $1, "pS" = $2 WHERE id = $3`,
         [pG, pS, exercise.id],
       );
     }
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`UPDATE exercise SET p_g = 0.1, p_s = 0.1`);
+    await queryRunner.query(`UPDATE exercise SET "pG" = 0.1, "pS" = 0.1`);
   }
 }

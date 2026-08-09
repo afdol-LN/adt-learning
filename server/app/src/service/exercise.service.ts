@@ -204,8 +204,8 @@ export class exerciseService extends BaseService<Exercise> {
           dto.type === ExerciseType.FILL_IN_BLANK
             ? (dto.isCasesensitive ?? 'NO')
             : 'NO',
-        p_s: DifficultySeed.seedPS(dto.skillLevel),
-        p_g: DifficultySeed.seedPG(dto.type, dto.skillLevel, nChoices),
+        pS: DifficultySeed.seedPS(dto.skillLevel),
+        pG: DifficultySeed.seedPG(dto.type, dto.skillLevel, nChoices),
       });
       const saved = await manager.save(exercise);
 
@@ -240,8 +240,8 @@ export class exerciseService extends BaseService<Exercise> {
     existing.level = dto.skillLevel ?? existing.level;
     const nextNChoices =
       nextType === ExerciseType.CHOICE ? (nextChoices?.length ?? 0) : 0;
-    existing.p_s = DifficultySeed.seedPS(existing.skillLevel);
-    existing.p_g = DifficultySeed.seedPG(nextType, existing.skillLevel, nextNChoices);
+    existing.pS = DifficultySeed.seedPS(existing.skillLevel);
+    existing.pG = DifficultySeed.seedPG(nextType, existing.skillLevel, nextNChoices);
     existing.type = nextType;
     existing.status = dto.status ?? existing.status;
     existing.expectTime = dto.expectTime ?? existing.expectTime;
