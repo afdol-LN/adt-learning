@@ -20,12 +20,17 @@ import { SkillRecommender } from 'src/libs/bkt/skillRecommendation';
 import { MasteryState, ConceptMapState } from 'src/libs/bkt/masteryState';
 import { QuestionSelector, CandidateExercise } from 'src/libs/bkt/questionSelection';
 import { ktService } from './kt.service';
+import { AttemptRequestDto } from 'src/dto/kt/kt.dto';
 import {
   NextQuestionDto,
   RecommendedSkillDto,
   StartSessionDto,
   StartSessionResponseDto,
+  SubmitAnswerDto,
+  SubmitAnswerResponseDto,
 } from 'src/dto/exerciseAndSession/session.dto';
+
+const SESSION_QUESTION_LIMIT = 8;
 
 @Injectable()
 export class sessionService {
@@ -184,6 +189,169 @@ export class sessionService {
       skillId: skill.skillId,
       pL,
       question: this.buildQuestionDto(selectedExercise),
+    };
+  }
+
+  async submitAnswer(
+    userId: number,
+    sessionId: number,
+    dto: SubmitAnswerDto,
+  ): Promise<SubmitAnswerResponseDto> {
+    const session = await this.sessionRepository.findOne({
+      where: { id: sessionId },
+      relations: { branch: true },
+    });
+    if (!session) throw new NotFoundException(`Session ${sessionId} not found`);
+    if (session.branch.userId !== userId) {
+      throw new ForbiddenException('Session does not belong to the user');
+    }
+    if (session.endedAt) {
+      throw new BadRequestException('Session has already ended');
+    }
+
+    const exercise = await this.exerciseRepository.findOne({
+      where: { id: dto.exerciseId },
+    });
+    if (!exercise) {
+      throw new NotFoundException(`Exercise ${dto.exerciseId} not found`);
+    }
+    if (exercise.skillId !== session.skillId) {
+      throw new BadRequestException(
+        `Exercise ${dto.exerciseId} does not belong to this session's skill`,
+      );
+    }
+
+    const skill = await this.skillRepository.findOne({
+      where: { skillId: session.skillId },
+      relations: { skillPrequisite: true },
+    });
+    if (!skill) throw new NotFoundException(`Skill ${session.skillId} not found`);
+
+    const userprofile = await this.userprofileRepository.findOne({
+      where: { id: userId },
+    });
+    const conceptMapState: ConceptMapState = userprofile?.conceptMapState ?? {};
+    const currentEntry = MasteryState.getEntry(
+      conceptMapState,
+      skill.skillId,
+      skill.pL0,
+    );
+
+    const responseTime =
+      (new Date(dto.endTime).getTime() - new Date(dto.startTime).getTime()) /
+      1000;
+    const expectTimeForRatio = exercise.expectTime ?? responseTime;
+
+    const attemptPayload: AttemptRequestDto = {
+      pLCurrent: currentEntry.pL,
+      pT: skill.pT,
+      pG: exercise.pG,
+      pS: exercise.pS,
+      isCorrect: dto.isCorrect,
+      responseTime,
+      expectTime: expectTimeForRatio,
+    };
+    const attemptResult = await this.ktService.submitAttempt(attemptPayload);
+    if (attemptResult.isError || !attemptResult.data) {
+      throw new BadRequestException(
+        attemptResult.errorMessage || 'KT engine failed to process the attempt',
+      );
+    }
+    const pLNext = attemptResult.data.pLNext;
+
+    await this.dataSource.transaction(async (manager) => {
+      const sessionAndExerciseRepo = manager.getRepository(SessionAndExercise);
+      const sessionAndExercise = manager.create(SessionAndExercise, {
+        sessionId: session.id,
+        exerciseId: exercise.id,
+      });
+      const savedSessionAndExercise = await sessionAndExerciseRepo.save(sessionAndExercise);
+
+      const history = manager.create(History, {
+        branchId: session.branchId,
+        sessionAndExerciseId: savedSessionAndExercise.id,
+        isCorrect: dto.isCorrect,
+        isPretest: false,
+        startTime: new Date(dto.startTime),
+        endTime: new Date(dto.endTime),
+        chosenAnswer: dto.chosenAnswer,
+        pL: pLNext,
+      });
+      await manager.save(history);
+
+      if (userprofile) {
+        const newEntry = MasteryState.buildEntry(
+          pLNext,
+          currentEntry.attemptCount + 1,
+        );
+        userprofile.conceptMapState = {
+          ...conceptMapState,
+          [String(skill.skillId)]: newEntry,
+        };
+        await manager.save(userprofile);
+      }
+    });
+
+    const answeredExerciseIds = [
+      ...(
+        await this.sessionAndExerciseRepository.find({
+          where: { sessionId: session.id },
+        })
+      ).map((se) => se.exerciseId),
+      exercise.id,
+    ];
+
+    let stopReason: 'mastered' | 'completed' | 'exhausted' | null = null;
+    if (pLNext >= MasteryState.MASTERY_THRESHOLD) {
+      stopReason = 'mastered';
+    } else if (answeredExerciseIds.length >= SESSION_QUESTION_LIMIT) {
+      stopReason = 'completed';
+    } else {
+      const { candidates } = await this.unansweredCandidates(
+        skill.skillId,
+        answeredExerciseIds,
+      );
+      if (candidates.length === 0) stopReason = 'exhausted';
+    }
+
+    if (stopReason) {
+      session.endedAt = new Date();
+      session.stopReason = stopReason;
+      await this.sessionRepository.save(session);
+
+      const nextRecommendation = await this.recommendNextSkill(
+        session.branchId,
+        userId,
+      );
+
+      return {
+        isCorrect: dto.isCorrect,
+        pL: pLNext,
+        nextQuestion: null,
+        sessionEnded: true,
+        stopReason,
+        summary: {
+          pLBefore: currentEntry.pL,
+          pLAfter: pLNext,
+          newlyUnlockedSkills: [],
+          nextRecommendation,
+        },
+      };
+    }
+
+    const { exercises, candidates } = await this.unansweredCandidates(
+      skill.skillId,
+      answeredExerciseIds,
+    );
+    const nextId = QuestionSelector.selectNext(candidates, pLNext);
+    const nextExercise = exercises.find((e) => e.id === nextId)!;
+
+    return {
+      isCorrect: dto.isCorrect,
+      pL: pLNext,
+      nextQuestion: this.buildQuestionDto(nextExercise),
+      sessionEnded: false,
+      stopReason: null,
     };
   }
 }
