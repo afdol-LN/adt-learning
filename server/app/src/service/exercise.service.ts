@@ -26,6 +26,13 @@ import { Session } from 'src/entity/exerciseAndSession/session.entity';
 import { SessionAndExercise } from 'src/entity/exerciseAndSession/sessionAndExercise.entity';
 import { History } from 'src/entity/history.entity';
 import { ForbiddenException } from '@nestjs/common';
+import { Userprofile } from 'src/entity/userprofile.entity';
+import { SkillTier } from 'src/libs/bkt/tier';
+import { MasteryState } from 'src/libs/bkt/masteryState';
+import {
+  PretestMasteryCalculator,
+  PretestAnswerStat,
+} from 'src/libs/bkt/pretestMastery';
 
 @Injectable()
 export class exerciseService extends BaseService<Exercise> {
@@ -58,8 +65,23 @@ export class exerciseService extends BaseService<Exercise> {
         throw new ForbiddenException('Branch does not belong to the user');
       }
 
+      const userprofile = await manager.findOne(Userprofile, {
+        where: { id: userId },
+        relations: { major: true },
+      });
+
+      const exerciseIds = dto.answers.map((a) => a.exerciseId);
+      const exercises = exerciseIds.length
+        ? await manager
+            .getRepository(Exercise)
+            .find({ where: { id: In(exerciseIds) } })
+        : [];
+      const exerciseById = new Map(exercises.map((e) => [e.id, e]));
+
       const session = manager.create(Session, {});
       const savedSession = await manager.save(session);
+
+      const statsBySkill = new Map<number, PretestAnswerStat[]>();
 
       for (const answer of dto.answers) {
         const sessionAndExercise = manager.create(SessionAndExercise, {
@@ -78,6 +100,57 @@ export class exerciseService extends BaseService<Exercise> {
           chosenAnswer: answer.chosenAnswer,
         });
         await manager.save(history);
+
+        const exercise = exerciseById.get(answer.exerciseId);
+        if (exercise) {
+          const actualTimeSeconds =
+            (new Date(answer.endTime).getTime() -
+              new Date(answer.startTime).getTime()) /
+            1000;
+          const stats = statsBySkill.get(exercise.skillId) ?? [];
+          stats.push({
+            isCorrect: answer.isCorrect,
+            actualTimeSeconds,
+            expectTime: exercise.expectTime ?? null,
+          });
+          statsBySkill.set(exercise.skillId, stats);
+        }
+      }
+
+      const goalSkillRequires = await manager
+        .getRepository(GoalSkillRequire)
+        .find({ where: { goalId: branch.goalId } });
+      const goalSkills = goalSkillRequires.length
+        ? await manager
+            .getRepository(Skill)
+            .find({ where: { skillId: In(goalSkillRequires.map((r) => r.skillId)) } })
+        : [];
+
+      if (userprofile) {
+        const profileFactors = {
+          isAboutCs: userprofile.major?.isAboutCs ?? false,
+          year: userprofile.year ?? null,
+        };
+        const existingState = userprofile.conceptMapState ?? {};
+        const newEntries: Record<string, unknown> = {};
+
+        for (const skill of goalSkills) {
+          if (existingState[String(skill.skillId)]) continue; // never clobber
+          const stats = statsBySkill.get(skill.skillId) ?? [];
+          const pL0 = PretestMasteryCalculator.computePL0(
+            branch.expForGoal,
+            SkillTier.tierNum(skill.tier),
+            stats,
+            profileFactors,
+          );
+          newEntries[String(skill.skillId)] = MasteryState.buildEntry(
+            pL0,
+            stats.length,
+          );
+        }
+
+        userprofile.conceptMapState = { ...existingState, ...newEntries };
+        await manager.save(userprofile);
       }
 
       branch.isAlreadyPretest = true;
@@ -250,6 +323,13 @@ export class exerciseService extends BaseService<Exercise> {
     }
   }
 
+  private filterExercisesByTier(exercises: Exercise[], level?: number): Exercise[] {
+    if (level === undefined || level === null) return exercises;
+    return exercises.filter(
+      (ex) => SkillTier.tierNum(ex.skill?.tier) <= level,
+    );
+  }
+
   async findPretestByGoal(
     goalId?: number | string,
     userId?: number | string,
@@ -289,10 +369,12 @@ export class exerciseService extends BaseService<Exercise> {
         },
         relations: { exerciseChoices: true, skill: true },
       });
-      choiceExercises = allMatch.filter(
+      const tierFiltered = this.filterExercisesByTier(allMatch, level);
+      const effectiveMatch = tierFiltered.length > 0 ? tierFiltered : allMatch;
+      choiceExercises = effectiveMatch.filter(
         (ex) => !ex.fillInBlank || ex.fillInBlank.trim() === '',
       );
-      blankExercises = allMatch.filter(
+      blankExercises = effectiveMatch.filter(
         (ex) => ex.fillInBlank && ex.fillInBlank.trim() !== '',
       );
     }
@@ -317,9 +399,10 @@ export class exerciseService extends BaseService<Exercise> {
       this.logger.warn(
         'DB has 0 exercises. Returning mock fallback choice & fill-in-blank exercises for pretest.',
       );
+      //use mock exercise for goal wiyh out exercise
       return this.getMockPretestExercises();
     }
-
+    
     const targetTotal = 5;
     const resultPool: Exercise[] = [];
     const shuffledChoices = [...choiceExercises].sort(
@@ -368,6 +451,7 @@ export class exerciseService extends BaseService<Exercise> {
     });
   }
 
+  // mock exercise for goal with out exercise 
   private getMockPretestExercises() {
     return [
       {
