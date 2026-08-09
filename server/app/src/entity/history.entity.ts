@@ -45,6 +45,9 @@ export class History {
   @Column({ type: 'varchar', nullable: true })
   chosenAnswer: string;
 
+  @Column({ type: 'float', nullable: true })
+  pL: number | null;
+
   @ManyToOne(() => Branch, (branch) => branch.history)
   @JoinColumn({ name: 'branchId', referencedColumnName: 'id' })
   branch: Branch;
