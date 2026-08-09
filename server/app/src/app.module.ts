@@ -20,6 +20,7 @@ import { History } from './entity/history.entity';
 import { Session } from './entity/exerciseAndSession/session.entity';
 import { Exercise } from './entity/exerciseAndSession/exercise.entity';
 import { ExerciseChoice } from './entity/exerciseAndSession/exerciseChoice.entity';
+import { SessionAndExercise } from './entity/exerciseAndSession/sessionAndExercise.entity';
 
 // Goal & Skill entities
 import { Goal } from './entity/goal.entity';
@@ -52,6 +53,8 @@ import { historyController } from './controller/history.controller';
 import { historyService } from './service/history.service';
 import { ktController } from './controller/kt.controller';
 import { ktService } from './service/kt.service';
+import { sessionController } from './controller/session.controller';
+import { sessionService } from './service/session.service';
 import { Hash } from './libs/hash';
 import { JwtService } from './libs/jwt';
 import { HttpModule } from '@nestjs/axios';
@@ -80,6 +83,7 @@ import { RequestMethod } from '@nestjs/common';
       Session,
       Exercise,
       ExerciseChoice,
+      SessionAndExercise,
       Goal,
       Skill,
       SkillPrerequisite,
@@ -101,6 +105,7 @@ import { RequestMethod } from '@nestjs/common';
     goalController,
     historyController,
     ktController,
+    sessionController,
   ],
   providers: [
     AppService,
@@ -117,6 +122,7 @@ import { RequestMethod } from '@nestjs/common';
     goalService,
     historyService,
     ktService,
+    sessionService,
     Hash,
     JwtService,
   ],
