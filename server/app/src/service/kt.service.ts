@@ -3,13 +3,7 @@ import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
 import { restfulResponse } from '../dto/restfulResponse';
-import {
-  SkillRegisterDto,
-  ItemRegisterDto,
-  AttemptRequestDto,
-  AttemptResponseDto,
-  MasteryResponseDto,
-} from '../dto/kt/kt.dto';
+import { AttemptRequestDto, AttemptResponseDto } from '../dto/kt/kt.dto';
 
 @Injectable()
 export class ktService {
@@ -25,104 +19,18 @@ export class ktService {
       'http://localhost:8000';
   }
 
-  async registerSkill(
-    dto: SkillRegisterDto,
-  ): Promise<
-    restfulResponse<{ skillId: string; pL0: number; pT: number } | null>
-  > {
-    try {
-      const payload = {
-        skill_id: dto.skillId,
-        p_l0: dto.pL0,
-        p_t: dto.pT,
-      };
-      const response = await firstValueFrom(
-        this.httpService.post(`${this.baseUrl}/kt/skill`, payload),
-      );
-      const data = response.data;
-      return {
-        isError: false,
-        data: {
-          skillId: data.skill_id,
-          pL0: data.p_l0,
-          pT: data.p_t,
-        },
-        errorMessage: '',
-      };
-    } catch (error) {
-      const msg =
-        error?.response?.data?.detail ||
-        error?.message ||
-        'Failed to register skill in KT Engine';
-      this.logger.error(
-        `Error registering skill: ${msg}`,
-        error?.response?.data,
-      );
-      return {
-        isError: true,
-        data: null,
-        errorMessage: msg,
-      };
-    }
-  }
-
-  async registerItem(dto: ItemRegisterDto): Promise<
-    restfulResponse<{
-      itemId: string;
-      skillId: string;
-      pG: number;
-      pS: number;
-      difficultyLabel: number;
-    } | null>
-  > {
-    try {
-      const payload = {
-        item_id: dto.itemId,
-        skill_id: dto.skillId,
-        p_g: dto.pG,
-        p_s: dto.pS,
-        difficulty_label: dto.difficultyLabel ?? 0,
-      };
-      const response = await firstValueFrom(
-        this.httpService.post(`${this.baseUrl}/kt/item`, payload),
-      );
-      const data = response.data;
-      return {
-        isError: false,
-        data: {
-          itemId: data.item_id,
-          skillId: data.skill_id,
-          pG: data.p_g,
-          pS: data.p_s,
-          difficultyLabel: data.difficulty_label,
-        },
-        errorMessage: '',
-      };
-    } catch (error) {
-      const msg =
-        error?.response?.data?.detail ||
-        error?.message ||
-        'Failed to register item in KT Engine';
-      this.logger.error(
-        `Error registering item: ${msg}`,
-        error?.response?.data,
-      );
-      return {
-        isError: true,
-        data: null,
-        errorMessage: msg,
-      };
-    }
-  }
-
   async submitAttempt(
     dto: AttemptRequestDto,
   ): Promise<restfulResponse<AttemptResponseDto | null>> {
     try {
       const payload = {
-        student_id: dto.studentId,
-        item_id: dto.itemId,
-        correct: dto.correct,
+        p_l_current: dto.pLCurrent,
+        p_t: dto.pT,
+        p_g: dto.pG,
+        p_s: dto.pS,
+        isCorrect: dto.isCorrect,
+        response_time: dto.responseTime,
+        expect_time: dto.expectTime,
       };
       const response = await firstValueFrom(
         this.httpService.post(`${this.baseUrl}/kt/attempt`, payload),
@@ -131,9 +39,6 @@ export class ktService {
       return {
         isError: false,
         data: {
-          studentId: data.student_id,
-          itemId: data.item_id,
-          skillId: data.skill_id,
           pLPrior: data.p_l_prior,
           pLPosterior: data.p_l_posterior,
           pLNext: data.p_l_next,
@@ -159,41 +64,24 @@ export class ktService {
     }
   }
 
-  async getMastery(
-    studentId: string,
-    skillId: string,
-  ): Promise<restfulResponse<MasteryResponseDto | null>> {
+  async triggerCalibration(): Promise<
+    restfulResponse<{ status: string; message: string } | null>
+  > {
     try {
       const response = await firstValueFrom(
-        this.httpService.get(
-          `${this.baseUrl}/kt/mastery/${studentId}/${skillId}`,
-        ),
+        this.httpService.post(`${this.baseUrl}/kt/calibrate`),
       );
-      const data = response.data;
-      return {
-        isError: false,
-        data: {
-          studentId: data.student_id,
-          skillId: data.skill_id,
-          pL: data.p_l,
-          mastered: data.mastered,
-        },
-        errorMessage: '',
-      };
+      return { isError: false, data: response.data, errorMessage: '' };
     } catch (error) {
       const msg =
         error?.response?.data?.detail ||
         error?.message ||
-        'Failed to fetch mastery from KT Engine';
+        'Failed to trigger calibration';
       this.logger.error(
-        `Error fetching mastery: ${msg}`,
+        `Error triggering calibration: ${msg}`,
         error?.response?.data,
       );
-      return {
-        isError: true,
-        data: null,
-        errorMessage: msg,
-      };
+      return { isError: true, data: null, errorMessage: msg };
     }
   }
 }
