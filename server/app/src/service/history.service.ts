@@ -14,6 +14,7 @@ import {
   SessionQuestionHistoryDto,
 } from 'src/dto/historyResponse.dto';
 import { BranchDashboardDto } from 'src/dto/branchDashboard.dto';
+import { SkillGraph } from 'src/libs/bkt/skillGraph';
 
 @Injectable()
 export class historyService extends BaseService<History> {
@@ -87,23 +88,7 @@ export class historyService extends BaseService<History> {
     allSkills: Skill[],
     goalSkillRequire: { skillId: number }[],
   ): Set<number> {
-    const skillById = new Map(allSkills.map((s) => [s.skillId, s]));
-    const relevant = new Set<number>();
-    const stack = goalSkillRequire.map((r) => r.skillId);
-
-    while (stack.length > 0) {
-      const id = stack.pop()!;
-      if (relevant.has(id)) continue;
-      relevant.add(id);
-      const prereqs = skillById.get(id)?.skillPrequisite || [];
-      for (const p of prereqs) {
-        if (!relevant.has(p.prerequisiteSkillId)) {
-          stack.push(p.prerequisiteSkillId);
-        }
-      }
-    }
-
-    return relevant;
+    return SkillGraph.getRelevantSkillIds(allSkills, goalSkillRequire);
   }
 
   async getBranchSkills(branchId: number, userId: number): Promise<any[]> {
