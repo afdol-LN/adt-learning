@@ -68,7 +68,7 @@ import { RequestMethod } from '@nestjs/common';
       isGlobal: true,
     }),
     TypeOrmModule.forRoot(dataSourceOptions),
-    // HttpModule,
+    HttpModule,
 
     TypeOrmModule.forFeature([
       Campus,
@@ -100,7 +100,7 @@ import { RequestMethod } from '@nestjs/common';
     skillController,
     goalController,
     historyController,
-    // ktController,
+    ktController,
   ],
   providers: [
     AppService,
@@ -116,7 +116,7 @@ import { RequestMethod } from '@nestjs/common';
     skillService,
     goalService,
     historyService,
-    // ktService,
+    ktService,
     Hash,
     JwtService,
   ],
