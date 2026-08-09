@@ -9,17 +9,17 @@ def run_calibration():
     conn = psycopg2.connect(DATABASE_URL)
 
     query = """
-        SELECT 
-            b.userId AS student_id,
+        SELECT
+            b."userId" AS student_id,
             e.skill_id AS skill_name,
-            se.exerciseId AS problem_name,
-            CASE WHEN h.isCorrect = true THEN 1 ELSE 0 END AS correct,
-            h.endTime AS timestamp
+            se."exerciseId" AS problem_name,
+            CASE WHEN h."isCorrect" = true THEN 1 ELSE 0 END AS correct,
+            h."endTime" AS timestamp
         FROM history h
-        JOIN branch b ON h.branchId = b.id
-        JOIN sessionAndExercise se ON h.sessionAndExerciseId = se.id
-        JOIN exercise e ON se.exerciseId = e.id
-        ORDER BY h.endTime ASC;
+        JOIN branch b ON h."branchId" = b.id
+        JOIN "sessionAndExercise" se ON h."sessionAndExerciseId" = se.id
+        JOIN exercise e ON se."exerciseId" = e.id
+        ORDER BY h."endTime" ASC;
     """
     df = pd.read_sql(query, conn)
 
