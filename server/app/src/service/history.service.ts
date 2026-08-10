@@ -15,6 +15,8 @@ import {
 } from 'src/dto/historyResponse.dto';
 import { BranchDashboardDto } from 'src/dto/branchDashboard.dto';
 import { SkillGraph } from 'src/libs/bkt/skillGraph';
+import { Userprofile } from 'src/entity/userprofile.entity';
+import { MasteryState, ConceptMapState } from 'src/libs/bkt/masteryState';
 
 @Injectable()
 export class historyService extends BaseService<History> {
@@ -25,8 +27,17 @@ export class historyService extends BaseService<History> {
     private readonly branchRepository: Repository<Branch>,
     @InjectRepository(Skill)
     private readonly skillRepository: Repository<Skill>,
+    @InjectRepository(Userprofile)
+    private readonly userprofileRepository: Repository<Userprofile>,
   ) {
     super(historyRepository);
+  }
+
+  private async loadConceptMapState(userId: number): Promise<ConceptMapState> {
+    const userprofile = await this.userprofileRepository.findOne({
+      where: { id: userId },
+    });
+    return userprofile?.conceptMapState ?? {};
   }
 
   async validateBranchOwnership(
@@ -93,7 +104,7 @@ export class historyService extends BaseService<History> {
 
   async getBranchSkills(branchId: number, userId: number): Promise<any[]> {
     const branch = await this.validateBranchOwnership(branchId, userId, true);
-    const histories = await this.getRawHistoriesForBranch(branchId, userId);
+    const conceptMapState = await this.loadConceptMapState(userId);
     const allSkills = await this.skillRepository.find({
       relations: {
         skillPrequisite: true,
@@ -108,15 +119,11 @@ export class historyService extends BaseService<History> {
     return allSkills
       .filter((skill) => relevantSkillIds.has(skill.skillId))
       .map((skill) => {
-        const skillHistories = histories.filter(
-          (h) => h.sessionAndExercise?.exercise?.skillId === skill.skillId,
+        const entry = MasteryState.getEntry(
+          conceptMapState,
+          skill.skillId,
+          skill.pL0,
         );
-        const total = skillHistories.length;
-        const correct = skillHistories.filter((h) => h.isCorrect).length;
-        const progressPercent =
-          total > 0
-            ? Math.min(100, Math.round((correct / total / 0.75) * 100))
-            : 0;
 
         return {
           skillId: skill.skillId,
@@ -124,7 +131,8 @@ export class historyService extends BaseService<History> {
           skillsName: skill.skillsName,
           tier: skill.tier,
           status: skill.status,
-          progressPercent,
+          progressPercent: entry.progress,
+          attemptCount: entry.attemptCount,
           skillPrequisite: skill.skillPrequisite.map((p) => ({
             skillId: p.skillId,
             prerequisiteSkillId: p.prerequisiteSkillId,
@@ -139,6 +147,7 @@ export class historyService extends BaseService<History> {
     userId: number,
   ): Promise<BranchDashboardDto> {
     const branch = await this.validateBranchOwnership(branchId, userId, true);
+    const conceptMapState = await this.loadConceptMapState(userId);
     const histories = await this.historyRepository.find({
       where: { branchId },
       relations: {
@@ -154,24 +163,22 @@ export class historyService extends BaseService<History> {
       },
     });
 
-    // 1. Compute progress percent for all skills
+    // 1. Progress per skill, from conceptMapState
     const skillProgressMap = new Map<number, number>();
     for (const skill of allSkills) {
-      const skillHistories = histories.filter(
-        (h) => h.sessionAndExercise?.exercise?.skillId === skill.skillId,
+      const entry = MasteryState.getEntry(
+        conceptMapState,
+        skill.skillId,
+        skill.pL0,
       );
-      const total = skillHistories.length;
-      const correct = skillHistories.filter((h) => h.isCorrect).length;
-      const progress =
-        total > 0
-          ? Math.min(100, Math.round((correct / total / 0.75) * 100))
-          : 0;
-      skillProgressMap.set(skill.skillId, progress);
+      skillProgressMap.set(
+        skill.skillId,
+        entry.pL >= MasteryState.MASTERY_THRESHOLD ? 100 : entry.progress,
+      );
     }
 
-    // 2. Compute skills unlocked count (100% prerequisite unlock rule),
-    // scoped to skills actually required by this branch's goal (plus their
-    // prerequisite ancestors) — skills belonging to other goals don't count.
+    // 2. Skills unlocked count (every prerequisite at pL >= 0.95), scoped to
+    // this branch's goal (plus prerequisite ancestors)
     const relevantSkillIds = this.getRelevantSkillIds(
       allSkills,
       branch.goal?.goalSkillRequire || [],
@@ -180,18 +187,16 @@ export class historyService extends BaseService<History> {
     for (const skill of allSkills) {
       if (!relevantSkillIds.has(skill.skillId)) continue;
       const prereqs = skill.skillPrequisite || [];
-      if (prereqs.length === 0) {
-        skillsUnlockedCount++;
-      } else {
-        const allParentsPassed = prereqs.every((prereq) => {
-          const parentProgress =
-            skillProgressMap.get(prereq.prerequisiteSkillId) || 0;
-          return parentProgress === 100;
-        });
-        if (allParentsPassed) {
-          skillsUnlockedCount++;
-        }
-      }
+      const allParentsMastered = prereqs.every((prereq) => {
+        const parentEntry = MasteryState.getEntry(
+          conceptMapState,
+          prereq.prerequisiteSkillId,
+          allSkills.find((s) => s.skillId === prereq.prerequisiteSkillId)
+            ?.pL0 ?? 0.25,
+        );
+        return parentEntry.pL >= MasteryState.MASTERY_THRESHOLD;
+      });
+      if (allParentsMastered) skillsUnlockedCount++;
     }
 
     // 3. Compute distinct sessions count
