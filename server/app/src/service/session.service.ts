@@ -211,6 +211,7 @@ export class sessionService {
 
     const exercise = await this.exerciseRepository.findOne({
       where: { id: dto.exerciseId },
+      relations: { exerciseChoices: true },
     });
     if (!exercise) {
       throw new NotFoundException(`Exercise ${dto.exerciseId} not found`);
@@ -220,6 +221,16 @@ export class sessionService {
         `Exercise ${dto.exerciseId} does not belong to this session's skill`,
       );
     }
+
+    const isCorrect =
+      exercise.type === ExerciseType.CHOICE
+        ? (exercise.exerciseChoices || []).some(
+            (c) => c.isAnswer && c.script === dto.chosenAnswer,
+          )
+        : exercise.isCasesensitive === 'YES'
+          ? exercise.fillInBlank === dto.chosenAnswer
+          : (exercise.fillInBlank || '').toLowerCase() ===
+            (dto.chosenAnswer || '').toLowerCase();
 
     const skill = await this.skillRepository.findOne({
       where: { skillId: session.skillId },
@@ -247,7 +258,7 @@ export class sessionService {
       pT: skill.pT,
       pG: exercise.pG,
       pS: exercise.pS,
-      isCorrect: dto.isCorrect,
+      isCorrect,
       responseTime,
       expectTime: expectTimeForRatio,
     };
@@ -270,7 +281,7 @@ export class sessionService {
       const history = manager.create(History, {
         branchId: session.branchId,
         sessionAndExerciseId: savedSessionAndExercise.id,
-        isCorrect: dto.isCorrect,
+        isCorrect,
         isPretest: false,
         startTime: new Date(dto.startTime),
         endTime: new Date(dto.endTime),
@@ -325,7 +336,7 @@ export class sessionService {
       );
 
       return {
-        isCorrect: dto.isCorrect,
+        isCorrect,
         pL: pLNext,
         nextQuestion: null,
         sessionEnded: true,
@@ -347,7 +358,7 @@ export class sessionService {
     const nextExercise = exercises.find((e) => e.id === nextId)!;
 
     return {
-      isCorrect: dto.isCorrect,
+      isCorrect,
       pL: pLNext,
       nextQuestion: this.buildQuestionDto(nextExercise),
       sessionEnded: false,

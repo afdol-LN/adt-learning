@@ -17,7 +17,6 @@ export class StartSessionDto {
 
 export class SubmitAnswerDto {
   exerciseId!: number;
-  isCorrect!: boolean;
   chosenAnswer?: string;
   startTime!: string;
   endTime!: string;
