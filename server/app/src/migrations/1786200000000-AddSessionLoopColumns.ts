@@ -1,8 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddSessionLoopColumns1786200000000
-  implements MigrationInterface
-{
+export class AddSessionLoopColumns1786200000000 implements MigrationInterface {
   name = 'AddSessionLoopColumns1786200000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
@@ -10,9 +8,7 @@ export class AddSessionLoopColumns1786200000000
     await queryRunner.query(`ALTER TABLE "session" ADD "skillId" integer`);
     await queryRunner.query(`ALTER TABLE "session" ADD "endedAt" timestamp`);
     await queryRunner.query(`ALTER TABLE "session" ADD "stopReason" varchar`);
-    await queryRunner.query(
-      `ALTER TABLE "history" ADD "pL" double precision`,
-    );
+    await queryRunner.query(`ALTER TABLE "history" ADD "pL" double precision`);
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {

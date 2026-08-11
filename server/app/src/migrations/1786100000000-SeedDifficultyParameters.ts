@@ -2,9 +2,7 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
 import { DifficultySeed } from '../libs/bkt/questionSelection';
 import { ExerciseType } from '../enums/exercise-type.enum';
 
-export class SeedDifficultyParameters1786100000000
-  implements MigrationInterface
-{
+export class SeedDifficultyParameters1786100000000 implements MigrationInterface {
   name = 'SeedDifficultyParameters1786100000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
