@@ -40,6 +40,15 @@ export class goalService extends BaseService<Goal> {
     });
   }
 
+  // Used by the admin Goal management page, which needs to see and toggle
+  // inactive goals too — student-facing routes must keep using findAll()
+  // above so inactive goals never surface there.
+  async findAllIncludingInactive(): Promise<Goal[]> {
+    return this.goalRepository.find({
+      relations: GOAL_RELATIONS,
+    });
+  }
+
   async findOne(id: number): Promise<Goal> {
     const result = await this.goalRepository.findOne({
       where: { id },

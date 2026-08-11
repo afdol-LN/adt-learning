@@ -122,9 +122,9 @@ export class exerciseService extends BaseService<Exercise> {
         .getRepository(GoalSkillRequire)
         .find({ where: { goalId: branch.goalId } });
       const goalSkills = goalSkillRequires.length
-        ? await manager
-            .getRepository(Skill)
-            .find({ where: { skillId: In(goalSkillRequires.map((r) => r.skillId)) } })
+        ? await manager.getRepository(Skill).find({
+            where: { skillId: In(goalSkillRequires.map((r) => r.skillId)) },
+          })
         : [];
 
       if (userprofile) {
@@ -241,7 +241,11 @@ export class exerciseService extends BaseService<Exercise> {
     const nextNChoices =
       nextType === ExerciseType.CHOICE ? (nextChoices?.length ?? 0) : 0;
     existing.pS = DifficultySeed.seedPS(existing.skillLevel);
-    existing.pG = DifficultySeed.seedPG(nextType, existing.skillLevel, nextNChoices);
+    existing.pG = DifficultySeed.seedPG(
+      nextType,
+      existing.skillLevel,
+      nextNChoices,
+    );
     existing.type = nextType;
     existing.status = dto.status ?? existing.status;
     existing.expectTime = dto.expectTime ?? existing.expectTime;
@@ -332,11 +336,12 @@ export class exerciseService extends BaseService<Exercise> {
     }
   }
 
-  private filterExercisesByTier(exercises: Exercise[], level?: number): Exercise[] {
+  private filterExercisesByTier(
+    exercises: Exercise[],
+    level?: number,
+  ): Exercise[] {
     if (level === undefined || level === null) return exercises;
-    return exercises.filter(
-      (ex) => SkillTier.tierNum(ex.skill?.tier) <= level,
-    );
+    return exercises.filter((ex) => SkillTier.tierNum(ex.skill?.tier) <= level);
   }
 
   async findPretestByGoal(
@@ -411,7 +416,7 @@ export class exerciseService extends BaseService<Exercise> {
       //use mock exercise for goal wiyh out exercise
       return this.getMockPretestExercises();
     }
-    
+
     const targetTotal = 5;
     const resultPool: Exercise[] = [];
     const shuffledChoices = [...choiceExercises].sort(
@@ -460,7 +465,7 @@ export class exerciseService extends BaseService<Exercise> {
     });
   }
 
-  // mock exercise for goal with out exercise 
+  // mock exercise for goal with out exercise
   private getMockPretestExercises() {
     return [
       {

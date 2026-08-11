@@ -18,7 +18,11 @@ import { ExerciseType } from 'src/enums/exercise-type.enum';
 import { SkillGraph } from 'src/libs/bkt/skillGraph';
 import { SkillRecommender } from 'src/libs/bkt/skillRecommendation';
 import { MasteryState, ConceptMapState } from 'src/libs/bkt/masteryState';
-import { QuestionSelector, CandidateExercise } from 'src/libs/bkt/questionSelection';
+import {
+  QuestionSelector,
+  CandidateExercise,
+} from 'src/libs/bkt/questionSelection';
+import { AdaptiveEngineLogger } from 'src/libs/bkt/adaptiveEngineLogger';
 import { ktService } from './kt.service';
 import { AttemptRequestDto } from 'src/dto/kt/kt.dto';
 import {
@@ -35,20 +39,28 @@ const SESSION_QUESTION_LIMIT = 8;
 @Injectable()
 export class sessionService {
   constructor(
-    @InjectRepository(Branch) private readonly branchRepository: Repository<Branch>,
-    @InjectRepository(Skill) private readonly skillRepository: Repository<Skill>,
-    @InjectRepository(Exercise) private readonly exerciseRepository: Repository<Exercise>,
-    @InjectRepository(Session) private readonly sessionRepository: Repository<Session>,
+    @InjectRepository(Branch)
+    private readonly branchRepository: Repository<Branch>,
+    @InjectRepository(Skill)
+    private readonly skillRepository: Repository<Skill>,
+    @InjectRepository(Exercise)
+    private readonly exerciseRepository: Repository<Exercise>,
+    @InjectRepository(Session)
+    private readonly sessionRepository: Repository<Session>,
     @InjectRepository(SessionAndExercise)
     private readonly sessionAndExerciseRepository: Repository<SessionAndExercise>,
-    @InjectRepository(History) private readonly historyRepository: Repository<History>,
+    @InjectRepository(History)
+    private readonly historyRepository: Repository<History>,
     @InjectRepository(Userprofile)
     private readonly userprofileRepository: Repository<Userprofile>,
     private readonly dataSource: DataSource,
     private readonly ktService: ktService,
   ) {}
 
-  private async loadOwnedBranch(branchId: number, userId: number): Promise<Branch> {
+  private async loadOwnedBranch(
+    branchId: number,
+    userId: number,
+  ): Promise<Branch> {
     const branch = await this.branchRepository.findOne({
       where: { id: branchId },
       relations: { goal: { goalSkillRequire: true } },
@@ -94,8 +106,11 @@ export class sessionService {
         const prereqs = skill.skillPrequisite || [];
         return prereqs.every(
           (p) =>
-            this.pLFor(conceptMapState, p.prerequisiteSkillId, skillById.get(p.prerequisiteSkillId)?.pL0 ?? 0.25) >=
-            SkillRecommender.MASTERY_THRESHOLD,
+            this.pLFor(
+              conceptMapState,
+              p.prerequisiteSkillId,
+              skillById.get(p.prerequisiteSkillId)?.pL0 ?? 0.25,
+            ) >= SkillRecommender.MASTERY_THRESHOLD,
         );
       })
       .map((skill) => ({
@@ -170,7 +185,12 @@ export class sessionService {
       skill.skillId,
       [],
     );
-    const selectedId = QuestionSelector.selectNext(candidates, pL);
+    const selectedId = QuestionSelector.selectNext(
+      candidates,
+      pL,
+      0.7,
+      `session-start skill=${skill.skillId}`,
+    );
     if (selectedId === null) {
       throw new BadRequestException(
         `No exercises available for skill ${skill.skillId}`,
@@ -236,7 +256,8 @@ export class sessionService {
       where: { skillId: session.skillId },
       relations: { skillPrequisite: true },
     });
-    if (!skill) throw new NotFoundException(`Skill ${session.skillId} not found`);
+    if (!skill)
+      throw new NotFoundException(`Skill ${session.skillId} not found`);
 
     const userprofile = await this.userprofileRepository.findOne({
       where: { id: userId },
@@ -270,13 +291,18 @@ export class sessionService {
     }
     const pLNext = attemptResult.data.pLNext;
 
+    AdaptiveEngineLogger.log(
+      `[ability] user=${userId} skill=${skill.skillId} exercise=${exercise.id} correct=${isCorrect} pL ${currentEntry.pL.toFixed(3)} -> ${pLNext.toFixed(3)} mastered=${pLNext >= MasteryState.MASTERY_THRESHOLD}`,
+    );
+
     await this.dataSource.transaction(async (manager) => {
       const sessionAndExerciseRepo = manager.getRepository(SessionAndExercise);
       const sessionAndExercise = manager.create(SessionAndExercise, {
         sessionId: session.id,
         exerciseId: exercise.id,
       });
-      const savedSessionAndExercise = await sessionAndExerciseRepo.save(sessionAndExercise);
+      const savedSessionAndExercise =
+        await sessionAndExerciseRepo.save(sessionAndExercise);
 
       const history = manager.create(History, {
         branchId: session.branchId,
@@ -354,7 +380,12 @@ export class sessionService {
       skill.skillId,
       answeredExerciseIds,
     );
-    const nextId = QuestionSelector.selectNext(candidates, pLNext);
+    const nextId = QuestionSelector.selectNext(
+      candidates,
+      pLNext,
+      0.7,
+      `session=${session.id} skill=${skill.skillId}`,
+    );
     const nextExercise = exercises.find((e) => e.id === nextId)!;
 
     return {

@@ -1,11 +1,11 @@
 from fastapi import APIRouter, HTTPException, status
-from app.schemas.bkt_schema import (
+from schemas.bkt_schema import (
     AttemptIn,
     AttemptOut,
 )
-from app.service import kt_service
+from service import kt_service
 
-from app.script import calibrate
+from script import calibrate
 router = APIRouter(prefix="/kt", tags=["knowledge-tracing"])
 
 

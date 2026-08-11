@@ -1,4 +1,5 @@
 import { ExerciseType } from 'src/enums/exercise-type.enum';
+import { AdaptiveEngineLogger } from './adaptiveEngineLogger';
 
 const SLIP_BY_LEVEL: Record<number, number> = {
   1: 0.05,
@@ -47,9 +48,11 @@ export class QuestionSelector {
     candidates: CandidateExercise[],
     pL: number,
     target = 0.7,
+    context = '',
   ): number | null {
     let best: CandidateExercise | null = null;
     let bestDistance = Infinity;
+    let bestPredicted = 0;
 
     for (const candidate of candidates) {
       const predicted = this.predictedCorrectProb(
@@ -65,9 +68,13 @@ export class QuestionSelector {
       if (isCloser || isTieBreakWinner) {
         best = candidate;
         bestDistance = distance;
+        bestPredicted = predicted;
       }
     }
 
+    AdaptiveEngineLogger.log(
+      `[next-question] ${context} candidates=${candidates.length} chosen=exercise#${best?.id ?? 'none'} predicted=${bestPredicted.toFixed(3)} target=${target}`,
+    );
     return best ? best.id : null;
   }
 }
