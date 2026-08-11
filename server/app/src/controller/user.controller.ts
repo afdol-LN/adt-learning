@@ -90,4 +90,11 @@ export class userController extends BaseController<Userprofile> {
   ) {
     return await this.userService.updateAdminUser(id, userprofile);
   }
+
+  @Put('/update_tour/:id')
+  async updateUserTour(
+    @Param('id', ParseIntPipe) id:number,
+  ){
+    return await this.userService.userTourState(id);
+  }
 }
