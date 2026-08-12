@@ -106,10 +106,19 @@ export class Userprofile {
   // ******************
 
   @Column({
+    name: 'isEverTour',
+    type : 'bool',
+    default : false
+  })
+  isEverTour: boolean
+
+  @Column({
     type: 'timestamp',
     default: () => 'CURRENT_TIMESTAMP',
   })
   createdAt: Date;
+
+  
 
   @Column({
     type: 'timestamp',
