@@ -63,12 +63,13 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { AuthMiddleWare } from './middleware/authMiddleWare';
 import { MiddlewareConsumer } from '@nestjs/common';
 import { RequestMethod } from '@nestjs/common';
-
+import { envFilePath } from './config/env-file';
 @Module({
   imports: [
     ScheduleModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath
     }),
     TypeOrmModule.forRoot(dataSourceOptions),
     HttpModule,

@@ -15,8 +15,8 @@ export class ktService {
     private readonly configService: ConfigService,
   ) {
     this.baseUrl =
-      this.configService.get<string>('BKT_ENGINE_URL') ||
-      'http://localhost:8000';
+      // this.configService.get<string>('BKT_ENGINE_URL') ||
+      'http://localhost:8000';  
   }
 
   async submitAttempt(
@@ -64,6 +64,7 @@ export class ktService {
     }
   }
 
+  // service สำหรับรัน corn job
   async triggerCalibration(): Promise<
     restfulResponse<{ status: string; message: string } | null>
   > {

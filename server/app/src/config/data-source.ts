@@ -1,8 +1,9 @@
 import { DataSource, DataSourceOptions } from 'typeorm';
 import { config } from 'dotenv';
+import { envFilePath } from './env-file';
 
 // โหลดค่าจากไฟล์ .env ให้พร้อมใช้งาน (จำเป็นมากสำหรับตอนรัน TypeORM CLI)
-config();
+config({path : envFilePath});
 
 export const dataSourceOptions: DataSourceOptions = {
   type: 'postgres',
