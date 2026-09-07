@@ -92,13 +92,13 @@ export class aiDraftService {
       exerciseType: dto.exerciseType,
     });
 
-    const raw = await this.llmClient.complete(system, user, {
+    const completion = await this.llmClient.complete(system, user, {
       maxTokens: Math.min(1024 + count * 400, 8192),
     });
 
     const { valid, rejected } = this.validateByType(
       entityType,
-      extractJsonArray(raw),
+      extractJsonArray(completion.text),
       skills,
       dto,
     );
@@ -126,7 +126,8 @@ export class aiDraftService {
         status: AiDraftStatus.PENDING,
         prompt: dto.instruction ?? null,
         generateParams,
-        model: this.llmClient.getModelName(),
+        // model ที่ตอบสำเร็จจริง อาจเป็นตัวสำรองใน chain ไม่ใช่ตัวแรก
+        model: completion.model,
         createdBy: userId,
       }),
     );
@@ -175,11 +176,13 @@ export class aiDraftService {
       avoid: draft.payload,
     });
 
-    const raw = await this.llmClient.complete(system, user, { maxTokens: 2048 });
+    const completion = await this.llmClient.complete(system, user, {
+      maxTokens: 2048,
+    });
 
     const { valid, rejected } = this.validateByType(
       draft.entityType,
-      extractJsonArray(raw),
+      extractJsonArray(completion.text),
       skills,
       {
         entityType: draft.entityType,
@@ -198,7 +201,7 @@ export class aiDraftService {
     }
 
     draft.payload = valid[0] as Record<string, any>;
-    draft.model = this.llmClient.getModelName();
+    draft.model = completion.model;
     draft.note = instruction?.slice(0, 255) ?? draft.note;
     draft.updatedAt = new Date();
     return this.aiDraftRepository.save(draft);
