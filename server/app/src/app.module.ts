@@ -28,6 +28,9 @@ import { Skill } from './entity/skill.entity';
 import { SkillPrerequisite } from './entity/skillPrerequisite.entity';
 import { GoalSkillRequire } from './entity/goalSkillRequire.entity';
 
+// AI draft entity
+import { AiDraft } from './entity/aiDraft.entity';
+
 // Controllers & Services
 import { userController } from './controller/user.controller';
 import { userProfileService } from './service/user.service';
@@ -55,6 +58,9 @@ import { ktController } from './controller/kt.controller';
 import { ktService } from './service/kt.service';
 import { sessionController } from './controller/session.controller';
 import { sessionService } from './service/session.service';
+import { aiDraftController } from './controller/aiDraft.controller';
+import { aiDraftService } from './service/aiDraft.service';
+import { LlmClient } from './libs/llm/llm.client';
 import { Hash } from './libs/hash';
 import { JwtService } from './libs/jwt';
 import { HttpModule } from '@nestjs/axios';
@@ -90,6 +96,7 @@ import { envFilePath } from './config/env-file';
       SkillPrerequisite,
       GoalSkillRequire,
       History,
+      AiDraft,
     ]),
   ],
   controllers: [
@@ -107,6 +114,7 @@ import { envFilePath } from './config/env-file';
     historyController,
     ktController,
     sessionController,
+    aiDraftController,
   ],
   providers: [
     AppService,
@@ -124,6 +132,8 @@ import { envFilePath } from './config/env-file';
     historyService,
     ktService,
     sessionService,
+    aiDraftService,
+    LlmClient,
     Hash,
     JwtService,
   ],

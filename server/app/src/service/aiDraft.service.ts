@@ -1,0 +1,425 @@
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { randomUUID } from 'crypto';
+import { Repository } from 'typeorm';
+
+import { AiDraft } from 'src/entity/aiDraft.entity';
+import { Exercise } from 'src/entity/exerciseAndSession/exercise.entity';
+import { Goal } from 'src/entity/goal.entity';
+import { Skill } from 'src/entity/skill.entity';
+import { AiDraftEntityType, AiDraftStatus } from 'src/enums/ai-draft.enum';
+import { Status } from 'src/enums/status.enum';
+import {
+  FindDraftsQueryDto,
+  GenerateDraftDto,
+  GenerateDraftResultDto,
+} from 'src/dto/aiDraft.dto';
+import { CreateExerciseDto } from 'src/dto/exerciseAndSession/exercise.dto';
+import { CreateSkillWithPrerequisiteDto } from 'src/dto/skill.dto';
+import { CreateGoalWithSkillRequireDto } from 'src/dto/goal.dto';
+import { LlmClient } from 'src/libs/llm/llm.client';
+import { buildPrompt, SkillContextItem } from 'src/libs/llm/prompt.builder';
+import {
+  extractJsonArray,
+  RejectedDraft,
+  validateExerciseDrafts,
+  validateGoalDrafts,
+  validateSkillDrafts,
+} from 'src/libs/llm/draft.validator';
+import { exerciseService } from './exercise.service';
+import { skillService } from './skill.service';
+import { goalService } from './goal.service';
+
+/** กันค่า token บาน และกัน response ยาวจน LLM ตัดกลางคัน */
+const MAX_GENERATE_COUNT = 20;
+const SAMPLE_LIMIT = 5;
+
+@Injectable()
+export class aiDraftService {
+  private readonly logger = new Logger(aiDraftService.name);
+
+  constructor(
+    @InjectRepository(AiDraft)
+    private readonly aiDraftRepository: Repository<AiDraft>,
+    @InjectRepository(Skill)
+    private readonly skillRepository: Repository<Skill>,
+    @InjectRepository(Exercise)
+    private readonly exerciseRepository: Repository<Exercise>,
+    @InjectRepository(Goal)
+    private readonly goalRepository: Repository<Goal>,
+    private readonly llmClient: LlmClient,
+    private readonly exerciseSvc: exerciseService,
+    private readonly skillSvc: skillService,
+    private readonly goalSvc: goalService,
+  ) {}
+
+  // ───────────────────────────── generate ─────────────────────────────
+
+  async generate(
+    dto: GenerateDraftDto,
+    userId: number | null,
+  ): Promise<GenerateDraftResultDto> {
+    const entityType = dto.entityType;
+    if (!Object.values(AiDraftEntityType).includes(entityType)) {
+      throw new BadRequestException(
+        `entityType ต้องเป็น exercise, skill หรือ goal (ได้ ${String(entityType)})`,
+      );
+    }
+
+    const count = Number(dto.count);
+    if (!Number.isInteger(count) || count < 1 || count > MAX_GENERATE_COUNT) {
+      throw new BadRequestException(
+        `จำนวนต้องเป็นจำนวนเต็ม 1-${MAX_GENERATE_COUNT}`,
+      );
+    }
+
+    const skills = await this.loadSkillContext();
+    const samples = await this.loadSamples(entityType, dto.skillId);
+
+    const { system, user } = buildPrompt({
+      entityType,
+      count,
+      instruction: dto.instruction,
+      skills,
+      samples,
+      skillId: dto.skillId,
+      skillLevel: dto.skillLevel,
+      exerciseType: dto.exerciseType,
+    });
+
+    const raw = await this.llmClient.complete(system, user, {
+      maxTokens: Math.min(1024 + count * 400, 8192),
+    });
+
+    const { valid, rejected } = this.validateByType(
+      entityType,
+      extractJsonArray(raw),
+      skills,
+      dto,
+    );
+
+    if (valid.length === 0) {
+      throw new BadRequestException(
+        `LLM ไม่ได้สร้างรายการที่ใช้ได้เลย (ถูกคัดออก ${rejected.length} รายการ: ${rejected
+          .map((r) => r.reason)
+          .join('; ')})`,
+      );
+    }
+
+    const batchId = randomUUID();
+    const generateParams = {
+      skillId: dto.skillId,
+      skillLevel: dto.skillLevel,
+      exerciseType: dto.exerciseType,
+    };
+
+    const rows = valid.map((payload) =>
+      this.aiDraftRepository.create({
+        batchId,
+        entityType,
+        payload: payload as Record<string, any>,
+        status: AiDraftStatus.PENDING,
+        prompt: dto.instruction ?? null,
+        generateParams,
+        model: this.llmClient.getModelName(),
+        createdBy: userId,
+      }),
+    );
+    await this.aiDraftRepository.save(rows);
+
+    this.logger.log(
+      `AI draft batch ${batchId}: created ${rows.length} ${entityType} draft(s), rejected ${rejected.length}`,
+    );
+
+    return {
+      batchId,
+      created: rows.length,
+      rejected: rejected.map((r) => ({ reason: r.reason })),
+    };
+  }
+
+  // ──────────────────────────── regenerate ────────────────────────────
+
+  /** สร้างข้อนั้นใหม่ โดยยังเป็นแถวเดิม (id เดิม) เพื่อไม่ให้ลำดับที่ admin ดูอยู่กระโดด */
+  async regenerateOne(id: number, instruction?: string): Promise<AiDraft> {
+    const draft = await this.findOneOrFail(id);
+    if (draft.status !== AiDraftStatus.PENDING) {
+      throw new BadRequestException(
+        'สร้างใหม่ได้เฉพาะร่างที่ยังรอตรวจอยู่เท่านั้น',
+      );
+    }
+
+    const skills = await this.loadSkillContext();
+    const params = draft.generateParams ?? {};
+    const samples = await this.loadSamples(draft.entityType, params.skillId);
+
+    // รวมคำสั่งเดิมกับคำสั่งใหม่ เพื่อไม่ให้บริบทตอนสั่งครั้งแรกหายไป
+    const combinedInstruction = [draft.prompt, instruction]
+      .filter((s): s is string => Boolean(s && s.trim()))
+      .join('\n');
+
+    const { system, user } = buildPrompt({
+      entityType: draft.entityType,
+      count: 1,
+      instruction: combinedInstruction || undefined,
+      skills,
+      samples,
+      skillId: params.skillId,
+      skillLevel: params.skillLevel,
+      exerciseType: params.exerciseType,
+      avoid: draft.payload,
+    });
+
+    const raw = await this.llmClient.complete(system, user, { maxTokens: 2048 });
+
+    const { valid, rejected } = this.validateByType(
+      draft.entityType,
+      extractJsonArray(raw),
+      skills,
+      {
+        entityType: draft.entityType,
+        count: 1,
+        skillId: params.skillId,
+        skillLevel: params.skillLevel,
+      },
+    );
+
+    if (valid.length === 0) {
+      throw new BadRequestException(
+        `สร้างใหม่ไม่สำเร็จ — รายการที่ได้ไม่ผ่านการตรวจ (${rejected
+          .map((r) => r.reason)
+          .join('; ')})`,
+      );
+    }
+
+    draft.payload = valid[0] as Record<string, any>;
+    draft.model = this.llmClient.getModelName();
+    draft.note = instruction?.slice(0, 255) ?? draft.note;
+    draft.updatedAt = new Date();
+    return this.aiDraftRepository.save(draft);
+  }
+
+  // ───────────────────────────── read/edit ─────────────────────────────
+
+  async findAll(query: FindDraftsQueryDto): Promise<AiDraft[]> {
+    const where: Record<string, any> = {};
+    if (query.status) where.status = query.status;
+    if (query.entityType) where.entityType = query.entityType;
+    if (query.batchId) where.batchId = query.batchId;
+
+    return this.aiDraftRepository.find({
+      where,
+      order: { id: 'DESC' },
+    });
+  }
+
+  async findOneOrFail(id: number): Promise<AiDraft> {
+    const draft = await this.aiDraftRepository.findOne({ where: { id } });
+    if (!draft) {
+      throw new NotFoundException(`ไม่พบร่าง id ${id}`);
+    }
+    return draft;
+  }
+
+  /** admin แก้เอง — ตรวจซ้ำด้วยกติกาชุดเดียวกันก่อนเซฟ */
+  async updatePayload(
+    id: number,
+    payload: Record<string, any>,
+  ): Promise<AiDraft> {
+    const draft = await this.findOneOrFail(id);
+    if (draft.status !== AiDraftStatus.PENDING) {
+      throw new BadRequestException('แก้ไขได้เฉพาะร่างที่ยังรอตรวจอยู่เท่านั้น');
+    }
+
+    const skills = await this.loadSkillContext();
+    const params = draft.generateParams ?? {};
+    const { valid, rejected } = this.validateByType(
+      draft.entityType,
+      [payload],
+      skills,
+      {
+        entityType: draft.entityType,
+        count: 1,
+        skillId: params.skillId,
+        skillLevel: params.skillLevel,
+      },
+    );
+
+    if (valid.length === 0) {
+      throw new BadRequestException(
+        rejected[0]?.reason ?? 'ข้อมูลที่แก้ไม่ผ่านการตรวจ',
+      );
+    }
+
+    draft.payload = valid[0] as Record<string, any>;
+    draft.updatedAt = new Date();
+    return this.aiDraftRepository.save(draft);
+  }
+
+  // ────────────────────────── approve / reject ──────────────────────────
+
+  /**
+   * บันทึกลงตารางจริง โดย delegate ไปที่ service เดิมของแต่ละ entity
+   * เพื่อให้ validation และการ seed ค่า BKT (pS/pG) อยู่ที่เดียวกับ flow ปกติ
+   */
+  async approve(id: number, status: Status): Promise<AiDraft> {
+    if (status !== Status.ACTIVE && status !== Status.INACTIVE) {
+      throw new BadRequestException('status ต้องเป็น active หรือ inactive');
+    }
+
+    const draft = await this.findOneOrFail(id);
+    if (draft.status !== AiDraftStatus.PENDING) {
+      throw new BadRequestException('ร่างนี้ถูกตรวจไปแล้ว');
+    }
+
+    let approvedEntityId: number;
+    switch (draft.entityType) {
+      case AiDraftEntityType.EXERCISE: {
+        const created = await this.exerciseSvc.createExercise({
+          ...(draft.payload as unknown as CreateExerciseDto),
+          status,
+        });
+        approvedEntityId = created.id;
+        break;
+      }
+      case AiDraftEntityType.SKILL: {
+        const created = await this.skillSvc.createSkillWithPrerequisite({
+          ...(draft.payload as unknown as CreateSkillWithPrerequisiteDto),
+          status,
+        });
+        approvedEntityId = created.skillId;
+        break;
+      }
+      case AiDraftEntityType.GOAL: {
+        const created = await this.goalSvc.createGoalWithSkillRequire({
+          ...(draft.payload as unknown as CreateGoalWithSkillRequireDto),
+          status,
+        });
+        approvedEntityId = created.id;
+        break;
+      }
+      default:
+        throw new BadRequestException(
+          `entityType ไม่รองรับ: ${String(draft.entityType)}`,
+        );
+    }
+
+    draft.status = AiDraftStatus.APPROVED;
+    draft.approvedEntityId = approvedEntityId;
+    draft.updatedAt = new Date();
+    return this.aiDraftRepository.save(draft);
+  }
+
+  async reject(id: number, note?: string): Promise<AiDraft> {
+    const draft = await this.findOneOrFail(id);
+    if (draft.status !== AiDraftStatus.PENDING) {
+      throw new BadRequestException('ร่างนี้ถูกตรวจไปแล้ว');
+    }
+    draft.status = AiDraftStatus.REJECTED;
+    draft.note = note?.slice(0, 255) ?? draft.note;
+    draft.updatedAt = new Date();
+    return this.aiDraftRepository.save(draft);
+  }
+
+  // ────────────────────────────── helpers ──────────────────────────────
+
+  private async loadSkillContext(): Promise<SkillContextItem[]> {
+    const skills = await this.skillRepository.find({
+      order: { skillId: 'ASC' },
+    });
+    return skills.map((s) => ({
+      skillId: s.skillId,
+      skillCode: s.skillCode,
+      skillsName: s.skillsName,
+      tier: s.tier ?? null,
+    }));
+  }
+
+  /** ตัวอย่างของเดิมให้ LLM เลียนสไตล์ — ตัดเฉพาะ field ที่จำเป็น ไม่ส่งทั้ง entity */
+  private async loadSamples(
+    entityType: AiDraftEntityType,
+    skillId?: number,
+  ): Promise<unknown[]> {
+    if (entityType === AiDraftEntityType.EXERCISE) {
+      const exercises = await this.exerciseRepository.find({
+        where: skillId ? { skillId } : {},
+        relations: { exerciseChoices: true },
+        order: { id: 'DESC' },
+        take: SAMPLE_LIMIT,
+      });
+      return exercises.map((e) => ({
+        description: e.description,
+        skillId: e.skillId,
+        skillLevel: e.skillLevel,
+        type: e.type,
+        expectTime: e.expectTime,
+        fillInBlank: e.fillInBlank ?? undefined,
+        choices: e.exerciseChoices?.map((c) => ({
+          script: c.script,
+          isAnswer: c.isAnswer,
+        })),
+      }));
+    }
+
+    if (entityType === AiDraftEntityType.SKILL) {
+      const skills = await this.skillRepository.find({
+        order: { skillId: 'DESC' },
+        take: SAMPLE_LIMIT,
+      });
+      return skills.map((s) => ({
+        skillCode: s.skillCode,
+        skillsName: s.skillsName,
+        tier: s.tier,
+      }));
+    }
+
+    const goals = await this.goalRepository.find({
+      relations: { goalSkillRequire: true },
+      order: { id: 'DESC' },
+      take: SAMPLE_LIMIT,
+    });
+    return goals.map((g) => ({
+      goal: g.goal,
+      goalDescription: g.goalDescription,
+      skillRequires: g.goalSkillRequire?.map((r) => ({
+        skillId: r.skillId,
+        levelRequire: r.levelRequire,
+      })),
+    }));
+  }
+
+  private validateByType(
+    entityType: AiDraftEntityType,
+    items: unknown[],
+    skills: SkillContextItem[],
+    dto: Pick<GenerateDraftDto, 'skillId' | 'skillLevel'> & {
+      entityType: AiDraftEntityType;
+      count: number;
+    },
+  ): { valid: unknown[]; rejected: RejectedDraft[] } {
+    const existingSkillIds = new Set(skills.map((s) => s.skillId));
+
+    switch (entityType) {
+      case AiDraftEntityType.EXERCISE:
+        return validateExerciseDrafts(items, {
+          existingSkillIds,
+          fallbackSkillId: dto.skillId,
+          fallbackSkillLevel: dto.skillLevel,
+        });
+      case AiDraftEntityType.SKILL:
+        return validateSkillDrafts(items, {
+          existingSkillIds,
+          existingSkillCodes: new Set(
+            skills.map((s) => s.skillCode.toUpperCase()),
+          ),
+        });
+      case AiDraftEntityType.GOAL:
+        return validateGoalDrafts(items, { existingSkillIds });
+    }
+  }
+}

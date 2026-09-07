@@ -59,11 +59,12 @@ FastAPI service implementing KT-IDEM (Bayesian Knowledge Tracing with per-item d
 - `app/models/bkt_kt_idem.py`, `app/schemas/bkt_schema.py`, `app/storage.py` — model persistence/schemas.
 - Called by the NestJS backend's `kt.controller.ts`/`kt.service.ts`. Nothing in this router adds auth of its own — see [Security](#security--data-protection-pdpa).
 
-## Data model (13-table schema)
+## Data model (14-table schema)
 
 - **University/user group**: `userprofile`, `gender`, `campus`, `faculty`, `major`, `branch`.
 - **Session/exercise group**: `session`, `exercise`, `exerciseChoice`.
 - **Goal/skill group (staff-CRUD-able)**: `goal`, `skill`, `skillPrerequisite`, `goalSkillRequire`.
+- **AI drafting**: `aiDraft` — LLM-generated drafts awaiting admin review. `payload` is `jsonb` shaped exactly like `CreateExerciseDto` / `CreateSkillWithPrerequisiteDto` / `CreateGoalWithSkillRequireDto` depending on `entityType`. Approving a row is what writes it into the real table (see [AI assistant](#ai-assistant-admin-only)).
 - High-frequency per-action student state (BKT mastery, behavior/Elo history) is **not** stored relationally — it's cached in Redis and flushed as JSON into `userprofile.conceptMapState` / `userprofile.strengthWeaknessMatrix` to avoid write amplification. Curriculum metadata (`skill`, `skillPrerequisite`, `goalSkillRequire`) stays relational because staff need CRUD access via the admin dashboard.
 - **Prerequisite unlock rule**: a skill unlocks only when *all* its parent prerequisites (from `skillPrerequisite`) have reached ≥60% progress in the student's `conceptMapState`.
 
@@ -73,9 +74,20 @@ FastAPI service implementing KT-IDEM (Bayesian Knowledge Tracing with per-item d
 
 - **Minimize exposure**: endpoint responses (especially admin-panel list endpoints) should return only the fields a screen needs via DTOs, not full entities. Don't log request/response bodies that contain the fields above.
 - **Password storage is weak, don't extend it**: `server/app/src/libs/hash.ts` hashes passwords with plain `SHA-256` + a hardcoded static salt (`'&'`), not an adaptive/salted-per-user algorithm (bcrypt/argon2/scrypt). This is an existing gap, not a pattern to copy — flag it rather than reusing `Hash.hashSha256`/`hashWithSaltAndDate` for any new sensitive data.
-- **`AuthMiddleWare` only checks "is this a valid JWT?"** — it does **not** enforce role (`UserRole.USER` vs `UserRole.ADMIN`) or resource ownership, and there is no separate admin guard in the codebase. Any endpoint meant to be admin-only or scoped to "the logged-in user's own data" must check `req.user.role` / `req.user.id` itself inside the controller or service. This has been a live, previously-documented gap (see `docs/to-do.md`, which flagged `/goal` mutating routes as unauthenticated while `AuthMiddleWare` was disabled) — `AuthMiddleWare` is enabled globally again now, but the missing role check is still open.
+- **`AuthMiddleWare` only checks "is this a valid JWT?"** — it does **not** enforce role or resource ownership on its own. A role guard does exist — `AdminMiddleware` (`server/app/src/middleware/adminMiddleWare.ts`, a `CanActivate` that rejects unless `req.user.userRole === 'admin'`) — but it is opt-in per route: applied on `/user/admin/*`, `/branch`, `/kt/calibrate` and every `/ai-draft/*` route, imported-but-unused in `exercise.controller.ts`, and not referenced at all by `skill`/`goal`. So exercise/skill/goal writes are still open to any authenticated user. Any new admin-only endpoint must add `@UseGuards(AdminMiddleware)` itself, and anything scoped to "the logged-in user's own data" must check `req.user.userId` inside the controller or service. This has been a live, previously-documented gap (see `docs/to-do.md`, which flagged `/goal` mutating routes as unauthenticated while `AuthMiddleWare` was disabled) — `AuthMiddleWare` is enabled globally again now, but the missing role check is still open.
 - **`/kt/*` routes bypass `AuthMiddleWare` entirely** (explicitly excluded in `app.module.ts`), and the FastAPI `btk-engine` service itself has no auth on its own routes either — anyone who can reach it can submit attempts or trigger recalibration. Don't assume these routes are protected when reasoning about data exposure.
-- **Env secrets**: `JWT_SECRET` and `DATABASE_URL` come from `.env` (see `server/app/src/config/`) — never hardcode or log these.
+- **Env secrets**: `JWT_SECRET`, `DATABASE_URL` and `LLM_API_KEY` come from `.env` (see `server/app/src/config/`) — never hardcode or log these. `llm.client.ts` deliberately logs only the model name and HTTP status on failure, never the request body or headers.
+
+## AI assistant (admin-only)
+
+`/ai-draft/*` backs an admin UI that asks an LLM to draft exercises, skills, or goals in bulk. **The LLM never writes to `exercise`/`skill`/`goal` directly** — output lands in `aiDraft` as `pending` rows and a human approves each one.
+
+Pieces: `libs/llm/llm.client.ts` (HTTP), `libs/llm/prompt.builder.ts` (prompt per entity type, with the real skill list + 3–5 existing samples embedded), `libs/llm/draft.validator.ts` (pure, unit-tested), `service/aiDraft.service.ts`, `controller/aiDraft.controller.ts` (`@UseGuards(AdminMiddleware)` at class level).
+
+- **Provider is config-driven.** `llm.client.ts` has three wire-format adapters selected by `LLM_PROVIDER`: `openai` (OpenAI-compatible `/chat/completions` — OpenRouter, PSU dotBLUE, OpenAI), `anthropic` (Claude `/v1/messages`), `gemini` (Google AI Studio `:generateContent`). Plus `LLM_API_KEY` / `LLM_MODEL` / optional `LLM_BASE_URL` (anthropic and gemini have defaults) / `LLM_TIMEOUT_MS`. A new provider is one more `case` in `buildRequest`/`parseResponse` **inside that one file** — no service knows about providers. Raw HTTP via `HttpService`, not vendor SDKs, deliberately: one timeout/error/key-redaction path for all three. `llm.client.spec.ts` pins each provider's request shape and response parsing.
+- **Provider quirks the adapters already handle** — don't "simplify" them away: Claude 4.7+ returns **400 if any sampling parameter is sent**, so the anthropic adapter never sends `temperature`; a Claude safety decline arrives as **HTTP 200** with `stop_reason: "refusal"`, and Gemini's as `promptFeedback.blockReason` — both are turned into thrown errors rather than parsed as empty text. Gemini's key goes in the `x-goog-api-key` header, not the `?key=` query param its docs show, to keep it out of URLs and logs.
+- **`approve()` delegates** to `exerciseService.createExercise` / `skillService.createSkillWithPrerequisite` / `goalService.createGoalWithSkillRequire` so their hand-rolled validation and the BKT `pS`/`pG` seeding (`DifficultySeed`) stay in one place. Never insert into those tables from `aiDraft.service.ts`.
+- **`draft.validator.ts` re-implements those services' rules on purpose**, because the global `ValidationPipe` is off and a bad draft must be rejected *before* storage, not at approve time. It also enforces DB column limits (`exerciseChoice.script` ≤ 80, `skill.skillsName` ≤ 30, `goal.goalDescription` ≤ 255) and `skillLevel` ∈ 1–5 (`SLIP_BY_LEVEL` only covers 1–5 and silently falls back to 3). Failing items are dropped and their reasons returned to the caller — never swallowed. Keep it in sync when the target services' validation changes; `draft.validator.spec.ts` covers the LLM's common failure modes (two correct answers, over-long choice, code-fenced JSON, prose around the JSON).
 
 ## Reusable building blocks
 
@@ -83,7 +95,8 @@ Before adding a new resource from scratch, check for an existing pattern to exte
 
 - `BaseController<T>` / `IBaseService<T>` for standard CRUD (see [Architecture](#architecture-controller--service--entity)).
 - `restfulResponse<T>` for response shape.
-- `dto/` for request/response validation (`class-validator`) — new endpoints should validate input the same way rather than trusting raw request bodies.
+- `libs/llm/llm.client.ts` for any outbound call to an OpenAI-compatible LLM gateway.
+- `dto/` for request/response shapes — but note the global `ValidationPipe` in `main.ts` is **commented out**, so `class-validator` decorators do nothing at runtime. Validate inside the service and throw `BadRequestException`, the way `validateExercisePayload` / `validatePrerequisites` / `validateSkillRequires` / `draft.validator.ts` do.
 
 ## Working conventions
 
