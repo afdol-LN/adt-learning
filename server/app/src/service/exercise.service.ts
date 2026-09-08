@@ -28,7 +28,7 @@ import { History } from 'src/entity/history.entity';
 import { ForbiddenException } from '@nestjs/common';
 import { Userprofile } from 'src/entity/userprofile.entity';
 import { SkillTier } from 'src/libs/bkt/tier';
-import { MasteryState } from 'src/libs/bkt/masteryState';
+import { MasteryState, ConceptMapState } from 'src/libs/bkt/masteryState';
 import {
   PretestMasteryCalculator,
   PretestAnswerStat,
@@ -136,8 +136,8 @@ export class exerciseService extends BaseService<Exercise> {
           isAboutCs: userprofile.major?.isAboutCs ?? false,
           year: userprofile.year ?? null,
         };
-        const existingState = userprofile.conceptMapState ?? {};
-        const newEntries: Record<string, unknown> = {};
+        const existingState: ConceptMapState = branch.conceptMapState ?? {};
+        const newEntries: ConceptMapState = {};
 
         for (const skill of goalSkills) {
           if (existingState[String(skill.skillId)]) continue; // never clobber
@@ -154,8 +154,7 @@ export class exerciseService extends BaseService<Exercise> {
           );
         }
 
-        userprofile.conceptMapState = { ...existingState, ...newEntries };
-        await manager.save(userprofile);
+        branch.conceptMapState = { ...existingState, ...newEntries };
       }
 
       branch.isAlreadyPretest = true;
