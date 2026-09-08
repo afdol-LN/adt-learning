@@ -1,5 +1,7 @@
 # Per-Branch Concept Map Implementation Plan
 
+> **STATUS — executed 2026-09-08.** Tasks 1–6 are done and committed on `fix/userStateMap-migration` (`eed70ee`, `f53175a`, `1f01e9f`, `1a4d906`, `6f01321`, `5660cf9`). Both migrations are applied to the **dev** database and the backfill has run (35 of 53 branches populated; the other 18 have no history rows). 103 unit tests pass. The one step still open is **Task 6 Step 7**, the logged-in UI smoke test, which needs a student account. Prod is untouched by design and will fail until its own migration is run — see Global Constraints.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Move BKT mastery state (`conceptMapState`) off `userprofile` and onto `branch`, so each learning branch (one user pursuing one goal) tracks skill progress independently instead of sharing one user-wide blob.
