@@ -12,7 +12,6 @@ import { Exercise } from 'src/entity/exerciseAndSession/exercise.entity';
 import { Session } from 'src/entity/exerciseAndSession/session.entity';
 import { SessionAndExercise } from 'src/entity/exerciseAndSession/sessionAndExercise.entity';
 import { History } from 'src/entity/history.entity';
-import { Userprofile } from 'src/entity/userprofile.entity';
 import { Status } from 'src/enums/status.enum';
 import { ExerciseType } from 'src/enums/exercise-type.enum';
 import { SkillGraph } from 'src/libs/bkt/skillGraph';
@@ -51,8 +50,6 @@ export class sessionService {
     private readonly sessionAndExerciseRepository: Repository<SessionAndExercise>,
     @InjectRepository(History)
     private readonly historyRepository: Repository<History>,
-    @InjectRepository(Userprofile)
-    private readonly userprofileRepository: Repository<Userprofile>,
     private readonly dataSource: DataSource,
     private readonly ktService: ktService,
   ) {}
@@ -85,10 +82,7 @@ export class sessionService {
     userId: number,
   ): Promise<RecommendedSkillDto | null> {
     const branch = await this.loadOwnedBranch(branchId, userId);
-    const userprofile = await this.userprofileRepository.findOne({
-      where: { id: userId },
-    });
-    const conceptMapState: ConceptMapState = userprofile?.conceptMapState ?? {};
+    const conceptMapState: ConceptMapState = branch.conceptMapState ?? {};
 
     const allSkills = await this.skillRepository.find({
       relations: { skillPrequisite: true },
@@ -177,10 +171,7 @@ export class sessionService {
     });
     if (!skill) throw new NotFoundException(`Skill ${dto.skillId} not found`);
 
-    const userprofile = await this.userprofileRepository.findOne({
-      where: { id: userId },
-    });
-    const conceptMapState: ConceptMapState = userprofile?.conceptMapState ?? {};
+    const conceptMapState: ConceptMapState = branch.conceptMapState ?? {};
     const pL = this.pLFor(conceptMapState, skill.skillId, skill.pL0);
 
     const { exercises, candidates } = await this.unansweredCandidates(
@@ -261,10 +252,8 @@ export class sessionService {
     if (!skill)
       throw new NotFoundException(`Skill ${session.skillId} not found`);
 
-    const userprofile = await this.userprofileRepository.findOne({
-      where: { id: userId },
-    });
-    const conceptMapState: ConceptMapState = userprofile?.conceptMapState ?? {};
+    const branch = session.branch;
+    const conceptMapState: ConceptMapState = branch.conceptMapState ?? {};
     const currentEntry = MasteryState.getEntry(
       conceptMapState,
       skill.skillId,
@@ -318,17 +307,14 @@ export class sessionService {
       });
       await manager.save(history);
 
-      if (userprofile) {
-        const newEntry = MasteryState.buildEntry(
+      branch.conceptMapState = {
+        ...conceptMapState,
+        [String(skill.skillId)]: MasteryState.buildEntry(
           pLNext,
           currentEntry.attemptCount + 1,
-        );
-        userprofile.conceptMapState = {
-          ...conceptMapState,
-          [String(skill.skillId)]: newEntry,
-        };
-        await manager.save(userprofile);
-      }
+        ),
+      };
+      await manager.save(branch);
     });
 
     const answeredExerciseIds = [
