@@ -15,7 +15,6 @@ import {
 } from 'src/dto/historyResponse.dto';
 import { BranchDashboardDto } from 'src/dto/branchDashboard.dto';
 import { SkillGraph } from 'src/libs/bkt/skillGraph';
-import { Userprofile } from 'src/entity/userprofile.entity';
 import { MasteryState, ConceptMapState } from 'src/libs/bkt/masteryState';
 
 @Injectable()
@@ -27,17 +26,8 @@ export class historyService extends BaseService<History> {
     private readonly branchRepository: Repository<Branch>,
     @InjectRepository(Skill)
     private readonly skillRepository: Repository<Skill>,
-    @InjectRepository(Userprofile)
-    private readonly userprofileRepository: Repository<Userprofile>,
   ) {
     super(historyRepository);
-  }
-
-  private async loadConceptMapState(userId: number): Promise<ConceptMapState> {
-    const userprofile = await this.userprofileRepository.findOne({
-      where: { id: userId },
-    });
-    return userprofile?.conceptMapState ?? {};
   }
 
   async validateBranchOwnership(
@@ -104,7 +94,7 @@ export class historyService extends BaseService<History> {
 
   async getBranchSkills(branchId: number, userId: number): Promise<any[]> {
     const branch = await this.validateBranchOwnership(branchId, userId, true);
-    const conceptMapState = await this.loadConceptMapState(userId);
+    const conceptMapState: ConceptMapState = branch.conceptMapState ?? {};
     const allSkills = await this.skillRepository.find({
       relations: {
         skillPrequisite: true,
@@ -147,7 +137,7 @@ export class historyService extends BaseService<History> {
     userId: number,
   ): Promise<BranchDashboardDto> {
     const branch = await this.validateBranchOwnership(branchId, userId, true);
-    const conceptMapState = await this.loadConceptMapState(userId);
+    const conceptMapState: ConceptMapState = branch.conceptMapState ?? {};
     const histories = await this.historyRepository.find({
       where: { branchId },
       relations: {
