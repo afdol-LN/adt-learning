@@ -34,6 +34,10 @@ import {
   PretestAnswerStat,
 } from 'src/libs/bkt/pretestMastery';
 import { DifficultySeed } from 'src/libs/bkt/questionSelection';
+import {
+  normalizeCode,
+  normalizeLanguage,
+} from 'src/enums/code-language.enum';
 
 @Injectable()
 export class exerciseService extends BaseService<Exercise> {
@@ -183,11 +187,28 @@ export class exerciseService extends BaseService<Exercise> {
     await this.exerciseRepository.save(existing);
   }
 
-  async createExercise(dto: CreateExerciseDto): Promise<Exercise> {
-    await this.validateSkillExists(dto.skillId);
+  async findOneWithManager(
+    id: number,
+    manager: EntityManager,
+  ): Promise<Exercise> {
+    const result = await manager.findOne(Exercise, {
+      where: { id },
+      relations: { skill: true, exerciseChoices: true },
+    });
+    if (!result) {
+      throw new NotFoundException(`Exercise ${id} not found`);
+    }
+    return result;
+  }
+
+  async createExercise(
+    dto: CreateExerciseDto,
+    existingManager?: EntityManager,
+  ): Promise<Exercise> {
+    await this.validateSkillExists(dto.skillId, existingManager);
     this.validateExercisePayload(dto.type, dto.fillInBlank, dto.choices);
 
-    const savedId = await this.dataSource.transaction(async (manager) => {
+    const execute = async (manager: EntityManager) => {
       const nChoices =
         dto.type === ExerciseType.CHOICE ? (dto.choices?.length ?? 0) : 0;
       const exercise = manager.create(Exercise, {
@@ -198,6 +219,8 @@ export class exerciseService extends BaseService<Exercise> {
         type: dto.type,
         status: dto.status ?? Status.ACTIVE,
         expectTime: dto.expectTime,
+        code: normalizeCode(dto.code),
+        language: normalizeLanguage(dto.code, dto.language),
         fillInBlank:
           dto.type === ExerciseType.FILL_IN_BLANK ? dto.fillInBlank : undefined,
         isCasesensitive:
@@ -214,9 +237,15 @@ export class exerciseService extends BaseService<Exercise> {
       }
 
       return saved.id;
-    });
+    };
 
-    return this.findOne(savedId);
+    const savedId = existingManager
+      ? await execute(existingManager)
+      : await this.dataSource.transaction(execute);
+
+    return existingManager
+      ? this.findOneWithManager(savedId, existingManager)
+      : this.findOne(savedId);
   }
 
   async updateExercise(id: number, dto: UpdateExerciseDto): Promise<Exercise> {
@@ -249,6 +278,13 @@ export class exerciseService extends BaseService<Exercise> {
     existing.type = nextType;
     existing.status = dto.status ?? existing.status;
     existing.expectTime = dto.expectTime ?? existing.expectTime;
+    // ?? ตกเฉพาะ null/undefined ไม่ตกเมื่อส่ง "" มา จึงลบโค้ดทิ้งได้ด้วยการส่งค่าว่าง
+    existing.code =
+      dto.code !== undefined ? normalizeCode(dto.code) : existing.code;
+    existing.language = normalizeLanguage(
+      existing.code,
+      dto.language ?? existing.language,
+    );
     existing.fillInBlank =
       nextType === ExerciseType.FILL_IN_BLANK
         ? (nextFillInBlank ?? null)
@@ -291,8 +327,14 @@ export class exerciseService extends BaseService<Exercise> {
     await choiceRepo.save(choiceEntities);
   }
 
-  private async validateSkillExists(skillId: number): Promise<void> {
-    const skill = await this.skillRepository.findOne({ where: { skillId } });
+  private async validateSkillExists(
+    skillId: number,
+    manager?: EntityManager,
+  ): Promise<void> {
+    const repo = manager
+      ? manager.getRepository(Skill)
+      : this.skillRepository;
+    const skill = await repo.findOne({ where: { skillId } });
     if (!skill) {
       throw new BadRequestException(`Skill ${skillId} does not exist`);
     }
@@ -455,6 +497,8 @@ export class exerciseService extends BaseService<Exercise> {
         level: ex.level || 1,
         description: ex.description,
         text: ex.description,
+        code: ex.code ?? null,
+        language: ex.language ?? null,
         type: isBlank ? 'FILL_IN_BLANK' : 'CHOICE',
         fillInBlank: isBlank ? ex.fillInBlank : null,
         isCasesensitive: ex.isCasesensitive || 'NO',

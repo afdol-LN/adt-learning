@@ -32,6 +32,9 @@ export interface NextQuestionDto {
   description: string;
   type: ExerciseType;
   expectTime: number | null;
+  /** โค้ดที่ต้องแสดงในกล่องแยกเหนือตัวเลือก */
+  code: string | null;
+  language: string | null;
   choices?: NextQuestionChoiceDto[];
 }
 

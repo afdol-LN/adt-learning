@@ -4,6 +4,7 @@ import {
   MAX_GOAL_DESCRIPTION_LENGTH,
   MAX_SKILL_NAME_LENGTH,
 } from './draft.validator';
+import { DEFAULT_CODE_LANGUAGE } from 'src/enums/code-language.enum';
 
 /**
  * ประกอบ prompt สำหรับสั่ง LLM สร้างร่าง exercise / skill / goal
@@ -55,7 +56,7 @@ const BLOOM_TABLE = `| level | Bloom | คำกริยาที่ใช้�
 | 5 | Create | ออกแบบ, ประกอบขึ้นใหม่, ปรับโครงสร้างโค้ด |`;
 
 const BASE_SYSTEM = [
-  'คุณเป็นผู้ช่วยของอาจารย์ผู้ดูแลระบบเรียนรู้แบบปรับตัว (adaptive learning) วิชาการเขียนโปรแกรม',
+  'คุณเป็นผู้ช่วยของอาจารย์ผู้ดูแลระบบเรียนรู้แบบปรับตัว (adaptive learning) วิชาการเขียนโปรแกรมภาษา Python',
   'หน้าที่ของคุณคือร่างเนื้อหาให้อาจารย์ตรวจ ไม่ใช่บันทึกลงระบบเอง',
   '',
   'กติกาการตอบที่ห้ามละเมิด:',
@@ -113,10 +114,26 @@ function buildExercisePrompt(input: PromptInput): BuiltPrompt {
     '  "skillLevel": number,         // 1-5 ตามตาราง Bloom ด้านล่าง',
     '  "type": "CHOICE" | "FILL_IN_BLANK",',
     '  "expectTime": number,         // เวลาที่ควรใช้ทำข้อนี้ หน่วยวินาที',
+    '  "code": string,               // โค้ดที่นักศึกษาต้องอ่าน ขึ้นบรรทัดใหม่ด้วย \\n ได้ ห้ามครอบด้วย ``` ถ้าข้อนั้นไม่ต้องใช้โค้ดให้ใส่ "" ',
+    `  "language": "python",         // ภาษาของ code — ใช้ ${DEFAULT_CODE_LANGUAGE} เสมอ`,
     `  "choices": [{ "script": string, "isAnswer": boolean }],  // เฉพาะ CHOICE: 4 ตัวเลือก และ isAnswer เป็น true ได้ข้อเดียวเท่านั้น`,
     '  "fillInBlank": string,        // เฉพาะ FILL_IN_BLANK: คำตอบที่ถูก',
     '  "isCasesensitive": "YES" | "NO"  // เฉพาะ FILL_IN_BLANK',
     '}',
+    '',
+    'กติกาเรื่องโค้ด (สำคัญที่สุด — ผิดข้อนี้ข้อนั้นจะถูกคัดทิ้งทันที):',
+    '- description ถูกแสดงเป็นข้อความธรรมดา การขึ้นบรรทัดและการเว้นวรรคจะหายหมด',
+    '  จึงห้ามใส่โค้ดลงใน description เด็ดขาด โค้ดทุกบรรทัดต้องอยู่ในฟิลด์ code เท่านั้น',
+    '- ถ้า description เอ่ยถึงโค้ด (เช่น "โค้ดนี้", "โปรแกรมต่อไปนี้", "ฟังก์ชันนี้")',
+    '  ต้องมี code ที่ไม่ว่างเสมอ ไม่มีข้อยกเว้น',
+    '- โจทย์ที่ถามว่าโค้ดให้ผลลัพธ์อะไร มีบั๊กตรงไหน หรือควรแก้อย่างไร',
+    '  เป็นไปไม่ได้เลยที่จะตอบถ้าไม่เห็นโค้ด — ข้อแบบนี้ต้องมี code เสมอ',
+    '- skillLevel 3-5 (Analyze / Evaluate / Create) เกือบทุกข้อต้องมี code',
+    '  เพราะต้องมีของจริงให้วิเคราะห์ ไม่ใช่ถามลอย ๆ',
+    '- โค้ดควรสั้น อ่านจบใน 15 บรรทัด และมีข้อมูลพอให้ตอบได้จริง',
+    '',
+    'ข้อกำหนดภาษาโปรแกรม (สำคัญอย่างยิ่ง):',
+    '- โจทย์ โค้ดตัวอย่างใน description และตัวเลือกคำตอบ choices/fillInBlank ทั้งหมด ต้องเป็นภาษา Python (Python 3) เท่านั้น ห้ามใช้ภาษาอื่น (เช่น C, C++, Java, JavaScript) โดยเด็ดขาด',
     '',
     'ขีดจำกัดความยาว:',
     `- choices[].script ยาวไม่เกิน ${MAX_CHOICE_SCRIPT_LENGTH} ตัวอักษร (สำคัญมาก ตัวเลือกต้องสั้นและกระชับ)`,
@@ -126,7 +143,8 @@ function buildExercisePrompt(input: PromptInput): BuiltPrompt {
   ].join('\n');
 
   const user = [
-    `สร้างโจทย์ ${input.count} ข้อ`,
+    `สร้างโจทย์ ${input.count} ข้อ (ต้องเป็นภาษา Python เท่านั้น)`,
+    'ข้อกำหนดด้านภาษา: ต้องเป็นภาษา Python (Python 3) เท่านั้น ทั้งตัวโจทย์ โค้ดประกอบ และคำตอบ',
     targetSkill
       ? `สำหรับ skill: ${targetSkill.skillsName} (skillCode ${targetSkill.skillCode}, skillId ${targetSkill.skillId})`
       : 'เลือก skill ที่เหมาะสมจากรายการด้านล่างเอง',
@@ -193,6 +211,7 @@ function buildGoalPrompt(input: PromptInput): BuiltPrompt {
     '}',
     '',
     'levelRequire เป็นระดับ Bloom 1-6 (1=Remember, 2=Understand, 3=Apply, 4=Analyze, 5=Evaluate, 6=Create)',
+    'ระบบนี้โจทย์ base on python language'
   ].join('\n');
 
   const user = [

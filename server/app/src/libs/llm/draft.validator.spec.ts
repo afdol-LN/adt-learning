@@ -147,6 +147,71 @@ describe('validateExerciseDrafts', () => {
     expect(result.valid[0].expectTime).toBe(60);
   });
 
+  // ── กติกาเรื่อง code block ──
+  // ปัญหาที่เจอจริง: LLM สร้างโจทย์ว่า "โค้ดนี้มีข้อผิดพลาด จงเลือกวิธีแก้"
+  // โดยไม่มีโค้ดให้ดูเลย ซึ่งตอบไม่ได้ไม่ว่าจะเก่งแค่ไหน
+
+  it('คัดทิ้งเมื่อโจทย์อ้างถึงโค้ดแต่ไม่มี code แนบมา', () => {
+    const bad = {
+      ...validChoice,
+      description: 'โค้ดนี้มีข้อผิดพลาดด้านประสิทธิภาพ จงเลือกวิธีแก้ที่เหมาะสมที่สุด',
+    };
+    const result = validateExerciseDrafts([bad], ctx);
+    expect(result.valid).toHaveLength(0);
+    expect(result.rejected[0].reason).toContain('ไม่ได้แนบโค้ด');
+  });
+
+  it('คัดทิ้งเมื่ออ้างถึงโค้ดเป็นภาษาอังกฤษแต่ไม่มี code', () => {
+    const bad = {
+      ...validChoice,
+      description: 'What does the following code print?',
+    };
+    expect(validateExerciseDrafts([bad], ctx).rejected).toHaveLength(1);
+  });
+
+  it('ผ่านเมื่ออ้างถึงโค้ดและแนบ code มาครบ', () => {
+    const good = {
+      ...validChoice,
+      description: 'โค้ดนี้ให้ผลลัพธ์อะไร',
+      code: 'i = 1\nfor i in range(10):\n    i = i + 1\nprint(i)',
+      language: 'python',
+    };
+    const result = validateExerciseDrafts([good], ctx);
+    expect(result.valid).toHaveLength(1);
+    expect(result.valid[0].code).toContain('for i in range(10)');
+    expect(result.valid[0].language).toBe('python');
+  });
+
+  it('ย้ายโค้ดที่ LLM ใส่เป็น fence ใน description ออกมาไว้ในฟิลด์ code', () => {
+    const fenced = {
+      ...validChoice,
+      description: 'โค้ดนี้ให้ผลลัพธ์อะไร\n```python\nprint(1 + 1)\n```',
+    };
+    const result = validateExerciseDrafts([fenced], ctx);
+    expect(result.valid).toHaveLength(1);
+    expect(result.valid[0].code).toBe('print(1 + 1)');
+    expect(result.valid[0].description).not.toContain('```');
+  });
+
+  it('ภาษาที่ไม่รองรับถอยไปใช้ python แทนที่จะทิ้งทั้งข้อ', () => {
+    const weird = {
+      ...validChoice,
+      description: 'โค้ดนี้ให้ผลลัพธ์อะไร',
+      code: 'print(1)',
+      language: 'brainfuck',
+    };
+    const result = validateExerciseDrafts([weird], ctx);
+    expect(result.valid).toHaveLength(1);
+    expect(result.valid[0].language).toBe('python');
+  });
+
+  it('โจทย์ที่ไม่ได้พูดถึงโค้ดเลย ไม่ต้องมี code ก็ผ่าน', () => {
+    const result = validateExerciseDrafts([validChoice], ctx);
+    expect(result.valid).toHaveLength(1);
+    expect(result.valid[0].code).toBeUndefined();
+    expect(result.valid[0].language).toBeUndefined();
+  });
+
   it('เก็บข้อที่ถูกไว้ ทิ้งเฉพาะข้อที่ผิดในชุดเดียวกัน', () => {
     const result = validateExerciseDrafts(
       [validChoice, { ...validChoice, skillLevel: 99 }, validChoice],

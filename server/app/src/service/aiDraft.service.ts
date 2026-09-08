@@ -4,9 +4,9 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { randomUUID } from 'crypto';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 
 import { AiDraft } from 'src/entity/aiDraft.entity';
 import { Exercise } from 'src/entity/exerciseAndSession/exercise.entity';
@@ -52,6 +52,8 @@ export class aiDraftService {
     private readonly exerciseRepository: Repository<Exercise>,
     @InjectRepository(Goal)
     private readonly goalRepository: Repository<Goal>,
+    @InjectDataSource()
+    private readonly dataSource: DataSource,
     private readonly llmClient: LlmClient,
     private readonly exerciseSvc: exerciseService,
     private readonly skillSvc: skillService,
@@ -269,53 +271,73 @@ export class aiDraftService {
   /**
    * บันทึกลงตารางจริง โดย delegate ไปที่ service เดิมของแต่ละ entity
    * เพื่อให้ validation และการ seed ค่า BKT (pS/pG) อยู่ที่เดียวกับ flow ปกติ
+   *
+   * ครอบด้วย database transaction เพื่อให้การสร้าง entity จริงและการอัปเดต
+   * สถานะ draft เป็น approved เกิดขึ้นพร้อมกัน หากขั้นตอนใดล้มเหลวจะ rollback ทั้งหมด
    */
   async approve(id: number, status: Status): Promise<AiDraft> {
     if (status !== Status.ACTIVE && status !== Status.INACTIVE) {
       throw new BadRequestException('status ต้องเป็น active หรือ inactive');
     }
 
-    const draft = await this.findOneOrFail(id);
-    if (draft.status !== AiDraftStatus.PENDING) {
-      throw new BadRequestException('ร่างนี้ถูกตรวจไปแล้ว');
-    }
+    return this.dataSource.transaction(async (manager) => {
+      const draft = await manager.findOne(AiDraft, {
+        where: { id },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!draft) {
+        throw new NotFoundException(`ไม่พบร่าง id ${id}`);
+      }
+      if (draft.status !== AiDraftStatus.PENDING) {
+        throw new BadRequestException('ร่างนี้ถูกตรวจไปแล้ว');
+      }
 
-    let approvedEntityId: number;
-    switch (draft.entityType) {
-      case AiDraftEntityType.EXERCISE: {
-        const created = await this.exerciseSvc.createExercise({
-          ...(draft.payload as unknown as CreateExerciseDto),
-          status,
-        });
-        approvedEntityId = created.id;
-        break;
+      let approvedEntityId: number;
+      switch (draft.entityType) {
+        case AiDraftEntityType.EXERCISE: {
+          const created = await this.exerciseSvc.createExercise(
+            {
+              ...(draft.payload as unknown as CreateExerciseDto),
+              status,
+            },
+            manager,
+          );
+          approvedEntityId = created.id;
+          break;
+        }
+        case AiDraftEntityType.SKILL: {
+          const created = await this.skillSvc.createSkillWithPrerequisite(
+            {
+              ...(draft.payload as unknown as CreateSkillWithPrerequisiteDto),
+              status,
+            },
+            manager,
+          );
+          approvedEntityId = created.skillId;
+          break;
+        }
+        case AiDraftEntityType.GOAL: {
+          const created = await this.goalSvc.createGoalWithSkillRequire(
+            {
+              ...(draft.payload as unknown as CreateGoalWithSkillRequireDto),
+              status,
+            },
+            manager,
+          );
+          approvedEntityId = created.id;
+          break;
+        }
+        default:
+          throw new BadRequestException(
+            `entityType ไม่รองรับ: ${String(draft.entityType)}`,
+          );
       }
-      case AiDraftEntityType.SKILL: {
-        const created = await this.skillSvc.createSkillWithPrerequisite({
-          ...(draft.payload as unknown as CreateSkillWithPrerequisiteDto),
-          status,
-        });
-        approvedEntityId = created.skillId;
-        break;
-      }
-      case AiDraftEntityType.GOAL: {
-        const created = await this.goalSvc.createGoalWithSkillRequire({
-          ...(draft.payload as unknown as CreateGoalWithSkillRequireDto),
-          status,
-        });
-        approvedEntityId = created.id;
-        break;
-      }
-      default:
-        throw new BadRequestException(
-          `entityType ไม่รองรับ: ${String(draft.entityType)}`,
-        );
-    }
 
-    draft.status = AiDraftStatus.APPROVED;
-    draft.approvedEntityId = approvedEntityId;
-    draft.updatedAt = new Date();
-    return this.aiDraftRepository.save(draft);
+      draft.status = AiDraftStatus.APPROVED;
+      draft.approvedEntityId = approvedEntityId;
+      draft.updatedAt = new Date();
+      return manager.save(AiDraft, draft);
+    });
   }
 
   async reject(id: number, note?: string): Promise<AiDraft> {
@@ -361,6 +383,8 @@ export class aiDraftService {
         skillLevel: e.skillLevel,
         type: e.type,
         expectTime: e.expectTime,
+        code: e.code ?? '',
+        language: e.language ?? undefined,
         fillInBlank: e.fillInBlank ?? undefined,
         choices: e.exerciseChoices?.map((c) => ({
           script: c.script,

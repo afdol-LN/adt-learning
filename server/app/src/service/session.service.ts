@@ -138,6 +138,8 @@ export class sessionService {
       description: exercise.description,
       type: exercise.type,
       expectTime: exercise.expectTime ?? null,
+      code: exercise.code ?? null,
+      language: exercise.language ?? null,
       choices:
         exercise.type === ExerciseType.CHOICE
           ? (exercise.exerciseChoices || []).map((c) => ({

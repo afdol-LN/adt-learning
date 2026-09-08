@@ -66,6 +66,14 @@ export class Exercise {
   })
   updatedAt: Date;
 
+  /** โค้ดที่ต้องแสดงให้นักศึกษาดูก่อนตอบ — โจทย์ที่ไม่ต้องใช้โค้ดปล่อยเป็น null */
+  @Column({ type: 'text', nullable: true })
+  code: string | null;
+
+  /** ภาษาของ code สำหรับ syntax highlight — ดู CodeLanguage enum */
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  language: string | null;
+
   @Column({ type: 'varchar', nullable: true })
   fillInBlank: string | null;
 

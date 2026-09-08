@@ -3,6 +3,10 @@ import { ExerciseType } from 'src/enums/exercise-type.enum';
 import { CreateExerciseDto } from 'src/dto/exerciseAndSession/exercise.dto';
 import { CreateSkillWithPrerequisiteDto } from 'src/dto/skill.dto';
 import { CreateGoalWithSkillRequireDto } from 'src/dto/goal.dto';
+import {
+  normalizeCode,
+  normalizeLanguage,
+} from 'src/enums/code-language.enum';
 
 /**
  * กติกาตรวจร่างจาก LLM — ใช้ชุดเดียวกับที่ exercise/skill/goal service บังคับจริง
@@ -84,6 +88,42 @@ function nonEmptyString(value: unknown): string | null {
   return typeof value === 'string' && value.trim() !== '' ? value.trim() : null;
 }
 
+/**
+ * วลีที่แปลว่า "โจทย์นี้ต้องมีโค้ดให้ดู"
+ * ครอบทั้งไทยและอังกฤษ เพราะ LLM สลับภาษาได้แม้สั่งเป็นไทย
+ */
+const CODE_REFERENCE_PATTERNS = [
+  /โค้ด(นี้|ด้านบน|ต่อไปนี้|ข้างต้น|ด้านล่าง|ชุดนี้|ข้างล่าง)/,
+  /(โปรแกรม|ฟังก์ชัน|เมธอด|คลาส|ลูป|สคริปต์)(นี้|ต่อไปนี้|ด้านบน|ข้างต้น)/,
+  /จากโค้ด/,
+  /ผลลัพธ์ของโค้ด/,
+  /\b(this|the|following|above|below)\s+(code|program|function|method|snippet|loop|script)\b/i,
+  /\bcode\s+(above|below|snippet)\b/i,
+];
+
+export function mentionsCode(description: string): boolean {
+  return CODE_REFERENCE_PATTERNS.some((pattern) => pattern.test(description));
+}
+
+/**
+ * ดึงบล็อก ``` ``` ตัวแรกออกจากข้อความ คืนข้อความที่เหลือกับโค้ดที่ได้
+ * ใช้กู้กรณี LLM ยัดโค้ดลง description แทนที่จะใส่ฟิลด์ code
+ */
+export function extractFencedCode(text: string): {
+  text: string;
+  code: string | null;
+} {
+  const match = text.match(/```[a-zA-Z]*\s*\n?([\s\S]*?)```/);
+  if (!match) return { text, code: null };
+
+  const code = match[1].replace(/\s+$/, '');
+  const remaining = (text.slice(0, match.index) + text.slice(match.index! + match[0].length))
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
+  return { text: remaining === '' ? text.trim() : remaining, code: code || null };
+}
+
 // ────────────────────────────── EXERCISE ──────────────────────────────
 
 export interface ExerciseValidationContext {
@@ -151,13 +191,37 @@ export function validateExerciseDrafts(
         ? Math.round(expectTimeRaw)
         : 60;
 
+    // LLM ชอบใส่โค้ดเป็น ``` fence ไว้ใน description แทนที่จะใช้ฟิลด์ code
+    // ย้ายให้แทนที่จะทิ้งทั้งข้อ จะได้ไม่เสียของที่ใช้ได้ไปเปล่า ๆ
+    const { text: cleanedDescription, code: extractedCode } =
+      extractFencedCode(description);
+    const code = normalizeCode(
+      nonEmptyString(record.code) ?? extractedCode ?? undefined,
+    );
+
+    // โจทย์ที่พูดถึงโค้ดแต่ไม่มีโค้ดให้ดู ตอบไม่ได้ไม่ว่าจะเก่งแค่ไหน
+    if (!code && mentionsCode(cleanedDescription)) {
+      rejected.push({
+        raw: item,
+        reason:
+          'โจทย์อ้างถึงโค้ดแต่ไม่ได้แนบโค้ดมาด้วย (ฟิลด์ code ว่าง) — ตอบไม่ได้',
+      });
+      continue;
+    }
+
     const draft: CreateExerciseDto = {
-      description,
+      description: cleanedDescription,
       skillId,
       skillLevel,
       type,
       expectTime,
     };
+
+    if (code) {
+      draft.code = code;
+      draft.language =
+        normalizeLanguage(code, nonEmptyString(record.language)) ?? undefined;
+    }
 
     if (type === ExerciseType.CHOICE) {
       const rawChoices = Array.isArray(record.choices) ? record.choices : [];

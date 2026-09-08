@@ -66,8 +66,23 @@ export class goalService extends BaseService<Goal> {
     await this.goalRepository.save(existing);
   }
 
+  async findOneWithManager(
+    id: number,
+    manager: EntityManager,
+  ): Promise<Goal> {
+    const result = await manager.findOne(Goal, {
+      where: { id },
+      relations: GOAL_RELATIONS,
+    });
+    if (!result) {
+      throw new NotFoundException(`Goal ${id} not found`);
+    }
+    return result;
+  }
+
   async createGoalWithSkillRequire(
     dto: CreateGoalWithSkillRequireDto,
+    existingManager?: EntityManager,
   ): Promise<Goal> {
     const { skillRequires, ...goalData } = dto;
 
@@ -87,7 +102,7 @@ export class goalService extends BaseService<Goal> {
       }
     }
 
-    const goal = await this.dataSource.transaction(async (manager) => {
+    const execute = async (manager: EntityManager) => {
       const goalRepo = manager.getRepository(Goal);
       const requireRepo = manager.getRepository(GoalSkillRequire);
 
@@ -105,9 +120,15 @@ export class goalService extends BaseService<Goal> {
       await requireRepo.save(requireRows);
 
       return newGoal;
-    });
+    };
 
-    return this.findOne(goal.id);
+    const goal = existingManager
+      ? await execute(existingManager)
+      : await this.dataSource.transaction(execute);
+
+    return existingManager
+      ? this.findOneWithManager(goal.id, existingManager)
+      : this.findOne(goal.id);
   }
 
   async updateGoalWithSkillRequire(

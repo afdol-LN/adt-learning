@@ -49,12 +49,31 @@ export class skillService extends BaseService<Skill> {
     await this.skillRepository.save(existing);
   }
 
+  async findOneWithManager(
+    skillId: number,
+    manager: EntityManager,
+  ): Promise<Skill> {
+    const result = await manager.findOne(Skill, {
+      where: { skillId },
+      relations: { skillPrequisite: { prerequisiteSkill: true } },
+    });
+    if (!result) {
+      throw new NotFoundException(`Skill ${skillId} not found`);
+    }
+    return result;
+  }
+
   async createSkillWithPrerequisite(
     dto: CreateSkillWithPrerequisiteDto,
+    existingManager?: EntityManager,
   ): Promise<Skill> {
     const { prerequisites, ...skillData } = dto;
 
-    const existing = await this.skillRepository.findOne({
+    const skillRepo = existingManager
+      ? existingManager.getRepository(Skill)
+      : this.skillRepository;
+
+    const existing = await skillRepo.findOne({
       where: { skillCode: skillData.skillCode },
     });
     if (existing) {
@@ -63,11 +82,11 @@ export class skillService extends BaseService<Skill> {
       );
     }
 
-    const skill = await this.dataSource.transaction(async (manager) => {
-      const skillRepo = manager.getRepository(Skill);
+    const execute = async (manager: EntityManager) => {
+      const sRepo = manager.getRepository(Skill);
       const skillPrerequisiteRepo = manager.getRepository(SkillPrerequisite);
 
-      const newSkill = await skillRepo.save(skillRepo.create(skillData));
+      const newSkill = await sRepo.save(sRepo.create(skillData));
 
       await this.validatePrerequisites(
         manager,
@@ -85,9 +104,15 @@ export class skillService extends BaseService<Skill> {
       await skillPrerequisiteRepo.save(prereqRows);
 
       return newSkill;
-    });
+    };
 
-    return this.findOne(skill.skillId);
+    const skill = existingManager
+      ? await execute(existingManager)
+      : await this.dataSource.transaction(execute);
+
+    return existingManager
+      ? this.findOneWithManager(skill.skillId, existingManager)
+      : this.findOne(skill.skillId);
   }
 
   async updateSkillWithPrerequisite(
