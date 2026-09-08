@@ -9,6 +9,7 @@ import {
 import { Userprofile } from './userprofile.entity';
 import { Goal } from './goal.entity';
 import { History } from './history.entity';
+import { ConceptMapState } from '../libs/bkt/masteryState';
 @Entity('branch')
 export class Branch {
   @PrimaryGeneratedColumn()
@@ -25,6 +26,12 @@ export class Branch {
 
   @Column({ default: false })
   isAlreadyPretest: boolean;
+
+  // BKT mastery for THIS branch only (skillId -> ConceptMapEntry). Deliberately
+  // per-branch and not per-user: the same skill can be required by two different
+  // goals, and progress made under one goal must not leak into the other.
+  @Column({ name: 'conceptMapState', type: 'jsonb', nullable: true })
+  conceptMapState: ConceptMapState | null;
 
   @Column({
     type: 'timestamp',
