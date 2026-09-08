@@ -55,9 +55,6 @@ export class CreateUserprofileDto {
   behaviorScore?: number;
 
   @IsOptional()
-  conceptMapState?: any;
-
-  @IsOptional()
   strengthWeaknessMatrix?: any;
 
   @IsOptional()
@@ -112,9 +109,6 @@ export class UpdateUserprofileDto {
   @IsOptional()
   @IsNumber()
   behaviorScore?: number;
-
-  @IsOptional()
-  conceptMapState?: any;
 
   @IsOptional()
   strengthWeaknessMatrix?: any;

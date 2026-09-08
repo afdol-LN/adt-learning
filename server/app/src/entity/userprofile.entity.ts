@@ -67,39 +67,9 @@ export class Userprofile {
   })
   behaviorScore: number;
 
-  @Column({ name: 'conceptMapState', type: 'jsonb', nullable: true })
-  conceptMapState: any;
-  // conceptMapState format data
-  // {
-  //   "1": {
-  //   "pL": 0.50,
-  //   "progress": 53,
-  //   "status": "unlocked",
-  //   "attemptCount": 4,
-  //   "level" : 1
-  //   },
-  //   "1": {
-  //   "pL": 0.4,
-  //   "progress": 40,
-  //   "status": "unlocked",
-  //   "attemptCount": 3,
-  //   "level" : 2
-  //   },
-  //    "2": {
-  //   "pL": 0.96,
-  //   "progress": 100,
-  //   "status": "completed",
-  //   "attemptCount": 12,
-  //   "level": 2
-  //    },
-  //    "3": {
-  //    "pL": 0.10,
-  //    "progress": 11,
-  //    "status": "locked",
-  //    "attemptCount": 0,
-  //   "level": 2
-  //    },
-  // }
+  // BKT mastery lives on `branch.conceptMapState`, not here — it is per
+  // branch (one user pursuing one goal), so the same skill required by two
+  // goals tracks progress separately in each.
 
   @Column({ name: 'strengthWeaknessMatrix', type: 'jsonb', nullable: true })
   strengthWeaknessMatrix: any;
