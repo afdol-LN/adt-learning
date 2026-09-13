@@ -25,7 +25,7 @@ export interface GoalMastery {
 export interface GoalNode {
   goalId: number;
   goalName: string;
-  /** the tree draws an edge from each of these skills into the goal node */
+  /** the skills whose mastery decides completion (the tree only joins the goal node to its end skills) */
   requiredSkillIds: number[];
   masteredCount: number;
   requiredCount: number;
