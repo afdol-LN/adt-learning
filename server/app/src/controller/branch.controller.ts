@@ -20,6 +20,7 @@ import { BaseController } from './base.controller';
 import { AdminMiddleware } from 'src/middleware/adminMiddleWare';
 import { sessionService } from 'src/service/session.service';
 import { RecommendedSkillDto } from 'src/dto/exerciseAndSession/session.dto';
+import { BranchSkillTreeDto } from 'src/dto/branchSkillTree.dto';
 
 @ApiTags('Branch')
 @Controller('/branch')
@@ -67,7 +68,7 @@ export class branchController extends BaseController<Branch> {
   async getBranchSkills(
     @Req() req: AuthenRequestDto,
     @Param('branchId', ParseIntPipe) branchId: number,
-  ): Promise<RestAPIResponse<any[]>> {
+  ): Promise<RestAPIResponse<BranchSkillTreeDto>> {
     try {
       const data = await this.historyService.getBranchSkills(
         branchId,

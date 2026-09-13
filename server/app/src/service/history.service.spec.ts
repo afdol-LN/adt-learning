@@ -13,7 +13,11 @@ describe('historyService conceptMapState-driven read side', () => {
   let historyRepo: { find: jest.Mock };
   let sessionRepo: { find: jest.Mock };
 
-  const goal = { goalSkillRequire: [{ skillId: 1 }, { skillId: 2 }] };
+  const goal = {
+    id: 9,
+    goal: 'Web Developer',
+    goalSkillRequire: [{ skillId: 1 }, { skillId: 2 }],
+  };
 
   // Two branches of the SAME user, requiring the SAME skills, with different
   // mastery — progress must not leak from one branch into the other.
@@ -75,7 +79,7 @@ describe('historyService conceptMapState-driven read side', () => {
   });
 
   it('getBranchSkills reports progress and attemptCount from the branch conceptMapState', async () => {
-    const result = await service.getBranchSkills(1, 42);
+    const { skills: result } = await service.getBranchSkills(1, 42);
     const skill1 = result.find((s) => s.skillId === 1);
     const skill2 = result.find((s) => s.skillId === 2);
     expect(skill1.progressPercent).toBe(100);
@@ -85,7 +89,7 @@ describe('historyService conceptMapState-driven read side', () => {
   });
 
   it('getBranchSkills does not leak progress from another branch of the same user', async () => {
-    const result = await service.getBranchSkills(2, 42);
+    const { skills: result } = await service.getBranchSkills(2, 42);
     const skill1 = result.find((s) => s.skillId === 1);
     // Branch 1 mastered skill 1; branch 2 must still fall back to skill.pL0.
     expect(skill1.attemptCount).toBe(0);
@@ -108,8 +112,24 @@ describe('historyService conceptMapState-driven read side', () => {
       { id: 7, skillId: 2, exerciseRelate: [{}, {}, {}] },
       { id: 8, skillId: 2, exerciseRelate: [] }, // a later empty visit must not hide the draft
     ]);
-    const result = await service.getBranchSkills(1, 42);
+    const { skills: result } = await service.getBranchSkills(1, 42);
     expect(result.find((s) => s.skillId === 2).draftAnsweredCount).toBe(3);
     expect(result.find((s) => s.skillId === 1).draftAnsweredCount).toBe(0);
+  });
+
+  it('getBranchSkills ends the tree in a goal node that counts required skills at pL >= 0.95 in that branch', async () => {
+    const { goal: practised } = await service.getBranchSkills(1, 42);
+    expect(practised).toEqual({
+      goalId: 9,
+      goalName: 'Web Developer',
+      requiredSkillIds: [1, 2],
+      masteredCount: 1, // skill 1 at pL 0.96; skill 2 at 0.1
+      requiredCount: 2,
+      isComplete: false,
+    });
+
+    // Same goal, same user — but nothing mastered in this branch yet
+    const { goal: fresh } = await service.getBranchSkills(2, 42);
+    expect(fresh?.masteredCount).toBe(0);
   });
 });

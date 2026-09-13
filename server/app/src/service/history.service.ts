@@ -22,6 +22,8 @@ import {
 } from 'src/libs/bkt/masteryState';
 import { Session } from 'src/entity/exerciseAndSession/session.entity';
 import { pickDraft } from 'src/libs/session/sessionDraft';
+import { buildGoalNode } from 'src/libs/bkt/goalNode';
+import { BranchSkillTreeDto } from 'src/dto/branchSkillTree.dto';
 
 @Injectable()
 export class historyService extends BaseService<History> {
@@ -100,7 +102,10 @@ export class historyService extends BaseService<History> {
     return SkillGraph.getRelevantSkillIds(allSkills, goalSkillRequire);
   }
 
-  async getBranchSkills(branchId: number, userId: number): Promise<any[]> {
+  async getBranchSkills(
+    branchId: number,
+    userId: number,
+  ): Promise<BranchSkillTreeDto> {
     const branch = await this.validateBranchOwnership(branchId, userId, true);
     const conceptMapState: ConceptMapState = branch.conceptMapState ?? {};
     const allSkills = await this.skillRepository.find({
@@ -130,7 +135,7 @@ export class historyService extends BaseService<History> {
       if (draft) draftAnsweredBySkill.set(skillId, draft.answeredCount);
     }
 
-    return allSkills
+    const skills = allSkills
       .filter((skill) => relevantSkillIds.has(skill.skillId))
       .map((skill) => {
         const entry = MasteryState.getEntry(
@@ -156,6 +161,16 @@ export class historyService extends BaseService<History> {
           })),
         };
       });
+
+    return {
+      skills,
+      // every branch's tree ends in a goal node, derived here on each read (docs/adr/0005)
+      goal: buildGoalNode(
+        branch.goal,
+        conceptMapState,
+        new Map(allSkills.map((s) => [s.skillId, s.pL0])),
+      ),
+    };
   }
 
   async getBranchStats(
