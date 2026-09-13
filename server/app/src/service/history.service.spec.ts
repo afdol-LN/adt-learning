@@ -80,7 +80,7 @@ describe('historyService conceptMapState-driven read side', () => {
     const skill2 = result.find((s) => s.skillId === 2);
     expect(skill1.progressPercent).toBe(100);
     expect(skill1.attemptCount).toBe(5);
-    expect(skill2.progressPercent).toBe(11);
+    expect(skill2.progressPercent).toBe(10.52); // pL 0.1 → 10.526…, stored 11 was the old rounding
     expect(skill2.attemptCount).toBe(0); // not-started, even though pL > 0
   });
 
@@ -89,9 +89,7 @@ describe('historyService conceptMapState-driven read side', () => {
     const skill1 = result.find((s) => s.skillId === 1);
     // Branch 1 mastered skill 1; branch 2 must still fall back to skill.pL0.
     expect(skill1.attemptCount).toBe(0);
-    expect(skill1.progressPercent).toBe(
-      Math.min(100, Math.round((0.25 / 0.95) * 100)),
-    );
+    expect(skill1.progressPercent).toBe(26.31); // pL0 0.25 → 26.315… truncated
   });
 
   it('getBranchStats counts a skill as unlocked only when every prerequisite has pL >= 0.95', async () => {

@@ -172,7 +172,7 @@ describe('sessionService returns the skill-tree Progress with each question', ()
     service = module.get<sessionService>(sessionService);
   });
 
-  it('startSession returns the stored progress of a practised skill', async () => {
+  it('startSession returns the progress of a practised skill, re-derived from pL', async () => {
     branchRepo.findOne.mockResolvedValue({
       id: 1,
       userId: 42,
@@ -181,7 +181,8 @@ describe('sessionService returns the skill-tree Progress with each question', ()
 
     const res = await service.startSession(42, { branchId: 1, skillId: 1 });
 
-    expect(res.progress).toEqual({ progressPercent: 53, attemptCount: 3 });
+    // stored 53 came from the old rounded formula; pL 0.5 → 52.631… → 52.63 (docs/adr/0004)
+    expect(res.progress).toEqual({ progressPercent: 52.63, attemptCount: 3 });
     // the rules card states this number, so it must come from the service
     expect(res.questionLimit).toBe(8);
   });
@@ -218,8 +219,8 @@ describe('sessionService returns the skill-tree Progress with each question', ()
       endTime: '2026-09-13T10:00:20Z',
     });
 
-    // pL 0.6 → round(0.6 / 0.95 × 100) = 63, one more attempt than before
-    expect(res.progress).toEqual({ progressPercent: 63, attemptCount: 4 });
+    // pL 0.6 → 0.6 / 0.95 × 100 = 63.157… → 63.15 (never rounded up), one more attempt than before
+    expect(res.progress).toEqual({ progressPercent: 63.15, attemptCount: 4 });
     expect(res.progress).toEqual(
       MasteryState.toProgress(branch.conceptMapState['1']),
     );

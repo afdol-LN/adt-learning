@@ -15,7 +15,11 @@ import {
 } from 'src/dto/historyResponse.dto';
 import { BranchDashboardDto } from 'src/dto/branchDashboard.dto';
 import { SkillGraph } from 'src/libs/bkt/skillGraph';
-import { MasteryState, ConceptMapState } from 'src/libs/bkt/masteryState';
+import {
+  MasteryState,
+  ConceptMapState,
+  truncate2,
+} from 'src/libs/bkt/masteryState';
 import { Session } from 'src/entity/exerciseAndSession/session.entity';
 import { pickDraft } from 'src/libs/session/sessionDraft';
 
@@ -258,7 +262,8 @@ export class historyService extends BaseService<History> {
       const totalProgress = goalSkillIds.reduce((sum, skillId) => {
         return sum + (skillProgressMap.get(skillId) || 0);
       }, 0);
-      goalProgressPercent = Math.round(totalProgress / goalSkillIds.length);
+      // 2 decimals, never rounded up — like each skill's Progress (docs/adr/0004)
+      goalProgressPercent = truncate2(totalProgress / goalSkillIds.length);
     }
 
     return {
