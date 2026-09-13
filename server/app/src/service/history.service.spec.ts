@@ -4,12 +4,14 @@ import { historyService } from './history.service';
 import { History } from 'src/entity/history.entity';
 import { Branch } from 'src/entity/branch.entity';
 import { Skill } from 'src/entity/skill.entity';
+import { Session } from 'src/entity/exerciseAndSession/session.entity';
 
 describe('historyService conceptMapState-driven read side', () => {
   let service: historyService;
   let branchRepo: { findOne: jest.Mock };
   let skillRepo: { find: jest.Mock };
   let historyRepo: { find: jest.Mock };
+  let sessionRepo: { find: jest.Mock };
 
   const goal = { goalSkillRequire: [{ skillId: 1 }, { skillId: 2 }] };
 
@@ -57,6 +59,7 @@ describe('historyService conceptMapState-driven read side', () => {
     };
     skillRepo = { find: jest.fn().mockResolvedValue(skills) };
     historyRepo = { find: jest.fn().mockResolvedValue([]) };
+    sessionRepo = { find: jest.fn().mockResolvedValue([]) };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -64,6 +67,7 @@ describe('historyService conceptMapState-driven read side', () => {
         { provide: getRepositoryToken(History), useValue: historyRepo },
         { provide: getRepositoryToken(Branch), useValue: branchRepo },
         { provide: getRepositoryToken(Skill), useValue: skillRepo },
+        { provide: getRepositoryToken(Session), useValue: sessionRepo },
       ],
     }).compile();
 
@@ -99,5 +103,15 @@ describe('historyService conceptMapState-driven read side', () => {
   it('getBranchStats does not count a skill as unlocked when its prerequisite is below threshold in that branch', async () => {
     const stats = await service.getBranchStats(2, 42);
     expect(stats.skillsUnlockedCount).toBe(1); // only skill 1 (no prereqs)
+  });
+
+  it('getBranchSkills reports each skill draft by the same rule the Exercise page resumes it', async () => {
+    sessionRepo.find.mockResolvedValue([
+      { id: 7, skillId: 2, exerciseRelate: [{}, {}, {}] },
+      { id: 8, skillId: 2, exerciseRelate: [] }, // a later empty visit must not hide the draft
+    ]);
+    const result = await service.getBranchSkills(1, 42);
+    expect(result.find((s) => s.skillId === 2).draftAnsweredCount).toBe(3);
+    expect(result.find((s) => s.skillId === 1).draftAnsweredCount).toBe(0);
   });
 });

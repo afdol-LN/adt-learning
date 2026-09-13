@@ -53,6 +53,14 @@ export interface StartSessionResponseDto {
   pL: number;
   /** Same value the skill-tree node shows — what the student sees (docs/adr/0001) */
   progress: SkillProgress;
+  /** Most questions this session can have — shown in the Exercise rules card (docs/adr/0002) */
+  questionLimit: number;
+  /** true when this continues the skill's draft (docs/adr/0003) */
+  resumed: boolean;
+  /** questions already answered in this session — the counter continues from here */
+  answeredCount: number;
+  /** of those, answered correctly — the session summary counts the whole session */
+  correctCount: number;
   question: NextQuestionDto;
 }
 

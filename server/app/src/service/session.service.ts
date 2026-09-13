@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, IsNull, Repository } from 'typeorm';
 import { Branch } from 'src/entity/branch.entity';
 import { Skill } from 'src/entity/skill.entity';
 import { Exercise } from 'src/entity/exerciseAndSession/exercise.entity';
@@ -22,6 +22,7 @@ import {
   CandidateExercise,
 } from 'src/libs/bkt/questionSelection';
 import { AdaptiveEngineLogger } from 'src/libs/bkt/adaptiveEngineLogger';
+import { pickDraft } from 'src/libs/session/sessionDraft';
 import { ktService } from './kt.service';
 import { AttemptRequestDto } from 'src/dto/kt/kt.dto';
 import {
@@ -144,6 +145,59 @@ export class sessionService {
     };
   }
 
+  private async createSession(
+    branchId: number,
+    skillId: number,
+  ): Promise<Session> {
+    return this.sessionRepository.save(
+      this.sessionRepository.create({ branchId, skillId }),
+    );
+  }
+
+  private async closeSessions(
+    sessions: Session[],
+    stopReason: string,
+  ): Promise<void> {
+    if (sessions.length === 0) return;
+    const now = new Date();
+    for (const s of sessions) {
+      s.endedAt = now;
+      s.stopReason = stopReason;
+    }
+    await this.sessionRepository.save(sessions);
+  }
+
+  /**
+   * The skill's draft in this branch (docs/adr/0003), or a new session when there is none.
+   * Any other open session of the skill is closed as 'abandoned', so there is only ever one
+   * draft per (branch, skill). Pretest sessions have no branchId/skillId and never match.
+   */
+  private async resumeOrCreateSession(
+    branchId: number,
+    skillId: number,
+  ): Promise<{ session: Session; answered: SessionAndExercise[] }> {
+    const open = await this.sessionRepository.find({
+      where: { branchId, skillId, endedAt: IsNull() },
+      relations: { exerciseRelate: { history: true } },
+    });
+    const draft = pickDraft(
+      open.map((s) => ({
+        id: s.id,
+        answeredCount: s.exerciseRelate?.length ?? 0,
+        session: s,
+      })),
+    );
+    await this.closeSessions(
+      open.filter((s) => s.id !== draft?.id),
+      'abandoned',
+    );
+
+    if (draft) {
+      return { session: draft.session, answered: draft.session.exerciseRelate ?? [] };
+    }
+    return { session: await this.createSession(branchId, skillId), answered: [] };
+  }
+
   private async unansweredCandidates(
     skillId: number,
     excludeExerciseIds: number[],
@@ -179,16 +233,40 @@ export class sessionService {
     );
     const pL = entry.pL;
 
-    const { exercises, candidates } = await this.unansweredCandidates(
+    // An unfinished session of this skill is the student's draft — resume it (docs/adr/0003).
+    // selectNext is deterministic, so the same pL + the same unanswered set gives back the
+    // question that was on screen when they left.
+    let { session, answered } = await this.resumeOrCreateSession(
+      branch.id,
       skill.skillId,
-      [],
     );
-    const selectedId = QuestionSelector.selectNext(
+    let { exercises, candidates } = await this.unansweredCandidates(
+      skill.skillId,
+      answered.map((se) => se.exerciseId),
+    );
+    let selectedId = QuestionSelector.selectNext(
       candidates,
       pL,
       0.7,
-      `session-start skill=${skill.skillId}`,
+      `session-start skill=${skill.skillId} session=${session.id}`,
     );
+
+    // A draft with nothing left to ask (its exercises were deactivated since) is closed, not resumed
+    if (selectedId === null && answered.length > 0) {
+      await this.closeSessions([session], 'exhausted');
+      session = await this.createSession(branch.id, skill.skillId);
+      answered = [];
+      ({ exercises, candidates } = await this.unansweredCandidates(
+        skill.skillId,
+        [],
+      ));
+      selectedId = QuestionSelector.selectNext(
+        candidates,
+        pL,
+        0.7,
+        `session-start skill=${skill.skillId} session=${session.id}`,
+      );
+    }
     if (selectedId === null) {
       throw new BadRequestException(
         `No exercises available for skill ${skill.skillId}`,
@@ -196,17 +274,17 @@ export class sessionService {
     }
     const selectedExercise = exercises.find((e) => e.id === selectedId)!;
 
-    const session = this.sessionRepository.create({
-      branchId: branch.id,
-      skillId: skill.skillId,
-    });
-    const savedSession = await this.sessionRepository.save(session);
-
     return {
-      sessionId: savedSession.id,
+      sessionId: session.id,
       skillId: skill.skillId,
       pL,
       progress: MasteryState.toProgress(entry),
+      questionLimit: SESSION_QUESTION_LIMIT,
+      resumed: answered.length > 0,
+      answeredCount: answered.length,
+      correctCount: answered.filter((se) =>
+        (se.history || []).some((h) => h.isCorrect),
+      ).length,
       question: this.buildQuestionDto(selectedExercise),
     };
   }

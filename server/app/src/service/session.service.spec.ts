@@ -97,7 +97,12 @@ describe('sessionService returns the skill-tree Progress with each question', ()
   let branchRepo: { findOne: jest.Mock };
   let skillRepo: { findOne: jest.Mock };
   let exerciseRepo: { find: jest.Mock; findOne: jest.Mock };
-  let sessionRepo: { create: jest.Mock; save: jest.Mock; findOne: jest.Mock };
+  let sessionRepo: {
+    create: jest.Mock;
+    save: jest.Mock;
+    findOne: jest.Mock;
+    find: jest.Mock;
+  };
   let sessionAndExerciseRepo: { find: jest.Mock };
   let kt: { submitAttempt: jest.Mock };
 
@@ -125,8 +130,12 @@ describe('sessionService returns the skill-tree Progress with each question', ()
     };
     sessionRepo = {
       create: jest.fn((x) => x),
-      save: jest.fn((x) => Promise.resolve({ ...x, id: 99 })),
+      // a new session gets id 99; closing drafts saves an array of existing ones
+      save: jest.fn((x) =>
+        Promise.resolve(Array.isArray(x) ? x : { ...x, id: x.id ?? 99 }),
+      ),
       findOne: jest.fn(),
+      find: jest.fn().mockResolvedValue([]), // no open sessions = no draft
     };
     sessionAndExerciseRepo = { find: jest.fn().mockResolvedValue([]) };
     kt = {
@@ -173,6 +182,8 @@ describe('sessionService returns the skill-tree Progress with each question', ()
     const res = await service.startSession(42, { branchId: 1, skillId: 1 });
 
     expect(res.progress).toEqual({ progressPercent: 53, attemptCount: 3 });
+    // the rules card states this number, so it must come from the service
+    expect(res.questionLimit).toBe(8);
   });
 
   it('startSession reports a never-attempted skill as not started (attemptCount 0)', async () => {
@@ -212,5 +223,67 @@ describe('sessionService returns the skill-tree Progress with each question', ()
     expect(res.progress).toEqual(
       MasteryState.toProgress(branch.conceptMapState['1']),
     );
+  });
+
+  // docs/adr/0003: leaving mid-session keeps a draft that /session/start resumes
+  it('startSession resumes the skill draft: same session, answered questions skipped, counts restored', async () => {
+    branchRepo.findOne.mockResolvedValue({
+      id: 1,
+      userId: 42,
+      conceptMapState: practised(),
+    });
+    const withAnswers: any = {
+      id: 50,
+      branchId: 1,
+      skillId: 1,
+      endedAt: null,
+      exerciseRelate: [{ exerciseId: 10, history: [{ isCorrect: true }] }],
+    };
+    const emptyVisit: any = {
+      id: 51,
+      branchId: 1,
+      skillId: 1,
+      endedAt: null,
+      exerciseRelate: [],
+    };
+    sessionRepo.find.mockResolvedValue([withAnswers, emptyVisit]);
+
+    const res = await service.startSession(42, { branchId: 1, skillId: 1 });
+
+    expect(res.sessionId).toBe(50);
+    expect(res.resumed).toBe(true);
+    expect(res.answeredCount).toBe(1);
+    expect(res.correctCount).toBe(1);
+    expect(res.question.exerciseId).toBe(11); // 10 was answered in the draft
+    expect(sessionRepo.create).not.toHaveBeenCalled();
+    // the newer, empty visit is closed, leaving one draft per skill
+    expect(emptyVisit.stopReason).toBe('abandoned');
+    expect(emptyVisit.endedAt).toBeInstanceOf(Date);
+    expect(withAnswers.endedAt).toBeNull();
+  });
+
+  it('startSession closes a draft with nothing left to ask and starts a new session', async () => {
+    branchRepo.findOne.mockResolvedValue({
+      id: 1,
+      userId: 42,
+      conceptMapState: practised(),
+    });
+    exerciseRepo.find.mockResolvedValue([exercise(10)]);
+    const exhausted: any = {
+      id: 50,
+      branchId: 1,
+      skillId: 1,
+      endedAt: null,
+      exerciseRelate: [{ exerciseId: 10, history: [{ isCorrect: false }] }],
+    };
+    sessionRepo.find.mockResolvedValue([exhausted]);
+
+    const res = await service.startSession(42, { branchId: 1, skillId: 1 });
+
+    expect(exhausted.stopReason).toBe('exhausted');
+    expect(res.sessionId).toBe(99);
+    expect(res.resumed).toBe(false);
+    expect(res.answeredCount).toBe(0);
+    expect(res.question.exerciseId).toBe(10);
   });
 });

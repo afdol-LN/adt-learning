@@ -4,7 +4,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { BaseService } from './base.service';
 import { History } from 'src/entity/history.entity';
 import { Branch } from 'src/entity/branch.entity';
@@ -16,6 +16,8 @@ import {
 import { BranchDashboardDto } from 'src/dto/branchDashboard.dto';
 import { SkillGraph } from 'src/libs/bkt/skillGraph';
 import { MasteryState, ConceptMapState } from 'src/libs/bkt/masteryState';
+import { Session } from 'src/entity/exerciseAndSession/session.entity';
+import { pickDraft } from 'src/libs/session/sessionDraft';
 
 @Injectable()
 export class historyService extends BaseService<History> {
@@ -26,6 +28,8 @@ export class historyService extends BaseService<History> {
     private readonly branchRepository: Repository<Branch>,
     @InjectRepository(Skill)
     private readonly skillRepository: Repository<Skill>,
+    @InjectRepository(Session)
+    private readonly sessionRepository: Repository<Session>,
   ) {
     super(historyRepository);
   }
@@ -106,6 +110,22 @@ export class historyService extends BaseService<History> {
       branch.goal?.goalSkillRequire || [],
     );
 
+    // Drafts (docs/adr/0003): per skill, the unfinished session the Exercise page will resume —
+    // picked by the same rule as sessionService, so the badge and the resume always agree
+    const openSessions = await this.sessionRepository.find({
+      where: { branchId, endedAt: IsNull() },
+      relations: { exerciseRelate: true },
+    });
+    const draftAnsweredBySkill = new Map<number, number>();
+    for (const skillId of new Set(openSessions.map((s) => s.skillId))) {
+      const draft = pickDraft(
+        openSessions
+          .filter((s) => s.skillId === skillId)
+          .map((s) => ({ id: s.id, answeredCount: s.exerciseRelate?.length ?? 0 })),
+      );
+      if (draft) draftAnsweredBySkill.set(skillId, draft.answeredCount);
+    }
+
     return allSkills
       .filter((skill) => relevantSkillIds.has(skill.skillId))
       .map((skill) => {
@@ -123,6 +143,8 @@ export class historyService extends BaseService<History> {
           status: skill.status,
           progressPercent: entry.progress,
           attemptCount: entry.attemptCount,
+          // questions answered in this skill's draft; 0 = nothing to resume
+          draftAnsweredCount: draftAnsweredBySkill.get(skill.skillId) ?? 0,
           skillPrequisite: skill.skillPrequisite.map((p) => ({
             skillId: p.skillId,
             prerequisiteSkillId: p.prerequisiteSkillId,
@@ -268,6 +290,9 @@ export class historyService extends BaseService<History> {
           startTime: history.startTime,
           endTime: history.endTime,
           isPretest: history.isPretest,
+          // an unfinished practice session is a draft the student can still resume
+          inProgress:
+            !history.isPretest && !!se.session && !se.session.endedAt,
           questions: [],
         };
         sessionsMap.set(sessionId, sessionDto);
