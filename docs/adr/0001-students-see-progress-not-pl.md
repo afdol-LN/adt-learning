@@ -1,6 +1,6 @@
 # 0001 — Students see Progress, not P(L)
 
-- **Status:** accepted
+- **Status:** accepted — the Progress formula is amended by [0004](0004-progress-two-decimals-truncated.md) (2 decimals, truncated, never rounded up)
 - **Date:** 2026-09-13
 - **Terms:** see [glossary](../glossary.md)
 
