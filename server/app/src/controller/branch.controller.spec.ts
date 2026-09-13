@@ -1,6 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { branchController } from './branch.controller';
 import { branchService } from 'src/service/branch.service';
+import { historyService } from 'src/service/history.service';
+import { sessionService } from 'src/service/session.service';
 import { AuthenRequestDto } from 'src/dto/userprofile.dto';
 
 describe('branchController', () => {
@@ -19,7 +21,13 @@ describe('branchController', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [branchController],
-      providers: [{ provide: branchService, useValue: service }],
+      providers: [
+        { provide: branchService, useValue: service },
+        // Not exercised by these tests, but the controller's constructor
+        // requires them — without stubs Nest can't build the controller at all.
+        { provide: historyService, useValue: {} },
+        { provide: sessionService, useValue: {} },
+      ],
     }).compile();
 
     controller = module.get<branchController>(branchController);

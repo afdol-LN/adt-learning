@@ -1,8 +1,9 @@
 import { DataSource, DataSourceOptions } from 'typeorm';
 import { config } from 'dotenv';
+import { envFilePath } from './env-file';
 
 // โหลดค่าจากไฟล์ .env ให้พร้อมใช้งาน (จำเป็นมากสำหรับตอนรัน TypeORM CLI)
-config();
+config({path : envFilePath});
 
 export const dataSourceOptions: DataSourceOptions = {
   type: 'postgres',
@@ -16,7 +17,7 @@ export const dataSourceOptions: DataSourceOptions = {
   synchronize: false,
 
   // เปิด logging เพื่อดูคำสั่ง SQL ที่ TypeORM สร้างขึ้น (ช่วย Debug ได้ดีมาก)
-  logging: process.env.NODE_ENV !== 'production',
+  logging: false,
 
   // ตั้งค่า SSL สำหรับการเชื่อมต่อกับ Supabase / Cloud Database
   ssl:

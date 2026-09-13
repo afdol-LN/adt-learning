@@ -1,10 +1,12 @@
 import {
   Body,
   Controller,
+  Get,
   Param,
   ParseIntPipe,
   Post,
   Put,
+  Query,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import {
@@ -20,6 +22,19 @@ import { BaseController } from './base.controller';
 export class goalController extends BaseController<Goal> {
   constructor(private readonly goalService: goalService) {
     super(goalService);
+  }
+
+  // Overrides BaseController.findAll — student-facing callers keep getting
+  // active-only goals by default; the admin panel opts into seeing inactive
+  // ones via ?includeInactive=true.
+  @Get()
+  async findAll(
+    @Query('includeInactive') includeInactive?: string,
+  ): Promise<Goal[]> {
+    if (includeInactive === 'true') {
+      return await this.goalService.findAllIncludingInactive();
+    }
+    return await this.goalService.findAll();
   }
 
   @Post('/with-skill-require')

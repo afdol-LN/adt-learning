@@ -1,14 +1,17 @@
-import { Controller, Post, Get, Body, Param, Logger } from '@nestjs/common';
+import { Controller, Post, Logger, UseGuards } from '@nestjs/common';
 import { ktService } from '../service/kt.service';
-import {
-  SkillRegisterDto,
-  ItemRegisterDto,
-  AttemptRequestDto,
-} from '../dto/kt/kt.dto';
+import { AdminMiddleware } from 'src/middleware/adminMiddleWare';
 
-@Controller('/adaptive-engine')
+@Controller('/kt')
 export class ktController {
   private readonly logger = new Logger(ktController.name);
 
   constructor(private readonly ktService: ktService) {}
+
+  @Post('/calibrate')
+  @UseGuards(AdminMiddleware)
+  async calibrate() {
+    this.logger.log('Triggering BKT calibration');
+    return await this.ktService.triggerCalibration();
+  }
 }

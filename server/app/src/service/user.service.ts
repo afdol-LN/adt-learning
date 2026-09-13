@@ -309,4 +309,36 @@ export class userProfileService extends BaseService<Userprofile> {
     }
     return response;
   }
+
+  async userTourState(id: number){
+    var response;
+    try{
+      const user = await this.userProfileRepository.findOne({
+        where : { id },
+      })
+      if(!user){
+        return {
+          isError : true,
+          data : '',
+          errorMessage: "user is not found!"
+        }
+      }
+      user.isEverTour = true
+      const updatedUser = await this.userProfileRepository.save(user)
+      if(updatedUser){
+        return {
+          isError : false,
+          data : updatedUser?.isEverTour,
+          errorMessage : ""
+        }
+      }
+    }
+    catch(error){
+      return {
+        isError : true,
+        data : '',
+        errorMessage : error.message
+      }
+    }
+  }
 }

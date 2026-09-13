@@ -1,11 +1,13 @@
+import logging
 from typing import Optional
-from app.models.bkt_kt_idem import update_mastery
-from app.schemas.bkt_schema import (
+from models.bkt_kt_idem import update_mastery
+from schemas.bkt_schema import (
     AttemptIn,
     AttemptOut,
 )
 
 MASTERY_THRESHOLD = 0.95
+logger = logging.getLogger("btk_engine.kt")
 
 def process_attempt(dto: AttemptIn) -> AttemptOut:
 
@@ -27,6 +29,16 @@ def process_attempt(dto: AttemptIn) -> AttemptOut:
         p_l_next * (1 -dto.p_s) + (1 - p_l_next) * dto.p_g
     )
     mastered = p_l_next >= MASTERY_THRESHOLD
+
+    logger.info(
+        "BKT update | correct=%s pL %.3f -> %.3f -> %.3f | predicted_next=%.3f mastered=%s",
+        dto.isCorrect,
+        res["p_l_prior"],
+        res["p_l_posterior"],
+        p_l_next,
+        predicted_correct_prob_next,
+        mastered,
+    )
 
     return AttemptOut(
         p_l_prior=res["p_l_prior"],

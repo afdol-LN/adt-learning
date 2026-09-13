@@ -12,6 +12,11 @@ export class CreateExerciseDto {
   status?: Status;
   expectTime?: number;
 
+  // โค้ดที่แสดงในกล่องแยกเหนือตัวเลือก ไม่ใช่ใน description
+  code?: string;
+  // หนึ่งใน CodeLanguage — ไม่ระบุแต่มี code จะตั้งเป็น python ให้
+  language?: string;
+
   // Required when type === ExerciseType.FILL_IN_BLANK
   fillInBlank?: string;
   isCasesensitive?: IsCaseSensitive;
@@ -27,6 +32,9 @@ export class UpdateExerciseDto {
   type?: ExerciseType;
   status?: Status;
   expectTime?: number;
+
+  code?: string;
+  language?: string;
 
   fillInBlank?: string;
   isCasesensitive?: IsCaseSensitive;

@@ -48,11 +48,11 @@ export class Exercise {
   })
   type: ExerciseType;
 
-  @Column({ default: 0.1, name: 'p_g', type: 'float' })
-  p_g: number;
+  @Column({ default: 0.1, name: 'pG', type: 'float' })
+  pG: number;
 
-  @Column({ default: 0.1, name: 'p_s', type: 'float' })
-  p_s: number;
+  @Column({ default: 0.1, name: 'pS', type: 'float' })
+  pS: number;
 
   @Column({
     type: 'timestamp',
@@ -65,6 +65,14 @@ export class Exercise {
     default: () => 'CURRENT_TIMESTAMP',
   })
   updatedAt: Date;
+
+  /** โค้ดที่ต้องแสดงให้นักศึกษาดูก่อนตอบ — โจทย์ที่ไม่ต้องใช้โค้ดปล่อยเป็น null */
+  @Column({ type: 'text', nullable: true })
+  code: string | null;
+
+  /** ภาษาของ code สำหรับ syntax highlight — ดู CodeLanguage enum */
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  language: string | null;
 
   @Column({ type: 'varchar', nullable: true })
   fillInBlank: string | null;

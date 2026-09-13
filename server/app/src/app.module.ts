@@ -20,12 +20,16 @@ import { History } from './entity/history.entity';
 import { Session } from './entity/exerciseAndSession/session.entity';
 import { Exercise } from './entity/exerciseAndSession/exercise.entity';
 import { ExerciseChoice } from './entity/exerciseAndSession/exerciseChoice.entity';
+import { SessionAndExercise } from './entity/exerciseAndSession/sessionAndExercise.entity';
 
 // Goal & Skill entities
 import { Goal } from './entity/goal.entity';
 import { Skill } from './entity/skill.entity';
 import { SkillPrerequisite } from './entity/skillPrerequisite.entity';
 import { GoalSkillRequire } from './entity/goalSkillRequire.entity';
+
+// AI draft entity
+import { AiDraft } from './entity/aiDraft.entity';
 
 // Controllers & Services
 import { userController } from './controller/user.controller';
@@ -52,6 +56,11 @@ import { historyController } from './controller/history.controller';
 import { historyService } from './service/history.service';
 import { ktController } from './controller/kt.controller';
 import { ktService } from './service/kt.service';
+import { sessionController } from './controller/session.controller';
+import { sessionService } from './service/session.service';
+import { aiDraftController } from './controller/aiDraft.controller';
+import { aiDraftService } from './service/aiDraft.service';
+import { LlmClient } from './libs/llm/llm.client';
 import { Hash } from './libs/hash';
 import { JwtService } from './libs/jwt';
 import { HttpModule } from '@nestjs/axios';
@@ -60,15 +69,16 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { AuthMiddleWare } from './middleware/authMiddleWare';
 import { MiddlewareConsumer } from '@nestjs/common';
 import { RequestMethod } from '@nestjs/common';
-
+import { envFilePath } from './config/env-file';
 @Module({
   imports: [
     ScheduleModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath
     }),
     TypeOrmModule.forRoot(dataSourceOptions),
-    // HttpModule,
+    HttpModule,
 
     TypeOrmModule.forFeature([
       Campus,
@@ -80,11 +90,13 @@ import { RequestMethod } from '@nestjs/common';
       Session,
       Exercise,
       ExerciseChoice,
+      SessionAndExercise,
       Goal,
       Skill,
       SkillPrerequisite,
       GoalSkillRequire,
       History,
+      AiDraft,
     ]),
   ],
   controllers: [
@@ -100,7 +112,9 @@ import { RequestMethod } from '@nestjs/common';
     skillController,
     goalController,
     historyController,
-    // ktController,
+    ktController,
+    sessionController,
+    aiDraftController,
   ],
   providers: [
     AppService,
@@ -116,7 +130,10 @@ import { RequestMethod } from '@nestjs/common';
     skillService,
     goalService,
     historyService,
-    // ktService,
+    ktService,
+    sessionService,
+    aiDraftService,
+    LlmClient,
     Hash,
     JwtService,
   ],

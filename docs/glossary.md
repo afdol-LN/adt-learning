@@ -1,0 +1,20 @@
+# Glossary
+
+Domain terms shared by the NestJS API (`server/app`), the KT engine (`server/btk-engine`) and the frontend (`../G06_adaptive_learning`). When code, UI copy or a doc uses one of these words, it means exactly this.
+
+| Term | Meaning | Where it lives |
+|---|---|---|
+| **P(L)** (`pL`) | BKT probability that the student has learned a skill, 0–1. Internal model state — **never shown to students** (see [ADR 0001](adr/0001-students-see-progress-not-pl.md)). | `branch.conceptMapState[skillId].pL`, updated from `btk-engine` `POST /kt/attempt` |
+| **pL0** | Prior P(L) for a skill that has no entry yet in this branch. | `skill.pL0` (0.25 in seed data) |
+| **Mastery threshold** | P(L) at which a skill counts as mastered and a practice session stops: `0.95`. | `MasteryState.MASTERY_THRESHOLD` (`libs/bkt/masteryState.ts`) |
+| **Progress** (`progress`, `progressPercent`) | What students see for a skill: P(L) scaled to the mastery threshold, `min(100, round(pL / 0.95 × 100))`. 100% = mastered. A skill unlocks when every prerequisite reaches 100% Progress (frontend `computeUnlockedSkills`). | `conceptMapState[skillId].progress`, written only by `MasteryState.buildEntry` |
+| **Attempt count** | Practice questions answered for a skill in this branch. Pretest seeding writes entries with 0. | `conceptMapState[skillId].attemptCount` |
+| **Not started** ("ยังไม่เริ่ม") | A skill with attempt count 0. Screens show this label and an empty bar instead of the pL0-derived percentage. | Frontend `formatProgressLabel` / `displayProgressPercent` (`component/home/utils/skillTree.ts`) |
+| **Skill progress** (`SkillProgress`) | The pair `{ progressPercent, attemptCount }` — everything a screen needs to render progress. Returned by `getBranchSkills` (skill tree) and by `POST /session/start` / `POST /session/:id/answer` (Exercise). | `libs/bkt/masteryState.ts`; frontend `models/branchSkillModel.ts` |
+| **Concept map state** | Per-branch JSON map `skillId → { pL, progress, status, attemptCount }`. Mastery is per branch, never per user. | `branch.conceptMapState` |
+| **Practice session** | One run of questions on one skill. It ends when Progress reaches 100% (`mastered`), after the question limit (`completed`), or when the skill has no unanswered active exercises left (`exhausted`). | `session` table, `session.stopReason`; `sessionService.submitAnswer` |
+| **Question limit** | Most questions one practice session can have: 8. Returned to the frontend as `questionLimit` so the rules card never repeats the number. | `SESSION_QUESTION_LIMIT` (`service/session.service.ts`) |
+| **Expected time** | How long a question should take, in seconds. Optional; when missing, answer time counts as on time. | `exercise.expectTime` |
+| **Answer time** | Time from the question being shown to it being submitted, **excluding** time spent with the Exercise tour or rules card open ([ADR 0002](adr/0002-exercise-feedback-after-check-and-guide.md)). Slower than expected time → smaller learning gain (`expectTime / answerTime`). | Frontend `useExerciseController` → `startTime`/`endTime` on `/session/:id/answer`; `btk-engine` `ratio_time_response_exercise` |
+| **Answer result** | Whether one submitted answer was correct — `{ exerciseId, choiceId, isCorrect }`. Exists only after `/session/:id/answer` responds and belongs to that exercise; never shown while the answer is still being checked. | Frontend `AnswerResult` (`useExerciseController`) |
+| **Draft** ("แบบร่าง") | An unfinished practice session (`endedAt` null) the student left. At most one per (branch, skill): the newest open session with answers, else the newest open one; the others are closed with `stopReason = 'abandoned'`. `/session/start` resumes it — answered questions stay answered and the same question comes back. The picked-but-unsent answer is kept in that browser only. Never expires ([ADR 0003](adr/0003-practice-session-drafts.md)). | `pickDraft` (`libs/session/sessionDraft.ts`), `sessionService.resumeOrCreateSession`; frontend `exerciseDraft.service.ts` |

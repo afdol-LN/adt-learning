@@ -9,17 +9,17 @@ def run_calibration():
     conn = psycopg2.connect(DATABASE_URL)
 
     query = """
-        SELECT 
-            b.userId AS student_id,
+        SELECT
+            b."userId" AS student_id,
             e.skill_id AS skill_name,
-            se.exerciseId AS problem_name,
-            CASE WHEN h.isCorrect = true THEN 1 ELSE 0 END AS correct,
-            h.endTime AS timestamp
+            se."exerciseId" AS problem_name,
+            CASE WHEN h."isCorrect" = true THEN 1 ELSE 0 END AS correct,
+            h."endTime" AS timestamp
         FROM history h
-        JOIN branch b ON h.branchId = b.id
-        JOIN sessionAndExercise se ON h.sessionAndExerciseId = se.id
-        JOIN exercise e ON se.exerciseId = e.id
-        ORDER BY h.endTime ASC;
+        JOIN branch b ON h."branchId" = b.id
+        JOIN "sessionAndExercise" se ON h."sessionAndExerciseId" = se.id
+        JOIN exercise e ON se."exerciseId" = e.id
+        ORDER BY h."endTime" ASC;
     """
     df = pd.read_sql(query, conn)
 
@@ -46,7 +46,7 @@ def run_calibration():
         new_p_t = float(skill_params['learns'][0])
 
         cur.execute(
-            "UPDATE skill SET p_l_0 = %s, p_t = %s WHERE skill_id = %s",
+            'UPDATE skill SET "pL0" = %s, "pT" = %s WHERE skill_id = %s',
             (new_p_l0, new_p_t, int(skill_id))
         )
 
@@ -54,12 +54,12 @@ def run_calibration():
     params_df = model.params().reset_index()  # columns: skill, param, class, value
     for _, row in params_df[params_df['param'] == 'guesses'].iterrows():
         cur.execute(
-            "UPDATE exercise SET p_g = %s WHERE id = %s",
+            'UPDATE exercise SET "pG" = %s WHERE id = %s',
             (float(row['value']), int(row['class']))
         )
     for _, row in params_df[params_df['param'] == 'slips'].iterrows():
         cur.execute(
-            "UPDATE exercise SET p_s = %s WHERE id = %s",
+            'UPDATE exercise SET "pS" = %s WHERE id = %s',
             (float(row['value']), int(row['class']))
         )
 

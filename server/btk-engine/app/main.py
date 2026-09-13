@@ -1,7 +1,10 @@
 from fastapi import FastAPI
- 
-from app.routers import kt
- 
+
+from core.logging_config import setup_logging
+from routers import kt
+
+setup_logging()
+
 app = FastAPI(
     title="KT-IDEM Knowledge Tracing Microservice",
     description=(

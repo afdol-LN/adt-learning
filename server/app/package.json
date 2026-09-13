@@ -20,6 +20,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "typeorm": "typeorm-ts-node-commonjs",
     "seed": "npm run build && node dist/seeds/master-data.seed.js",
+    "backfill:branch-concept-map": "npm run build && node dist/seeds/backfill-branch-concept-map-state.seed.js",
     "migration:generate": "npm run build && npx typeorm-ts-node-commonjs migration:generate -d src/config/data-source.ts src/migrations/UpdateSchem",
     "migration:run": "npm run build && npx typeorm-ts-node-commonjs migration:run -d src/config/data-source.ts",
     "migration:revert": "npm run typeorm migration:revert -d src/config/data-source.ts"
@@ -43,6 +44,7 @@
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "socket.io": "^4.8.3",
+    "supabase": "^2.116.0",
     "typeorm": "^1.0.0"
   },
   "devDependencies": {
@@ -63,7 +65,6 @@
     "globals": "^17.0.0",
     "jest": "^30.0.0",
     "prettier": "^3.4.2",
-    "prisma": "^6.19.0",
     "source-map-support": "^0.5.21",
     "supertest": "^7.0.0",
     "ts-jest": "^29.2.5",

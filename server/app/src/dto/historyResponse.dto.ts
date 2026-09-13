@@ -25,6 +25,8 @@ export class SessionHistoryItemDto {
   startTime: Date;
   endTime: Date;
   isPretest: boolean;
+  /** unfinished practice session — a draft the student can resume (docs/adr/0003) */
+  inProgress: boolean;
   questions: SessionQuestionHistoryDto[];
 }
 

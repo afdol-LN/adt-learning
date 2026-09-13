@@ -26,6 +26,18 @@ import { Session } from 'src/entity/exerciseAndSession/session.entity';
 import { SessionAndExercise } from 'src/entity/exerciseAndSession/sessionAndExercise.entity';
 import { History } from 'src/entity/history.entity';
 import { ForbiddenException } from '@nestjs/common';
+import { Userprofile } from 'src/entity/userprofile.entity';
+import { SkillTier } from 'src/libs/bkt/tier';
+import { MasteryState, ConceptMapState } from 'src/libs/bkt/masteryState';
+import {
+  PretestMasteryCalculator,
+  PretestAnswerStat,
+} from 'src/libs/bkt/pretestMastery';
+import { DifficultySeed } from 'src/libs/bkt/questionSelection';
+import {
+  normalizeCode,
+  normalizeLanguage,
+} from 'src/enums/code-language.enum';
 
 @Injectable()
 export class exerciseService extends BaseService<Exercise> {
@@ -58,8 +70,23 @@ export class exerciseService extends BaseService<Exercise> {
         throw new ForbiddenException('Branch does not belong to the user');
       }
 
+      const userprofile = await manager.findOne(Userprofile, {
+        where: { id: userId },
+        relations: { major: true },
+      });
+
+      const exerciseIds = dto.answers.map((a) => a.exerciseId);
+      const exercises = exerciseIds.length
+        ? await manager
+            .getRepository(Exercise)
+            .find({ where: { id: In(exerciseIds) } })
+        : [];
+      const exerciseById = new Map(exercises.map((e) => [e.id, e]));
+
       const session = manager.create(Session, {});
       const savedSession = await manager.save(session);
+
+      const statsBySkill = new Map<number, PretestAnswerStat[]>();
 
       for (const answer of dto.answers) {
         const sessionAndExercise = manager.create(SessionAndExercise, {
@@ -78,6 +105,56 @@ export class exerciseService extends BaseService<Exercise> {
           chosenAnswer: answer.chosenAnswer,
         });
         await manager.save(history);
+
+        const exercise = exerciseById.get(answer.exerciseId);
+        if (exercise) {
+          const actualTimeSeconds =
+            (new Date(answer.endTime).getTime() -
+              new Date(answer.startTime).getTime()) /
+            1000;
+          const stats = statsBySkill.get(exercise.skillId) ?? [];
+          stats.push({
+            isCorrect: answer.isCorrect,
+            actualTimeSeconds,
+            expectTime: exercise.expectTime ?? null,
+          });
+          statsBySkill.set(exercise.skillId, stats);
+        }
+      }
+
+      const goalSkillRequires = await manager
+        .getRepository(GoalSkillRequire)
+        .find({ where: { goalId: branch.goalId } });
+      const goalSkills = goalSkillRequires.length
+        ? await manager.getRepository(Skill).find({
+            where: { skillId: In(goalSkillRequires.map((r) => r.skillId)) },
+          })
+        : [];
+
+      if (userprofile) {
+        const profileFactors = {
+          isAboutCs: userprofile.major?.isAboutCs ?? false,
+          year: userprofile.year ?? null,
+        };
+        const existingState: ConceptMapState = branch.conceptMapState ?? {};
+        const newEntries: ConceptMapState = {};
+
+        for (const skill of goalSkills) {
+          if (existingState[String(skill.skillId)]) continue; // never clobber
+          const stats = statsBySkill.get(skill.skillId) ?? [];
+          const pL0 = PretestMasteryCalculator.computePL0(
+            branch.expForGoal,
+            SkillTier.tierNum(skill.tier),
+            stats,
+            profileFactors,
+          );
+          newEntries[String(skill.skillId)] = MasteryState.buildEntry(
+            pL0,
+            stats.length,
+          );
+        }
+
+        branch.conceptMapState = { ...existingState, ...newEntries };
       }
 
       branch.isAlreadyPretest = true;
@@ -109,11 +186,30 @@ export class exerciseService extends BaseService<Exercise> {
     await this.exerciseRepository.save(existing);
   }
 
-  async createExercise(dto: CreateExerciseDto): Promise<Exercise> {
-    await this.validateSkillExists(dto.skillId);
+  async findOneWithManager(
+    id: number,
+    manager: EntityManager,
+  ): Promise<Exercise> {
+    const result = await manager.findOne(Exercise, {
+      where: { id },
+      relations: { skill: true, exerciseChoices: true },
+    });
+    if (!result) {
+      throw new NotFoundException(`Exercise ${id} not found`);
+    }
+    return result;
+  }
+
+  async createExercise(
+    dto: CreateExerciseDto,
+    existingManager?: EntityManager,
+  ): Promise<Exercise> {
+    await this.validateSkillExists(dto.skillId, existingManager);
     this.validateExercisePayload(dto.type, dto.fillInBlank, dto.choices);
 
-    const savedId = await this.dataSource.transaction(async (manager) => {
+    const execute = async (manager: EntityManager) => {
+      const nChoices =
+        dto.type === ExerciseType.CHOICE ? (dto.choices?.length ?? 0) : 0;
       const exercise = manager.create(Exercise, {
         description: dto.description,
         skillId: dto.skillId,
@@ -122,12 +218,16 @@ export class exerciseService extends BaseService<Exercise> {
         type: dto.type,
         status: dto.status ?? Status.ACTIVE,
         expectTime: dto.expectTime,
+        code: normalizeCode(dto.code),
+        language: normalizeLanguage(dto.code, dto.language),
         fillInBlank:
           dto.type === ExerciseType.FILL_IN_BLANK ? dto.fillInBlank : undefined,
         isCasesensitive:
           dto.type === ExerciseType.FILL_IN_BLANK
             ? (dto.isCasesensitive ?? 'NO')
             : 'NO',
+        pS: DifficultySeed.seedPS(dto.skillLevel),
+        pG: DifficultySeed.seedPG(dto.type, dto.skillLevel, nChoices),
       });
       const saved = await manager.save(exercise);
 
@@ -136,9 +236,15 @@ export class exerciseService extends BaseService<Exercise> {
       }
 
       return saved.id;
-    });
+    };
 
-    return this.findOne(savedId);
+    const savedId = existingManager
+      ? await execute(existingManager)
+      : await this.dataSource.transaction(execute);
+
+    return existingManager
+      ? this.findOneWithManager(savedId, existingManager)
+      : this.findOne(savedId);
   }
 
   async updateExercise(id: number, dto: UpdateExerciseDto): Promise<Exercise> {
@@ -160,9 +266,24 @@ export class exerciseService extends BaseService<Exercise> {
     existing.skillId = dto.skillId ?? existing.skillId;
     existing.skillLevel = dto.skillLevel ?? existing.skillLevel;
     existing.level = dto.skillLevel ?? existing.level;
+    const nextNChoices =
+      nextType === ExerciseType.CHOICE ? (nextChoices?.length ?? 0) : 0;
+    existing.pS = DifficultySeed.seedPS(existing.skillLevel);
+    existing.pG = DifficultySeed.seedPG(
+      nextType,
+      existing.skillLevel,
+      nextNChoices,
+    );
     existing.type = nextType;
     existing.status = dto.status ?? existing.status;
     existing.expectTime = dto.expectTime ?? existing.expectTime;
+    // ?? ตกเฉพาะ null/undefined ไม่ตกเมื่อส่ง "" มา จึงลบโค้ดทิ้งได้ด้วยการส่งค่าว่าง
+    existing.code =
+      dto.code !== undefined ? normalizeCode(dto.code) : existing.code;
+    existing.language = normalizeLanguage(
+      existing.code,
+      dto.language ?? existing.language,
+    );
     existing.fillInBlank =
       nextType === ExerciseType.FILL_IN_BLANK
         ? (nextFillInBlank ?? null)
@@ -205,8 +326,14 @@ export class exerciseService extends BaseService<Exercise> {
     await choiceRepo.save(choiceEntities);
   }
 
-  private async validateSkillExists(skillId: number): Promise<void> {
-    const skill = await this.skillRepository.findOne({ where: { skillId } });
+  private async validateSkillExists(
+    skillId: number,
+    manager?: EntityManager,
+  ): Promise<void> {
+    const repo = manager
+      ? manager.getRepository(Skill)
+      : this.skillRepository;
+    const skill = await repo.findOne({ where: { skillId } });
     if (!skill) {
       throw new BadRequestException(`Skill ${skillId} does not exist`);
     }
@@ -250,6 +377,14 @@ export class exerciseService extends BaseService<Exercise> {
     }
   }
 
+  private filterExercisesByTier(
+    exercises: Exercise[],
+    level?: number,
+  ): Exercise[] {
+    if (level === undefined || level === null) return exercises;
+    return exercises.filter((ex) => SkillTier.tierNum(ex.skill?.tier) <= level);
+  }
+
   async findPretestByGoal(
     goalId?: number | string,
     userId?: number | string,
@@ -289,10 +424,12 @@ export class exerciseService extends BaseService<Exercise> {
         },
         relations: { exerciseChoices: true, skill: true },
       });
-      choiceExercises = allMatch.filter(
+      const tierFiltered = this.filterExercisesByTier(allMatch, level);
+      const effectiveMatch = tierFiltered.length > 0 ? tierFiltered : allMatch;
+      choiceExercises = effectiveMatch.filter(
         (ex) => !ex.fillInBlank || ex.fillInBlank.trim() === '',
       );
-      blankExercises = allMatch.filter(
+      blankExercises = effectiveMatch.filter(
         (ex) => ex.fillInBlank && ex.fillInBlank.trim() !== '',
       );
     }
@@ -317,6 +454,7 @@ export class exerciseService extends BaseService<Exercise> {
       this.logger.warn(
         'DB has 0 exercises. Returning mock fallback choice & fill-in-blank exercises for pretest.',
       );
+      //use mock exercise for goal wiyh out exercise
       return this.getMockPretestExercises();
     }
 
@@ -358,6 +496,8 @@ export class exerciseService extends BaseService<Exercise> {
         level: ex.level || 1,
         description: ex.description,
         text: ex.description,
+        code: ex.code ?? null,
+        language: ex.language ?? null,
         type: isBlank ? 'FILL_IN_BLANK' : 'CHOICE',
         fillInBlank: isBlank ? ex.fillInBlank : null,
         isCasesensitive: ex.isCasesensitive || 'NO',
@@ -368,6 +508,7 @@ export class exerciseService extends BaseService<Exercise> {
     });
   }
 
+  // mock exercise for goal with out exercise
   private getMockPretestExercises() {
     return [
       {

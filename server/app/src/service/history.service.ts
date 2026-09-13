@@ -4,7 +4,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { BaseService } from './base.service';
 import { History } from 'src/entity/history.entity';
 import { Branch } from 'src/entity/branch.entity';
@@ -14,6 +14,14 @@ import {
   SessionQuestionHistoryDto,
 } from 'src/dto/historyResponse.dto';
 import { BranchDashboardDto } from 'src/dto/branchDashboard.dto';
+import { SkillGraph } from 'src/libs/bkt/skillGraph';
+import {
+  MasteryState,
+  ConceptMapState,
+  truncate2,
+} from 'src/libs/bkt/masteryState';
+import { Session } from 'src/entity/exerciseAndSession/session.entity';
+import { pickDraft } from 'src/libs/session/sessionDraft';
 
 @Injectable()
 export class historyService extends BaseService<History> {
@@ -24,6 +32,8 @@ export class historyService extends BaseService<History> {
     private readonly branchRepository: Repository<Branch>,
     @InjectRepository(Skill)
     private readonly skillRepository: Repository<Skill>,
+    @InjectRepository(Session)
+    private readonly sessionRepository: Repository<Session>,
   ) {
     super(historyRepository);
   }
@@ -87,28 +97,12 @@ export class historyService extends BaseService<History> {
     allSkills: Skill[],
     goalSkillRequire: { skillId: number }[],
   ): Set<number> {
-    const skillById = new Map(allSkills.map((s) => [s.skillId, s]));
-    const relevant = new Set<number>();
-    const stack = goalSkillRequire.map((r) => r.skillId);
-
-    while (stack.length > 0) {
-      const id = stack.pop()!;
-      if (relevant.has(id)) continue;
-      relevant.add(id);
-      const prereqs = skillById.get(id)?.skillPrequisite || [];
-      for (const p of prereqs) {
-        if (!relevant.has(p.prerequisiteSkillId)) {
-          stack.push(p.prerequisiteSkillId);
-        }
-      }
-    }
-
-    return relevant;
+    return SkillGraph.getRelevantSkillIds(allSkills, goalSkillRequire);
   }
 
   async getBranchSkills(branchId: number, userId: number): Promise<any[]> {
     const branch = await this.validateBranchOwnership(branchId, userId, true);
-    const histories = await this.getRawHistoriesForBranch(branchId, userId);
+    const conceptMapState: ConceptMapState = branch.conceptMapState ?? {};
     const allSkills = await this.skillRepository.find({
       relations: {
         skillPrequisite: true,
@@ -120,18 +114,30 @@ export class historyService extends BaseService<History> {
       branch.goal?.goalSkillRequire || [],
     );
 
+    // Drafts (docs/adr/0003): per skill, the unfinished session the Exercise page will resume —
+    // picked by the same rule as sessionService, so the badge and the resume always agree
+    const openSessions = await this.sessionRepository.find({
+      where: { branchId, endedAt: IsNull() },
+      relations: { exerciseRelate: true },
+    });
+    const draftAnsweredBySkill = new Map<number, number>();
+    for (const skillId of new Set(openSessions.map((s) => s.skillId))) {
+      const draft = pickDraft(
+        openSessions
+          .filter((s) => s.skillId === skillId)
+          .map((s) => ({ id: s.id, answeredCount: s.exerciseRelate?.length ?? 0 })),
+      );
+      if (draft) draftAnsweredBySkill.set(skillId, draft.answeredCount);
+    }
+
     return allSkills
       .filter((skill) => relevantSkillIds.has(skill.skillId))
       .map((skill) => {
-        const skillHistories = histories.filter(
-          (h) => h.sessionAndExercise?.exercise?.skillId === skill.skillId,
+        const entry = MasteryState.getEntry(
+          conceptMapState,
+          skill.skillId,
+          skill.pL0,
         );
-        const total = skillHistories.length;
-        const correct = skillHistories.filter((h) => h.isCorrect).length;
-        const progressPercent =
-          total > 0
-            ? Math.min(100, Math.round((correct / total / 0.75) * 100))
-            : 0;
 
         return {
           skillId: skill.skillId,
@@ -139,7 +145,10 @@ export class historyService extends BaseService<History> {
           skillsName: skill.skillsName,
           tier: skill.tier,
           status: skill.status,
-          progressPercent,
+          progressPercent: entry.progress,
+          attemptCount: entry.attemptCount,
+          // questions answered in this skill's draft; 0 = nothing to resume
+          draftAnsweredCount: draftAnsweredBySkill.get(skill.skillId) ?? 0,
           skillPrequisite: skill.skillPrequisite.map((p) => ({
             skillId: p.skillId,
             prerequisiteSkillId: p.prerequisiteSkillId,
@@ -154,6 +163,7 @@ export class historyService extends BaseService<History> {
     userId: number,
   ): Promise<BranchDashboardDto> {
     const branch = await this.validateBranchOwnership(branchId, userId, true);
+    const conceptMapState: ConceptMapState = branch.conceptMapState ?? {};
     const histories = await this.historyRepository.find({
       where: { branchId },
       relations: {
@@ -169,24 +179,22 @@ export class historyService extends BaseService<History> {
       },
     });
 
-    // 1. Compute progress percent for all skills
+    // 1. Progress per skill, from conceptMapState
     const skillProgressMap = new Map<number, number>();
     for (const skill of allSkills) {
-      const skillHistories = histories.filter(
-        (h) => h.sessionAndExercise?.exercise?.skillId === skill.skillId,
+      const entry = MasteryState.getEntry(
+        conceptMapState,
+        skill.skillId,
+        skill.pL0,
       );
-      const total = skillHistories.length;
-      const correct = skillHistories.filter((h) => h.isCorrect).length;
-      const progress =
-        total > 0
-          ? Math.min(100, Math.round((correct / total / 0.75) * 100))
-          : 0;
-      skillProgressMap.set(skill.skillId, progress);
+      skillProgressMap.set(
+        skill.skillId,
+        entry.pL >= MasteryState.MASTERY_THRESHOLD ? 100 : entry.progress,
+      );
     }
 
-    // 2. Compute skills unlocked count (100% prerequisite unlock rule),
-    // scoped to skills actually required by this branch's goal (plus their
-    // prerequisite ancestors) — skills belonging to other goals don't count.
+    // 2. Skills unlocked count (every prerequisite at pL >= 0.95), scoped to
+    // this branch's goal (plus prerequisite ancestors)
     const relevantSkillIds = this.getRelevantSkillIds(
       allSkills,
       branch.goal?.goalSkillRequire || [],
@@ -195,18 +203,16 @@ export class historyService extends BaseService<History> {
     for (const skill of allSkills) {
       if (!relevantSkillIds.has(skill.skillId)) continue;
       const prereqs = skill.skillPrequisite || [];
-      if (prereqs.length === 0) {
-        skillsUnlockedCount++;
-      } else {
-        const allParentsPassed = prereqs.every((prereq) => {
-          const parentProgress =
-            skillProgressMap.get(prereq.prerequisiteSkillId) || 0;
-          return parentProgress === 100;
-        });
-        if (allParentsPassed) {
-          skillsUnlockedCount++;
-        }
-      }
+      const allParentsMastered = prereqs.every((prereq) => {
+        const parentEntry = MasteryState.getEntry(
+          conceptMapState,
+          prereq.prerequisiteSkillId,
+          allSkills.find((s) => s.skillId === prereq.prerequisiteSkillId)
+            ?.pL0 ?? 0.25,
+        );
+        return parentEntry.pL >= MasteryState.MASTERY_THRESHOLD;
+      });
+      if (allParentsMastered) skillsUnlockedCount++;
     }
 
     // 3. Compute distinct sessions count
@@ -256,7 +262,8 @@ export class historyService extends BaseService<History> {
       const totalProgress = goalSkillIds.reduce((sum, skillId) => {
         return sum + (skillProgressMap.get(skillId) || 0);
       }, 0);
-      goalProgressPercent = Math.round(totalProgress / goalSkillIds.length);
+      // 2 decimals, never rounded up — like each skill's Progress (docs/adr/0004)
+      goalProgressPercent = truncate2(totalProgress / goalSkillIds.length);
     }
 
     return {
@@ -288,6 +295,9 @@ export class historyService extends BaseService<History> {
           startTime: history.startTime,
           endTime: history.endTime,
           isPretest: history.isPretest,
+          // an unfinished practice session is a draft the student can still resume
+          inProgress:
+            !history.isPretest && !!se.session && !se.session.endedAt,
           questions: [],
         };
         sessionsMap.set(sessionId, sessionDto);
