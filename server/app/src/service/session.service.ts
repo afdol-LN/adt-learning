@@ -172,7 +172,12 @@ export class sessionService {
     if (!skill) throw new NotFoundException(`Skill ${dto.skillId} not found`);
 
     const conceptMapState: ConceptMapState = branch.conceptMapState ?? {};
-    const pL = this.pLFor(conceptMapState, skill.skillId, skill.pL0);
+    const entry = MasteryState.getEntry(
+      conceptMapState,
+      skill.skillId,
+      skill.pL0,
+    );
+    const pL = entry.pL;
 
     const { exercises, candidates } = await this.unansweredCandidates(
       skill.skillId,
@@ -201,6 +206,7 @@ export class sessionService {
       sessionId: savedSession.id,
       skillId: skill.skillId,
       pL,
+      progress: MasteryState.toProgress(entry),
       question: this.buildQuestionDto(selectedExercise),
     };
   }
@@ -281,6 +287,10 @@ export class sessionService {
       );
     }
     const pLNext = attemptResult.data.pLNext;
+    const nextEntry = MasteryState.buildEntry(
+      pLNext,
+      currentEntry.attemptCount + 1,
+    );
 
     AdaptiveEngineLogger.log(
       `[ability] user=${userId} skill=${skill.skillId} exercise=${exercise.id} correct=${isCorrect} pL ${currentEntry.pL.toFixed(3)} -> ${pLNext.toFixed(3)} mastered=${pLNext >= MasteryState.MASTERY_THRESHOLD}`,
@@ -309,10 +319,7 @@ export class sessionService {
 
       branch.conceptMapState = {
         ...conceptMapState,
-        [String(skill.skillId)]: MasteryState.buildEntry(
-          pLNext,
-          currentEntry.attemptCount + 1,
-        ),
+        [String(skill.skillId)]: nextEntry,
       };
       await manager.save(branch);
     });
@@ -352,6 +359,7 @@ export class sessionService {
       return {
         isCorrect,
         pL: pLNext,
+        progress: MasteryState.toProgress(nextEntry),
         nextQuestion: null,
         sessionEnded: true,
         stopReason,
@@ -379,6 +387,7 @@ export class sessionService {
     return {
       isCorrect,
       pL: pLNext,
+      progress: MasteryState.toProgress(nextEntry),
       nextQuestion: this.buildQuestionDto(nextExercise),
       sessionEnded: false,
       stopReason: null,

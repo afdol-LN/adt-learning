@@ -1,4 +1,5 @@
 import { ExerciseType } from 'src/enums/exercise-type.enum';
+import { SkillProgress } from 'src/libs/bkt/masteryState';
 
 export class CreateSessionDto {
   numOfExercise?: number;
@@ -50,6 +51,8 @@ export interface StartSessionResponseDto {
   sessionId: number;
   skillId: number;
   pL: number;
+  /** Same value the skill-tree node shows — what the student sees (docs/adr/0001) */
+  progress: SkillProgress;
   question: NextQuestionDto;
 }
 
@@ -63,6 +66,8 @@ export interface SessionSummaryDto {
 export interface SubmitAnswerResponseDto {
   isCorrect: boolean;
   pL: number;
+  /** Progress after this answer — equals what the skill-tree node now shows */
+  progress: SkillProgress;
   nextQuestion: NextQuestionDto | null;
   sessionEnded: boolean;
   stopReason: 'mastered' | 'completed' | 'exhausted' | null;

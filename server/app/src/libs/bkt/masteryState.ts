@@ -7,6 +7,16 @@ export interface ConceptMapEntry {
 
 export type ConceptMapState = Record<string, ConceptMapEntry>;
 
+/**
+ * What a student sees for a skill — the skill-tree node, the Exercise progress
+ * bar and the session popup all render this pair (docs/adr/0001). The frontend
+ * shows "not started" when attemptCount is 0, otherwise progressPercent.
+ */
+export interface SkillProgress {
+  progressPercent: number;
+  attemptCount: number;
+}
+
 export class MasteryState {
   static readonly MASTERY_THRESHOLD = 0.95;
 
@@ -20,6 +30,13 @@ export class MasteryState {
       progress,
       status: pL >= this.MASTERY_THRESHOLD ? 'completed' : 'unlocked',
       attemptCount,
+    };
+  }
+
+  static toProgress(entry: ConceptMapEntry): SkillProgress {
+    return {
+      progressPercent: entry.progress,
+      attemptCount: entry.attemptCount,
     };
   }
 
