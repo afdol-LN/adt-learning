@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, IsNull, Repository } from 'typeorm';
+import { DataSource, In, IsNull, Repository } from 'typeorm';
 import { Branch } from 'src/entity/branch.entity';
 import { Skill } from 'src/entity/skill.entity';
 import { Exercise } from 'src/entity/exerciseAndSession/exercise.entity';
@@ -23,6 +23,7 @@ import {
 } from 'src/libs/bkt/questionSelection';
 import { AdaptiveEngineLogger } from 'src/libs/bkt/adaptiveEngineLogger';
 import { pickDraft } from 'src/libs/session/sessionDraft';
+import { goalMastery } from 'src/libs/bkt/goalNode';
 import { ktService } from './kt.service';
 import { AttemptRequestDto } from 'src/dto/kt/kt.dto';
 import {
@@ -76,6 +77,35 @@ export class sessionService {
     fallbackPL0: number,
   ): number {
     return MasteryState.getEntry(conceptMapState, skillId, fallbackPL0).pL;
+  }
+
+  /**
+   * Stamps branch.goalCompletedAt the first time every skill the goal requires is mastered
+   * (docs/adr/0005) — the caller saves the branch. Returns true only when this change is what
+   * completed the goal, i.e. the moment to celebrate. A branch that was already complete
+   * before the column existed gets its date here too, but no celebration.
+   */
+  private async recordGoalCompletion(
+    branch: Branch,
+    before: ConceptMapState,
+    after: ConceptMapState,
+  ): Promise<boolean> {
+    if (branch.goalCompletedAt) return false;
+    const goalSkillIds = (branch.goal?.goalSkillRequire ?? []).map(
+      (r) => r.skillId,
+    );
+    if (goalSkillIds.length === 0) return false;
+
+    const skills = await this.skillRepository.find({
+      where: { skillId: In(goalSkillIds) },
+    });
+    const pL0BySkillId = new Map(skills.map((s) => [s.skillId, s.pL0]));
+    if (!goalMastery(goalSkillIds, after, pL0BySkillId).allMastered) {
+      return false;
+    }
+
+    branch.goalCompletedAt = new Date();
+    return !goalMastery(goalSkillIds, before, pL0BySkillId).allMastered;
   }
 
   async recommendNextSkill(
@@ -296,7 +326,8 @@ export class sessionService {
   ): Promise<SubmitAnswerResponseDto> {
     const session = await this.sessionRepository.findOne({
       where: { id: sessionId },
-      relations: { branch: true },
+      // the goal's required skills decide whether this answer completes the goal (docs/adr/0005)
+      relations: { branch: { goal: { goalSkillRequire: true } } },
     });
     if (!session) throw new NotFoundException(`Session ${sessionId} not found`);
     if (session.branch.userId !== userId) {
@@ -374,6 +405,18 @@ export class sessionService {
       `[ability] user=${userId} skill=${skill.skillId} exercise=${exercise.id} correct=${isCorrect} pL ${currentEntry.pL.toFixed(3)} -> ${pLNext.toFixed(3)} mastered=${pLNext >= MasteryState.MASTERY_THRESHOLD}`,
     );
 
+    // Only this skill's entry changes, so the goal can only become complete on the answer that
+    // masters it — which also ends the session, so the celebration lands in its summary
+    const nextState: ConceptMapState = {
+      ...conceptMapState,
+      [String(skill.skillId)]: nextEntry,
+    };
+    const goalCompleted = await this.recordGoalCompletion(
+      branch,
+      conceptMapState,
+      nextState,
+    );
+
     await this.dataSource.transaction(async (manager) => {
       const sessionAndExerciseRepo = manager.getRepository(SessionAndExercise);
       const sessionAndExercise = manager.create(SessionAndExercise, {
@@ -395,10 +438,7 @@ export class sessionService {
       });
       await manager.save(history);
 
-      branch.conceptMapState = {
-        ...conceptMapState,
-        [String(skill.skillId)]: nextEntry,
-      };
+      branch.conceptMapState = nextState;
       await manager.save(branch);
     });
 
@@ -446,6 +486,9 @@ export class sessionService {
           pLAfter: pLNext,
           newlyUnlockedSkills: [],
           nextRecommendation,
+          goalCompleted: goalCompleted
+            ? { goalId: branch.goalId, goalName: branch.goal?.goal ?? '' }
+            : null,
         },
       };
     }

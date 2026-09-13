@@ -125,11 +125,45 @@ describe('historyService conceptMapState-driven read side', () => {
       requiredSkillIds: [1, 2],
       masteredCount: 1, // skill 1 at pL 0.96; skill 2 at 0.1
       requiredCount: 2,
+      // skill 2 is not started (attemptCount 0): it counts 0, not its pL-derived 10.52
+      progressPercent: 50,
       isComplete: false,
+      completedAt: null,
     });
 
     // Same goal, same user — but nothing mastered in this branch yet
     const { goal: fresh } = await service.getBranchSkills(2, 42);
     expect(fresh?.masteredCount).toBe(0);
+  });
+
+  it('getBranchStats reports the same goal progress as the goal node', async () => {
+    const stats = await service.getBranchStats(1, 42);
+    const { goal } = await service.getBranchSkills(1, 42);
+    expect(stats.goalProgressPercent).toBe(goal?.progressPercent);
+    expect(stats).toMatchObject({
+      goalProgressPercent: 50,
+      goalMasteredCount: 1,
+      goalRequiredCount: 2,
+      goalComplete: false,
+    });
+  });
+
+  it('getBranchStats starts a fresh branch at 0% goal progress, not the pL0-derived 26.31%', async () => {
+    const stats = await service.getBranchStats(2, 42);
+    expect(stats.goalProgressPercent).toBe(0);
+  });
+
+  it('a recorded goal completion sticks even after a required skill drops below 0.95', async () => {
+    branchRepo.findOne.mockResolvedValueOnce({
+      ...practisedBranch,
+      goalCompletedAt: new Date('2026-09-10T08:00:00Z'),
+    });
+    const { goal } = await service.getBranchSkills(1, 42);
+    expect(goal).toMatchObject({
+      isComplete: true,
+      progressPercent: 100,
+      masteredCount: 1,
+      completedAt: '2026-09-10T08:00:00.000Z',
+    });
   });
 });

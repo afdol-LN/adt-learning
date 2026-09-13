@@ -15,11 +15,7 @@ import {
 } from 'src/dto/historyResponse.dto';
 import { BranchDashboardDto } from 'src/dto/branchDashboard.dto';
 import { SkillGraph } from 'src/libs/bkt/skillGraph';
-import {
-  MasteryState,
-  ConceptMapState,
-  truncate2,
-} from 'src/libs/bkt/masteryState';
+import { MasteryState, ConceptMapState } from 'src/libs/bkt/masteryState';
 import { Session } from 'src/entity/exerciseAndSession/session.entity';
 import { pickDraft } from 'src/libs/session/sessionDraft';
 import { buildGoalNode } from 'src/libs/bkt/goalNode';
@@ -169,6 +165,7 @@ export class historyService extends BaseService<History> {
         branch.goal,
         conceptMapState,
         new Map(allSkills.map((s) => [s.skillId, s.pL0])),
+        branch.goalCompletedAt,
       ),
     };
   }
@@ -194,19 +191,13 @@ export class historyService extends BaseService<History> {
       },
     });
 
-    // 1. Progress per skill, from conceptMapState
-    const skillProgressMap = new Map<number, number>();
-    for (const skill of allSkills) {
-      const entry = MasteryState.getEntry(
-        conceptMapState,
-        skill.skillId,
-        skill.pL0,
-      );
-      skillProgressMap.set(
-        skill.skillId,
-        entry.pL >= MasteryState.MASTERY_THRESHOLD ? 100 : entry.progress,
-      );
-    }
+    // 1. Goal progress — the very numbers the goal node shows, from one computation (docs/adr/0005)
+    const goalNode = buildGoalNode(
+      branch.goal,
+      conceptMapState,
+      new Map(allSkills.map((s) => [s.skillId, s.pL0])),
+      branch.goalCompletedAt,
+    );
 
     // 2. Skills unlocked count (every prerequisite at pL >= 0.95), scoped to
     // this branch's goal (plus prerequisite ancestors)
@@ -268,24 +259,14 @@ export class historyService extends BaseService<History> {
       }
     }
 
-    // 5. Compute goal progress percent (average of goal skill requires)
-    const goalSkillIds = (branch.goal?.goalSkillRequire || []).map(
-      (req) => req.skillId,
-    );
-    let goalProgressPercent = 0;
-    if (goalSkillIds.length > 0) {
-      const totalProgress = goalSkillIds.reduce((sum, skillId) => {
-        return sum + (skillProgressMap.get(skillId) || 0);
-      }, 0);
-      // 2 decimals, never rounded up — like each skill's Progress (docs/adr/0004)
-      goalProgressPercent = truncate2(totalProgress / goalSkillIds.length);
-    }
-
     return {
       skillsUnlockedCount,
       sessionsCount,
       dayStreak,
-      goalProgressPercent,
+      goalProgressPercent: goalNode?.progressPercent ?? 0,
+      goalMasteredCount: goalNode?.masteredCount ?? 0,
+      goalRequiredCount: goalNode?.requiredCount ?? 0,
+      goalComplete: goalNode?.isComplete ?? false,
     };
   }
 
