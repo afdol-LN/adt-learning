@@ -14,6 +14,7 @@ import {
   SkillPrerequisiteItemDto,
   UpdateSkillWithPrerequisiteDto,
 } from 'src/dto/skill.dto';
+import { SkillGraph } from 'src/libs/bkt/skillGraph';
 
 @Injectable()
 export class skillService extends BaseService<Skill> {
@@ -171,6 +172,15 @@ export class skillService extends BaseService<Skill> {
           `Prerequisite skill ${p.prerequisiteSkillId} does not exist`,
         );
       }
+    }
+
+    const allSkills = await skillRepo.find({
+      relations: {skillPrequisite: true},
+    });
+    const prerequisiteIds = prerequisites.map((p)=> p.prerequisiteSkillId);
+    
+    if (SkillGraph.wouldCreateCycle(allSkills, skillId, prerequisiteIds )){
+      throw new BadRequestException('Prerequisite creates a cycle');
     }
   }
 }

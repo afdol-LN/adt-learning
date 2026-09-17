@@ -52,6 +52,7 @@ import { skillController } from './controller/skill.controller';
 import { skillService } from './service/skill.service';
 import { goalController } from './controller/goal.controller';
 import { goalService } from './service/goal.service';
+import { goalWorkspaceService } from './service/goalWorkspace.service';
 import { historyController } from './controller/history.controller';
 import { historyService } from './service/history.service';
 import { ktController } from './controller/kt.controller';
@@ -129,6 +130,7 @@ import { envFilePath } from './config/env-file';
     authService,
     skillService,
     goalService,
+    goalWorkspaceService,
     historyService,
     ktService,
     sessionService,
