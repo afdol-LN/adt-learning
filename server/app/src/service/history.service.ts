@@ -294,6 +294,7 @@ export class historyService extends BaseService<History> {
           // an unfinished practice session is a draft the student can still resume
           inProgress:
             !history.isPretest && !!se.session && !se.session.endedAt,
+          skillNames: [],
           questions: [],
         };
         sessionsMap.set(sessionId, sessionDto);
@@ -308,6 +309,11 @@ export class historyService extends BaseService<History> {
 
       const exercise = se.exercise;
       if (!exercise) continue;
+
+      const skillName = exercise.skill?.skillsName;
+      if (skillName && !sessionDto.skillNames.includes(skillName)) {
+        sessionDto.skillNames.push(skillName);
+      }
 
       let correctAnswer = '';
       if (exercise.type === 'CHOICE') {
