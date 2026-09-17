@@ -34,6 +34,7 @@ import {
   PretestAnswerStat,
 } from 'src/libs/bkt/pretestMastery';
 import { DifficultySeed } from 'src/libs/bkt/questionSelection';
+import { goalMastery } from 'src/libs/bkt/goalNode';
 import {
   normalizeCode,
   normalizeLanguage,
@@ -155,6 +156,19 @@ export class exerciseService extends BaseService<Exercise> {
         }
 
         branch.conceptMapState = { ...existingState, ...newEntries };
+
+        // A pretest can already put every required skill past 0.95: record it like any other
+        // completion (docs/adr/0005). No celebration — that only happens on a session answer.
+        if (
+          !branch.goalCompletedAt &&
+          goalMastery(
+            goalSkillRequires.map((r) => r.skillId),
+            branch.conceptMapState,
+            new Map(goalSkills.map((s) => [s.skillId, s.pL0])),
+          ).allMastered
+        ) {
+          branch.goalCompletedAt = new Date();
+        }
       }
 
       branch.isAlreadyPretest = true;

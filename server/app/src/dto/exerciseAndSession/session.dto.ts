@@ -69,6 +69,8 @@ export interface SessionSummaryDto {
   pLAfter: number;
   newlyUnlockedSkills: { skillId: number; skillsName: string }[];
   nextRecommendation: RecommendedSkillDto | null;
+  /** set only on the answer that completed the branch's goal — the frontend celebrates it (docs/adr/0005) */
+  goalCompleted: { goalId: number; goalName: string } | null;
 }
 
 export interface SubmitAnswerResponseDto {

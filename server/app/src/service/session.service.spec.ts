@@ -95,7 +95,7 @@ describe('sessionService.recommendNextSkill reads per-branch mastery', () => {
 describe('sessionService returns the skill-tree Progress with each question', () => {
   let service: sessionService;
   let branchRepo: { findOne: jest.Mock };
-  let skillRepo: { findOne: jest.Mock };
+  let skillRepo: { findOne: jest.Mock; find: jest.Mock };
   let exerciseRepo: { find: jest.Mock; findOne: jest.Mock };
   let sessionRepo: {
     create: jest.Mock;
@@ -123,7 +123,10 @@ describe('sessionService returns the skill-tree Progress with each question', ()
 
   beforeEach(async () => {
     branchRepo = { findOne: jest.fn() };
-    skillRepo = { findOne: jest.fn().mockResolvedValue(skill) };
+    skillRepo = {
+      findOne: jest.fn().mockResolvedValue(skill),
+      find: jest.fn().mockResolvedValue([skill]),
+    };
     exerciseRepo = {
       find: jest.fn().mockResolvedValue([exercise(10), exercise(11)]),
       findOne: jest.fn().mockResolvedValue(exercise(10)),
@@ -224,6 +227,61 @@ describe('sessionService returns the skill-tree Progress with each question', ()
     expect(res.progress).toEqual(
       MasteryState.toProgress(branch.conceptMapState['1']),
     );
+  });
+
+  // docs/adr/0005: goal completion is recorded once and celebrated on the answer that caused it
+  const goalBranch = (goalCompletedAt: Date | null) => ({
+    id: 1,
+    userId: 42,
+    goalId: 7,
+    conceptMapState: practised(),
+    goalCompletedAt,
+    goal: {
+      id: 7,
+      goal: 'Web Developer',
+      goalSkillRequire: [{ goalId: 7, skillId: 1 }],
+    },
+  });
+  const masteringAnswer = async (branch: ReturnType<typeof goalBranch>) => {
+    sessionRepo.findOne.mockResolvedValue({
+      id: 99,
+      branchId: 1,
+      skillId: 1,
+      endedAt: null,
+      branch,
+    });
+    branchRepo.findOne.mockResolvedValue(branch); // recommendNextSkill once the session ends
+    kt.submitAttempt.mockResolvedValue({
+      isError: false,
+      data: { pLNext: 0.96 },
+    });
+    return service.submitAnswer(42, 99, {
+      exerciseId: 10,
+      chosenAnswer: 'right',
+      startTime: '2026-09-13T10:00:00Z',
+      endTime: '2026-09-13T10:00:20Z',
+    });
+  };
+
+  it('submitAnswer records and reports goal completion on the answer that masters the last required skill', async () => {
+    const branch = goalBranch(null);
+    const res = await masteringAnswer(branch);
+
+    expect(res.stopReason).toBe('mastered');
+    expect(res.summary?.goalCompleted).toEqual({
+      goalId: 7,
+      goalName: 'Web Developer',
+    });
+    expect(branch.goalCompletedAt).toBeInstanceOf(Date);
+  });
+
+  it('submitAnswer does not celebrate or re-date a goal that was already recorded as complete', async () => {
+    const recorded = new Date('2026-09-01T00:00:00Z');
+    const branch = goalBranch(recorded);
+    const res = await masteringAnswer(branch);
+
+    expect(res.summary?.goalCompleted).toBeNull();
+    expect(branch.goalCompletedAt).toBe(recorded);
   });
 
   // docs/adr/0003: leaving mid-session keeps a draft that /session/start resumes

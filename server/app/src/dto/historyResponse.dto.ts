@@ -27,6 +27,8 @@ export class SessionHistoryItemDto {
   isPretest: boolean;
   /** unfinished practice session — a draft the student can resume (docs/adr/0003) */
   inProgress: boolean;
+  /** distinct names of the skills the session's exercises practise, in first-seen order */
+  skillNames: string[];
   questions: SessionQuestionHistoryDto[];
 }
 

@@ -33,6 +33,11 @@ export class Branch {
   @Column({ name: 'conceptMapState', type: 'jsonb', nullable: true })
   conceptMapState: ConceptMapState | null;
 
+  // First time every skill the goal requires reached P(L) >= 0.95 in this branch. Once set the
+  // goal stays complete, even if a skill drops later (docs/adr/0005). null = not completed yet.
+  @Column({ name: 'goalCompletedAt', type: 'timestamp', nullable: true })
+  goalCompletedAt: Date | null;
+
   @Column({
     type: 'timestamp',
     default: () => 'CURRENT_TIMESTAMP',
