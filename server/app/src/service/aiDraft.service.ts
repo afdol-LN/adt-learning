@@ -23,8 +23,15 @@ import { CreateExerciseDto } from 'src/dto/exerciseAndSession/exercise.dto';
 import { CreateSkillWithPrerequisiteDto } from 'src/dto/skill.dto';
 import { CreateGoalWithSkillRequireDto } from 'src/dto/goal.dto';
 import { LlmClient } from 'src/libs/llm/llm.client';
-import { buildPrompt, SkillContextItem } from 'src/libs/llm/prompt.builder';
 import {
+  buildPrompt,
+  ExistingExerciseItem,
+  selectPromptExercises,
+  SkillContextItem,
+} from 'src/libs/llm/prompt.builder';
+import {
+  exerciseDuplicateKey,
+  ExerciseSimilarity,
   extractJsonArray,
   RejectedDraft,
   validateExerciseDrafts,
@@ -82,6 +89,12 @@ export class aiDraftService {
 
     const skills = await this.loadSkillContext();
     const samples = await this.loadSamples(entityType, dto.skillId);
+    // ทั้งคลังใช้ตรวจซ้ำใน validator; prompt ได้เฉพาะ skill ที่เลือกแบบไม่ตัด
+    const existingExercises = await this.loadExistingExercises(entityType);
+    const promptExercises = selectPromptExercises(
+      existingExercises,
+      dto.skillId,
+    );
 
     const { system, user } = buildPrompt({
       entityType,
@@ -89,6 +102,8 @@ export class aiDraftService {
       instruction: dto.instruction,
       skills,
       samples,
+      existingExercises: promptExercises.items,
+      existingExercisesScope: promptExercises.scope,
       skillId: dto.skillId,
       skillLevel: dto.skillLevel,
       exerciseType: dto.exerciseType,
@@ -98,11 +113,12 @@ export class aiDraftService {
       maxTokens: Math.min(1024 + count * 400, 8192),
     });
 
-    const { valid, rejected } = this.validateByType(
+    const { valid, rejected, similarities } = this.validateByType(
       entityType,
       extractJsonArray(completion.text),
       skills,
       dto,
+      existingExercises,
     );
 
     if (valid.length === 0) {
@@ -120,11 +136,12 @@ export class aiDraftService {
       exerciseType: dto.exerciseType,
     };
 
-    const rows = valid.map((payload) =>
+    const rows = valid.map((payload, index) =>
       this.aiDraftRepository.create({
         batchId,
         entityType,
         payload: payload as Record<string, any>,
+        similarity: similarities[index],
         status: AiDraftStatus.PENDING,
         prompt: dto.instruction ?? null,
         generateParams,
@@ -160,6 +177,13 @@ export class aiDraftService {
     const skills = await this.loadSkillContext();
     const params = draft.generateParams ?? {};
     const samples = await this.loadSamples(draft.entityType, params.skillId);
+    const existingExercises = await this.loadExistingExercises(
+      draft.entityType,
+    );
+    const promptExercises = selectPromptExercises(
+      existingExercises,
+      params.skillId,
+    );
 
     // รวมคำสั่งเดิมกับคำสั่งใหม่ เพื่อไม่ให้บริบทตอนสั่งครั้งแรกหายไป
     const combinedInstruction = [draft.prompt, instruction]
@@ -172,6 +196,8 @@ export class aiDraftService {
       instruction: combinedInstruction || undefined,
       skills,
       samples,
+      existingExercises: promptExercises.items,
+      existingExercisesScope: promptExercises.scope,
       skillId: params.skillId,
       skillLevel: params.skillLevel,
       exerciseType: params.exerciseType,
@@ -182,7 +208,7 @@ export class aiDraftService {
       maxTokens: 2048,
     });
 
-    const { valid, rejected } = this.validateByType(
+    const { valid, rejected, similarities } = this.validateByType(
       draft.entityType,
       extractJsonArray(completion.text),
       skills,
@@ -192,6 +218,7 @@ export class aiDraftService {
         skillId: params.skillId,
         skillLevel: params.skillLevel,
       },
+      existingExercises,
     );
 
     if (valid.length === 0) {
@@ -203,6 +230,7 @@ export class aiDraftService {
     }
 
     draft.payload = valid[0] as Record<string, any>;
+    draft.similarity = similarities[0];
     draft.model = completion.model;
     draft.note = instruction?.slice(0, 255) ?? draft.note;
     draft.updatedAt = new Date();
@@ -243,6 +271,7 @@ export class aiDraftService {
 
     const skills = await this.loadSkillContext();
     const params = draft.generateParams ?? {};
+    // admin แก้เองก็ยังห้ามซ้ำตรงตัวกับโจทย์เดิม — similarity เดิมคงไว้ เพราะไม่มี LLM ประเมินใหม่
     const { valid, rejected } = this.validateByType(
       draft.entityType,
       [payload],
@@ -253,6 +282,7 @@ export class aiDraftService {
         skillId: params.skillId,
         skillLevel: params.skillLevel,
       },
+      await this.loadExistingExercises(draft.entityType),
     );
 
     if (valid.length === 0) {
@@ -365,6 +395,26 @@ export class aiDraftService {
     }));
   }
 
+  /**
+   * โจทย์ทุกข้อใน DB (ทุก skill ทุก status) ให้ LLM เทียบว่าซ้ำหรือคล้ายข้อไหน
+   * select เฉพาะ id/description/code — ไม่ดึงทั้ง entity
+   */
+  private async loadExistingExercises(
+    entityType: AiDraftEntityType,
+  ): Promise<ExistingExerciseItem[]> {
+    if (entityType !== AiDraftEntityType.EXERCISE) return [];
+    const exercises = await this.exerciseRepository.find({
+      select: { id: true, skillId: true, description: true, code: true },
+      order: { id: 'ASC' },
+    });
+    return exercises.map((e) => ({
+      id: e.id,
+      skillId: e.skillId,
+      description: e.description,
+      code: e.code ?? null,
+    }));
+  }
+
   /** ตัวอย่างของเดิมให้ LLM เลียนสไตล์ — ตัดเฉพาะ field ที่จำเป็น ไม่ส่งทั้ง entity */
   private async loadSamples(
     entityType: AiDraftEntityType,
@@ -428,8 +478,18 @@ export class aiDraftService {
       entityType: AiDraftEntityType;
       count: number;
     },
-  ): { valid: unknown[]; rejected: RejectedDraft[] } {
+    existingExercises: ExistingExerciseItem[] = [],
+  ): {
+    valid: unknown[];
+    rejected: RejectedDraft[];
+    /** เรียงตรงกับ valid — skill/goal เป็น null ทั้งหมด */
+    similarities: (ExerciseSimilarity | null)[];
+  } {
     const existingSkillIds = new Set(skills.map((s) => s.skillId));
+    const withoutSimilarity = (result: {
+      valid: unknown[];
+      rejected: RejectedDraft[];
+    }) => ({ ...result, similarities: result.valid.map(() => null) });
 
     switch (entityType) {
       case AiDraftEntityType.EXERCISE:
@@ -437,16 +497,27 @@ export class aiDraftService {
           existingSkillIds,
           fallbackSkillId: dto.skillId,
           fallbackSkillLevel: dto.skillLevel,
-        });
-      case AiDraftEntityType.SKILL:
-        return validateSkillDrafts(items, {
-          existingSkillIds,
-          existingSkillCodes: new Set(
-            skills.map((s) => s.skillCode.toUpperCase()),
+          existingExerciseIds: new Set(existingExercises.map((e) => e.id)),
+          existingExerciseKeys: new Map(
+            existingExercises.map((e) => [
+              exerciseDuplicateKey(e.description, e.code),
+              e.id,
+            ]),
           ),
         });
+      case AiDraftEntityType.SKILL:
+        return withoutSimilarity(
+          validateSkillDrafts(items, {
+            existingSkillIds,
+            existingSkillCodes: new Set(
+              skills.map((s) => s.skillCode.toUpperCase()),
+            ),
+          }),
+        );
       case AiDraftEntityType.GOAL:
-        return validateGoalDrafts(items, { existingSkillIds });
+        return withoutSimilarity(
+          validateGoalDrafts(items, { existingSkillIds }),
+        );
     }
   }
 }

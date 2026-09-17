@@ -1,5 +1,6 @@
 import { AiDraftEntityType } from 'src/enums/ai-draft.enum';
 import {
+  DUPLICATE_SIMILARITY_PERCENT,
   MAX_CHOICE_SCRIPT_LENGTH,
   MAX_GOAL_DESCRIPTION_LENGTH,
   MAX_SKILL_NAME_LENGTH,
@@ -20,6 +21,33 @@ export interface SkillContextItem {
   tier: string | null;
 }
 
+/** โจทย์ที่มีอยู่แล้วใน DB — ส่งให้ LLM เทียบเพื่อไม่สร้างซ้ำ */
+export interface ExistingExerciseItem {
+  id: number;
+  skillId: number;
+  description: string;
+  code: string | null;
+}
+
+/** skill = เฉพาะ skill ที่เลือก ส่งเต็ม / all = ทั้งคลัง ตัดที่ EXISTING_TEXT_LIMIT */
+export type ExistingExercisesScope = 'skill' | 'all';
+
+/**
+ * เลือกโจทย์ที่จะใส่ใน prompt — โจทย์ที่ซ้ำกันจริงแทบทั้งหมดอยู่ใน skill เดียวกัน
+ * จึงส่งเฉพาะ skill นั้นแบบไม่ตัด ส่วนกรณีไม่มี skillId (เรียก API ตรง / ร่างเก่า)
+ * ถอยกลับไปส่งทั้งคลังแบบตัด กัน prompt บาน
+ */
+export function selectPromptExercises(
+  items: ExistingExerciseItem[],
+  skillId?: number,
+): { items: ExistingExerciseItem[]; scope: ExistingExercisesScope } {
+  if (skillId === undefined || skillId === null) {
+    return { items, scope: 'all' };
+  }
+  const target = Number(skillId);
+  return { items: items.filter((e) => e.skillId === target), scope: 'skill' };
+}
+
 export interface PromptInput {
   entityType: AiDraftEntityType;
   count: number;
@@ -33,6 +61,9 @@ export interface PromptInput {
   skillId?: number;
   skillLevel?: number;
   exerciseType?: 'CHOICE' | 'FILL_IN_BLANK' | 'MIXED';
+  /** เฉพาะ exercise: โจทย์เดิมที่ห้ามสร้างซ้ำ — ได้จาก selectPromptExercises */
+  existingExercises?: ExistingExerciseItem[];
+  existingExercisesScope?: ExistingExercisesScope;
   /** payload เดิมที่ห้ามสร้างซ้ำ (ใช้ตอน regenerate รายข้อ) */
   avoid?: unknown;
 }
@@ -86,6 +117,38 @@ function renderSamples(samples: unknown[]): string {
   return JSON.stringify(samples, null, 2);
 }
 
+/** โค้ดยาว ๆ ตัดท้าย กัน prompt บานเมื่อคลังโจทย์โตขึ้น — ส่วนต้นพอให้เทียบความซ้ำได้ */
+const EXISTING_TEXT_LIMIT = 600;
+
+function clip(text: string): string {
+  return text.length > EXISTING_TEXT_LIMIT
+    ? `${text.slice(0, EXISTING_TEXT_LIMIT)}…`
+    : text;
+}
+
+function renderExistingExercises(
+  items: ExistingExerciseItem[] = [],
+  scope: ExistingExercisesScope = 'all',
+): string {
+  if (items.length === 0) {
+    return scope === 'skill'
+      ? '(skill นี้ยังไม่มีโจทย์)'
+      : '(ยังไม่มีโจทย์ในระบบ)';
+  }
+  // skill เดียวส่งเต็ม ให้ LLM เห็นโค้ดครบทุกบรรทัด; ทั้งคลังต้องตัด กัน prompt บาน
+  const text = scope === 'skill' ? (s: string) => s : clip;
+  // JSON บรรทัดละข้อ — กระชับกว่า pretty-print และ \n ในโค้ดยังอ่านออก
+  return items
+    .map((e) =>
+      JSON.stringify({
+        id: e.id,
+        description: text(e.description),
+        code: e.code ? text(e.code) : '',
+      }),
+    )
+    .join('\n');
+}
+
 function renderAvoid(avoid: unknown): string {
   if (!avoid) return '';
   return [
@@ -118,8 +181,18 @@ function buildExercisePrompt(input: PromptInput): BuiltPrompt {
     `  "language": "python",         // ภาษาของ code — ใช้ ${DEFAULT_CODE_LANGUAGE} เสมอ`,
     `  "choices": [{ "script": string, "isAnswer": boolean }],  // เฉพาะ CHOICE: 4 ตัวเลือก และ isAnswer เป็น true ได้ข้อเดียวเท่านั้น`,
     '  "fillInBlank": string,        // เฉพาะ FILL_IN_BLANK: คำตอบที่ถูก',
-    '  "isCasesensitive": "YES" | "NO"  // เฉพาะ FILL_IN_BLANK',
+    '  "isCasesensitive": "YES" | "NO",  // เฉพาะ FILL_IN_BLANK',
+    '  "similarTo": { "exerciseId": number, "percent": number } | null  // โจทย์เดิมที่คล้ายที่สุด (ดูกติกาด้านล่าง)',
     '}',
+    '',
+    'กติกาเรื่องโจทย์ซ้ำ:',
+    '- ระบบจะส่ง "โจทย์ที่มีอยู่แล้วในระบบ" (id, description, code) มาให้ ห้ามสร้างโจทย์ที่ซ้ำกับข้อใดข้อหนึ่ง',
+    '  "ซ้ำ" คือถามสิ่งเดียวกันด้วยโค้ดเดียวกันหรือแทบเหมือนกัน แม้จะเปลี่ยนถ้อยคำ ชื่อตัวแปร หรือตัวเลขเล็กน้อย',
+    '- โจทย์ที่ "คล้าย" (แนวคิดเดียวกันแต่โค้ดหรือสิ่งที่ถามต่างกันจริง) สร้างได้',
+    '- ถ้าคล้ายโจทย์เดิม ให้ใส่ similarTo เป็น id ของข้อที่คล้ายที่สุด และ percent = ความคล้ายเป็นจำนวนเต็ม 1-100',
+    '  ประเมินจากทั้ง description และ code; ถ้าไม่คล้ายข้อไหนเลยให้ใส่ null',
+    `- ห้ามส่งโจทย์ที่คล้ายตั้งแต่ ${DUPLICATE_SIMILARITY_PERCENT}% ขึ้นไป เพราะนับเป็นโจทย์ซ้ำและจะถูกคัดทิ้ง`,
+    '- โจทย์ในชุดที่สร้างครั้งนี้ต้องไม่ซ้ำกันเองด้วย',
     '',
     'กติกาเรื่องโค้ด (สำคัญที่สุด — ผิดข้อนี้ข้อนั้นจะถูกคัดทิ้งทันที):',
     '- description ถูกแสดงเป็นข้อความธรรมดา การขึ้นบรรทัดและการเว้นวรรคจะหายหมด',
@@ -158,6 +231,14 @@ function buildExercisePrompt(input: PromptInput): BuiltPrompt {
     '',
     'ตัวอย่างโจทย์เดิมในระบบ (ให้เลียนสไตล์และระดับความละเอียด):',
     renderSamples(input.samples),
+    '',
+    input.existingExercisesScope === 'skill'
+      ? 'โจทย์ที่มีอยู่แล้วใน skill นี้ (ห้ามสร้างซ้ำ — ถ้าคล้ายให้รายงานใน similarTo):'
+      : 'โจทย์ที่มีอยู่แล้วในระบบ (ห้ามสร้างซ้ำ — ถ้าคล้ายให้รายงานใน similarTo):',
+    renderExistingExercises(
+      input.existingExercises,
+      input.existingExercisesScope,
+    ),
     renderAvoid(input.avoid),
     input.instruction ? `\nคำสั่งเพิ่มเติมจากอาจารย์:\n${input.instruction}` : '',
   ]

@@ -46,6 +46,13 @@ export class AiDraft {
   @Column({ name: 'generate_params', type: 'jsonb', nullable: true })
   generateParams: Record<string, any> | null;
 
+  /**
+   * เฉพาะ exercise: โจทย์เดิมใน DB ที่ร่างนี้คล้ายที่สุด ตามที่ LLM ประเมิน
+   * null = ไม่คล้ายข้อไหน — ไม่อยู่ใน payload เพราะ payload ถูกส่งตรงไป createExercise
+   */
+  @Column({ type: 'jsonb', nullable: true })
+  similarity: { exerciseId: number; percent: number } | null;
+
   /** ชื่อ model ที่สร้างร่างนี้ ไว้ตรวจย้อนหลัง */
   @Column({ type: 'varchar', length: 120, nullable: true })
   model: string | null;

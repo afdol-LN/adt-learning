@@ -1,5 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 import {
+  DUPLICATE_SIMILARITY_PERCENT,
+  exerciseDuplicateKey,
   extractJsonArray,
   validateExerciseDrafts,
   validateGoalDrafts,
@@ -214,11 +216,77 @@ describe('validateExerciseDrafts', () => {
 
   it('เก็บข้อที่ถูกไว้ ทิ้งเฉพาะข้อที่ผิดในชุดเดียวกัน', () => {
     const result = validateExerciseDrafts(
-      [validChoice, { ...validChoice, skillLevel: 99 }, validChoice],
+      [
+        validChoice,
+        { ...validChoice, skillLevel: 99 },
+        { ...validChoice, description: 'ข้อใดคือการเข้าถึงสมาชิกตัวสุดท้าย' },
+      ],
       ctx,
     );
     expect(result.valid).toHaveLength(2);
     expect(result.rejected).toHaveLength(1);
+  });
+
+  describe('โจทย์ซ้ำ / คล้าย', () => {
+    const existingCtx = {
+      ...ctx,
+      existingExerciseIds: new Set([10, 11]),
+      existingExerciseKeys: new Map([
+        [exerciseDuplicateKey('ผลลัพธ์ของโค้ดนี้คืออะไร', 'print(1 + 1)'), 10],
+      ]),
+    };
+
+    it('คัดออกเมื่อ description + code ตรงกับโจทย์เดิม แม้ช่องว่าง/ตัวพิมพ์ต่างกัน', () => {
+      const dup = {
+        ...validChoice,
+        description: 'ผลลัพธ์ของ  โค้ดนี้คืออะไร',
+        code: 'print(1+1)',
+      };
+      const result = validateExerciseDrafts([dup], existingCtx);
+      expect(result.valid).toHaveLength(0);
+      expect(result.rejected[0].reason).toContain('id 10');
+    });
+
+    it('คัดออกเมื่อซ้ำกันเองในชุดเดียวกัน', () => {
+      const result = validateExerciseDrafts(
+        [validChoice, validChoice],
+        existingCtx,
+      );
+      expect(result.valid).toHaveLength(1);
+      expect(result.rejected[0].reason).toContain('ชุดเดียวกัน');
+    });
+
+    it('คัดออกเมื่อ LLM บอกว่าคล้ายตั้งแต่ DUPLICATE_SIMILARITY_PERCENT', () => {
+      const result = validateExerciseDrafts(
+        [
+          {
+            ...validChoice,
+            similarTo: { exerciseId: 11, percent: DUPLICATE_SIMILARITY_PERCENT },
+          },
+        ],
+        existingCtx,
+      );
+      expect(result.valid).toHaveLength(0);
+    });
+
+    it('เก็บ similarity ไว้แยกจาก payload เมื่อคล้ายแต่ไม่ซ้ำ', () => {
+      const result = validateExerciseDrafts(
+        [{ ...validChoice, similarTo: { exerciseId: 11, percent: 62.4 } }],
+        existingCtx,
+      );
+      expect(result.valid).toHaveLength(1);
+      expect(result.similarities).toEqual([{ exerciseId: 11, percent: 62 }]);
+      expect(result.valid[0]).not.toHaveProperty('similarTo');
+    });
+
+    it('ตัด similarity ทิ้งเมื่ออ้าง id ที่ไม่มีอยู่จริง', () => {
+      const result = validateExerciseDrafts(
+        [{ ...validChoice, similarTo: { exerciseId: 999, percent: 50 } }],
+        existingCtx,
+      );
+      expect(result.valid).toHaveLength(1);
+      expect(result.similarities).toEqual([null]);
+    });
   });
 });
 
@@ -351,12 +419,23 @@ describe('validateGoalDrafts', () => {
     expect(result.rejected[0].reason).toContain('255');
   });
 
-  it('ตัด levelRequire ที่อยู่นอกช่วง 1-6 ทิ้ง แทนที่จะคัดทั้งข้อ', () => {
+  it.each([0, 6, 9])(
+    'ตัด levelRequire %p ที่อยู่นอกช่วง 1-5 ทิ้ง แทนที่จะคัดทั้งข้อ',
+    (levelRequire) => {
+      const result = validateGoalDrafts(
+        [{ goal: 'เป้าหมาย', skillRequires: [{ skillId: 1, levelRequire }] }],
+        ctx,
+      );
+      expect(result.valid).toHaveLength(1);
+      expect(result.valid[0].skillRequires[0].levelRequire).toBeUndefined();
+    },
+  );
+
+  it('เก็บ levelRequire 5 ไว้ เพราะอยู่ในช่วง', () => {
     const result = validateGoalDrafts(
-      [{ goal: 'เป้าหมาย', skillRequires: [{ skillId: 1, levelRequire: 9 }] }],
+      [{ goal: 'เป้าหมาย', skillRequires: [{ skillId: 1, levelRequire: 5 }] }],
       ctx,
     );
-    expect(result.valid).toHaveLength(1);
-    expect(result.valid[0].skillRequires[0].levelRequire).toBeUndefined();
+    expect(result.valid[0].skillRequires[0].levelRequire).toBe(5);
   });
 });
