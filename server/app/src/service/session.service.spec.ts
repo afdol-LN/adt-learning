@@ -112,6 +112,7 @@ describe('sessionService returns the skill-tree Progress with each question', ()
     skillId: 1,
     type: ExerciseType.CHOICE,
     description: `q${id}`,
+    skillLevel: 3,
     pG: 0.2,
     pS: 0.1,
     expectTime: 30,
@@ -203,6 +204,18 @@ describe('sessionService returns the skill-tree Progress with each question', ()
     expect(res.progress.progressPercent).toBe(
       MasteryState.buildEntry(0.25, 0).progress,
     );
+  });
+
+  it('startSession sends the question level so the card can show it', async () => {
+    branchRepo.findOne.mockResolvedValue({
+      id: 1,
+      userId: 42,
+      conceptMapState: null,
+    });
+
+    const res = await service.startSession(42, { branchId: 1, skillId: 1 });
+
+    expect(res.question.skillLevel).toBe(3);
   });
 
   it('submitAnswer returns exactly the entry it writes for the skill tree', async () => {
