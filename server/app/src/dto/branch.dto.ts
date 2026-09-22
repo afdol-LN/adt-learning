@@ -68,3 +68,24 @@ export class BranchInfo {
 }
 
 export type responseGetBranch = RestAPIResponse<BranchInfo[]>;
+
+/**
+ * ที่มาของคะแนนเริ่มต้นจาก pretest ของหนึ่ง skill — ทุกค่าเป็นหน่วย Progress (%)
+ * ไม่ใช่ P(L) ดิบ (ADR 0001) และตัดทศนิยมลง 2 ตำแหน่ง (ADR 0004)
+ */
+export interface PretestBreakdownItemDto {
+  skillId: number;
+  skillsName: string;
+  /** คะแนนเริ่มต้นรวม = Progress ของ pL0 */
+  totalPercent: number;
+  /** ประสบการณ์ที่กรอก (expForGoal) เทียบกับ tier ของ skill */
+  basePercent: number;
+  /** ความถูกต้องและความเร็วในข้อ pretest ของ skill นี้ */
+  pretestPercent: number;
+  /** สาขาเกี่ยวกับคอมพิวเตอร์ / ชั้นปี 2 ขึ้นไป */
+  profilePercent: number;
+  /** ส่วนที่ถูกตัดเพราะชนเพดาน pL0 (0 ถ้าไม่ชน) */
+  capPercent: number;
+  correct: number;
+  answered: number;
+}

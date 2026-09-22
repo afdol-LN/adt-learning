@@ -2,11 +2,11 @@ import {
   Body,
   Controller,
   Get,
+  Param,
+  ParseIntPipe,
   Patch,
   Post,
   Req,
-  Param,
-  ParseIntPipe,
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
@@ -15,17 +15,17 @@ import {
   UpdateBranchExpForSelfDto,
   responseGetBranch,
 } from 'src/dto/branch.dto';
+import { responseBranchDashboard } from 'src/dto/branchDashboard.dto';
+import { BranchSkillTreeDto } from 'src/dto/branchSkillTree.dto';
+import { RecommendedSkillDto } from 'src/dto/exerciseAndSession/session.dto';
+import { RestAPIResponse } from 'src/dto/RestAPI.dto';
 import type { AuthenRequestDto } from 'src/dto/userprofile.dto';
 import { Branch } from 'src/entity/branch.entity';
+import { AdminMiddleware } from 'src/middleware/adminMiddleWare';
 import { branchService } from 'src/service/branch.service';
 import { historyService } from 'src/service/history.service';
-import { responseBranchDashboard } from 'src/dto/branchDashboard.dto';
-import { RestAPIResponse } from 'src/dto/RestAPI.dto';
-import { BaseController } from './base.controller';
-import { AdminMiddleware } from 'src/middleware/adminMiddleWare';
 import { sessionService } from 'src/service/session.service';
-import { RecommendedSkillDto } from 'src/dto/exerciseAndSession/session.dto';
-import { BranchSkillTreeDto } from 'src/dto/branchSkillTree.dto';
+import { BaseController } from './base.controller';
 
 @ApiTags('Branch')
 @Controller('/branch')
@@ -140,6 +140,27 @@ export class branchController extends BaseController<Branch> {
   ): Promise<RestAPIResponse<RecommendedSkillDto | null>> {
     try {
       const data = await this.sessionService.recommendNextSkill(
+        branchId,
+        req.user!.userId,
+      );
+      return { isError: false, data, errorMassege: null };
+    } catch (error) {
+      return {
+        isError: true,
+        data: null,
+        errorMassege:
+          error instanceof Error ? error.message : 'An unknown error occurred',
+      };
+    }
+  }
+
+  @Get('/:branchId/baseState')
+  async getBaseState(
+    @Req() req: AuthenRequestDto,
+    @Param('branchId', ParseIntPipe) branchId: number,
+  ) {
+    try {
+      const data = await this.branchService.getPretestBreakdown(
         branchId,
         req.user!.userId,
       );
