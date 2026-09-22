@@ -1,10 +1,10 @@
 services:
   main-server:
-    # build:
-    #   context: ./app
-    #   dockerfile: ./dockerfile
-    #   target: dev
-    image: registry.in.psu.ac.th:443/6610210454/adt-backend
+    build:
+      context: ./app
+      dockerfile: ./dockerfile
+      target: dev
+    # image: registry.in.psu.ac.th:443/6610210454/adt-backend
     container_name: adt-learning-main-service
     restart: unless-stopped
     ports:
@@ -17,10 +17,10 @@ services:
       - /app/node_modules
 
   bkt-engine:
-    # build:
-    #   context: ./btk-engine
-    #   dockerfile: ./dockerfile
-    image: registry.in.psu.ac.th:443/6610210454/adt-backend/bkt-service
+    build:
+      context: ./btk-engine
+      dockerfile: ./dockerfile
+    # image: registry.in.psu.ac.th:443/6610210454/adt-backend/bkt-service
     container_name: bkt-engine
     restart: unless-stopped
     ports:

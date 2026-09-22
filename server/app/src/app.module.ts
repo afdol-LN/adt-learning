@@ -148,7 +148,10 @@ export class AppModule implements NestModule {
         { path: '/userprofile/register', method: RequestMethod.POST },
         { path: '/authen/authen_request', method: RequestMethod.POST },
         { path: '/authen/access_request', method: RequestMethod.POST },
-        { path: '/kt/(.*)', method: RequestMethod.ALL },
+        // NOTE: /kt/(.*) has been intentionally removed from this exclusion list.
+        // /kt/calibrate is an admin-only endpoint that requires AdminMiddleware,
+        // which depends on req.user being set by AuthMiddleWare first.
+        // If the btk-engine needs to call /kt routes internally, use a service JWT.
         { path: '/docs', method: RequestMethod.GET },
         { path: '/docs/(.*)', method: RequestMethod.GET },
         { path: '/docs-json', method: RequestMethod.GET },

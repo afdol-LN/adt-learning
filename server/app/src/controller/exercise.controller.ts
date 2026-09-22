@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Logger,
   Param,
@@ -9,6 +10,7 @@ import {
   Put,
   Query,
   Req,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import {
@@ -20,7 +22,6 @@ import type { AuthenRequestDto } from 'src/dto/userprofile.dto';
 import { Exercise } from 'src/entity/exerciseAndSession/exercise.entity';
 import { exerciseService } from 'src/service/exercise.service';
 import { BaseController } from './base.controller';
-import { UseGuards } from '@nestjs/common';
 import { AdminMiddleware } from 'src/middleware/adminMiddleWare';
 
 @ApiTags('Exercise')
@@ -74,15 +75,23 @@ export class exerciseController extends BaseController<Exercise> {
   }
 
   @Post()
+  @UseGuards(AdminMiddleware)
   async create(@Body() dto: CreateExerciseDto): Promise<Exercise> {
     return await this.exerciseService.createExercise(dto);
   }
 
   @Put(':id')
+  @UseGuards(AdminMiddleware)
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateExerciseDto,
   ): Promise<Exercise> {
     return await this.exerciseService.updateExercise(id, dto);
+  }
+
+  @Delete(':id')
+  @UseGuards(AdminMiddleware)
+  async remove(@Param('id', ParseIntPipe) id: number): Promise<void> {
+    return await super.remove(id);
   }
 }

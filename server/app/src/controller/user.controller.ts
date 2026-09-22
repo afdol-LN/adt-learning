@@ -36,6 +36,7 @@ export class userController extends BaseController<Userprofile> {
   }
 
   @Get('campus/:campusId')
+  @UseGuards(AdminMiddleware)
   async findUserWithcampus(
     @Param('campusId', ParseIntPipe) campusId: number,
   ): Promise<responseUser[]> {

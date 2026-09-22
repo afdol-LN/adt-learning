@@ -1,11 +1,13 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Post,
   Req,
   Param,
   ParseIntPipe,
+  Put,
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
@@ -21,6 +23,7 @@ import { AdminMiddleware } from 'src/middleware/adminMiddleWare';
 import { sessionService } from 'src/service/session.service';
 import { RecommendedSkillDto } from 'src/dto/exerciseAndSession/session.dto';
 import { BranchSkillTreeDto } from 'src/dto/branchSkillTree.dto';
+import type { DeepPartial } from 'typeorm';
 
 @ApiTags('Branch')
 @Controller('/branch')
@@ -32,6 +35,32 @@ export class branchController extends BaseController<Branch> {
   ) {
     super(branchService);
   }
+
+  // ── Admin-only: override BaseController generic CRUD with guards ──────────
+  // (branch creation for students goes through POST /mine, not this generic route)
+
+  @Post()
+  @UseGuards(AdminMiddleware)
+  async create(@Body() data: DeepPartial<Branch>): Promise<Branch> {
+    return await super.create(data);
+  }
+
+  @Put(':id')
+  @UseGuards(AdminMiddleware)
+  async update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() data: DeepPartial<Branch>,
+  ): Promise<Branch> {
+    return await super.update(id, data);
+  }
+
+  @Delete(':id')
+  @UseGuards(AdminMiddleware)
+  async remove(@Param('id', ParseIntPipe) id: number): Promise<void> {
+    return await super.remove(id);
+  }
+
+  // ── Admin-only: read another user's branches ────────────────────────────
 
   @Get('/user/:userId')
   @UseGuards(AdminMiddleware)

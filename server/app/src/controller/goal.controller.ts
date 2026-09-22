@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -23,6 +24,7 @@ import { AdminMiddleware } from 'src/middleware/adminMiddleWare';
 import { goalService } from 'src/service/goal.service';
 import { goalWorkspaceService } from 'src/service/goalWorkspace.service';
 import { BaseController } from './base.controller';
+import type { DeepPartial } from 'typeorm';
 
 @ApiTags('Goal')
 @Controller('/goal')
@@ -47,7 +49,33 @@ export class goalController extends BaseController<Goal> {
     return await this.goalService.findAll();
   }
 
+  // ── Admin-only: override BaseController generic CRUD with guards ──────────
+
+  @Post()
+  @UseGuards(AdminMiddleware)
+  async create(@Body() data: DeepPartial<Goal>): Promise<Goal> {
+    return await super.create(data);
+  }
+
+  @Put(':id')
+  @UseGuards(AdminMiddleware)
+  async update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() data: DeepPartial<Goal>,
+  ): Promise<Goal> {
+    return await super.update(id, data);
+  }
+
+  @Delete(':id')
+  @UseGuards(AdminMiddleware)
+  async remove(@Param('id', ParseIntPipe) id: number): Promise<void> {
+    return await super.remove(id);
+  }
+
+  // ── Admin-only: composite create / update with skill-require ───────────────
+
   @Post('/with-skill-require')
+  @UseGuards(AdminMiddleware)
   async createWithSkillRequire(
     @Body() dto: CreateGoalWithSkillRequireDto,
   ): Promise<Goal> {
@@ -55,6 +83,7 @@ export class goalController extends BaseController<Goal> {
   }
 
   @Put(':id/with-skill-require')
+  @UseGuards(AdminMiddleware)
   async updateWithSkillRequire(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateGoalWithSkillRequireDto,
