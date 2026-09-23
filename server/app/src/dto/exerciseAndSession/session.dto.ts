@@ -32,6 +32,8 @@ export interface NextQuestionDto {
   exerciseId: number;
   description: string;
   type: ExerciseType;
+  /** ระดับความยากของโจทย์ 1–5 — แสดงบนการ์ดคำถาม */
+  skillLevel: number;
   expectTime: number | null;
   /** โค้ดที่ต้องแสดงในกล่องแยกเหนือตัวเลือก */
   code: string | null;

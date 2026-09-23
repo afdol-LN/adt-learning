@@ -186,4 +186,139 @@ describe('goalService', () => {
       }),
     ).rejects.toThrow(BadRequestException);
   });
+
+  // goal.goal_description is varchar(255): anything longer makes Postgres
+  // throw, which reached the admin as an unreadable 500 instead of a 400.
+  describe('goalDescription length', () => {
+    const tooLong = 'ก'.repeat(256);
+
+    it('rejects a description longer than 255 characters on create', async () => {
+      await expect(
+        service.createGoalWithSkillRequire({
+          goal: 'Become a backend engineer',
+          goalDescription: tooLong,
+          skillRequires: [],
+        }),
+      ).rejects.toThrow(BadRequestException);
+      expect(goalRepo.save).not.toHaveBeenCalled();
+    });
+
+    it('rejects a description longer than 255 characters on update', async () => {
+      goalRepo.findOne.mockResolvedValue({
+        id: 1,
+        goal: 'Old name',
+        status: Status.ACTIVE,
+        goalSkillRequire: [],
+      });
+
+      await expect(
+        service.updateGoalWithSkillRequire(1, { goalDescription: tooLong }),
+      ).rejects.toThrow(BadRequestException);
+      expect(goalRepo.update).not.toHaveBeenCalled();
+    });
+
+    it('rejects a description longer than 255 characters on the generic PUT /goal/:id', async () => {
+      goalRepo.findOne.mockResolvedValue({
+        id: 1,
+        goal: 'Old name',
+        status: Status.ACTIVE,
+      });
+
+      await expect(
+        service.update(1, { goalDescription: tooLong }),
+      ).rejects.toThrow(BadRequestException);
+      expect(goalRepo.update).not.toHaveBeenCalled();
+    });
+
+    it('rejects a description longer than 255 characters on the generic POST /goal', async () => {
+      await expect(
+        service.create({ goal: 'Become a backend engineer', goalDescription: tooLong }),
+      ).rejects.toThrow(BadRequestException);
+      expect(goalRepo.save).not.toHaveBeenCalled();
+    });
+
+    it('accepts a description of exactly 255 characters', async () => {
+      goalRepo.findOne.mockResolvedValue({
+        id: 1,
+        goal: 'Become a backend engineer',
+        status: Status.ACTIVE,
+        goalSkillRequire: [],
+      });
+
+      await service.createGoalWithSkillRequire({
+        goal: 'Become a backend engineer',
+        goalDescription: 'ก'.repeat(255),
+        skillRequires: [],
+      });
+
+      expect(goalRepo.save).toHaveBeenCalled();
+    });
+  });
+
+  // levelRequire is a target skill level, the same 1-5 scale as
+  // exercise.skillLevel — goalReadiness clamps anything above 5 anyway.
+  describe('levelRequire range', () => {
+    it.each([0, 6, 2.5])(
+      'rejects levelRequire %p on create',
+      async (levelRequire) => {
+        skillRepo.findOne.mockResolvedValue({
+          skillId: 5,
+          status: Status.ACTIVE,
+        });
+
+        await expect(
+          service.createGoalWithSkillRequire({
+            goal: 'Become a backend engineer',
+            skillRequires: [{ skillId: 5, levelRequire }],
+          }),
+        ).rejects.toThrow(BadRequestException);
+        expect(goalRepo.save).not.toHaveBeenCalled();
+      },
+    );
+
+    it('rejects an out-of-range levelRequire on update, even for a skill the goal already had', async () => {
+      // Unlike the inactive-skill rule, a legacy level 6 is not grandfathered:
+      // the range is a property of the value, not of when it was added.
+      goalRepo.findOne.mockResolvedValue({
+        id: 1,
+        goal: 'Old name',
+        status: Status.ACTIVE,
+        goalSkillRequire: [{ goalId: 1, skillId: 5, levelRequire: 6 }],
+      });
+
+      await expect(
+        service.updateGoalWithSkillRequire(1, {
+          skillRequires: [{ skillId: 5, levelRequire: 6 }],
+        }),
+      ).rejects.toThrow(BadRequestException);
+      expect(requireRepo.delete).not.toHaveBeenCalled();
+    });
+
+    it('accepts levelRequire 1 and 5, and a skill with no levelRequire', async () => {
+      skillRepo.findOne.mockImplementation(({ where }) =>
+        Promise.resolve({ skillId: where.skillId, status: Status.ACTIVE }),
+      );
+      goalRepo.findOne.mockResolvedValue({
+        id: 1,
+        goal: 'Become a backend engineer',
+        status: Status.ACTIVE,
+        goalSkillRequire: [],
+      });
+
+      await service.createGoalWithSkillRequire({
+        goal: 'Become a backend engineer',
+        skillRequires: [
+          { skillId: 1, levelRequire: 1 },
+          { skillId: 5, levelRequire: 5 },
+          { skillId: 7 },
+        ],
+      });
+
+      expect(requireRepo.save).toHaveBeenCalledWith([
+        { goalId: 1, skillId: 1, levelRequire: 1 },
+        { goalId: 1, skillId: 5, levelRequire: 5 },
+        { goalId: 1, skillId: 7, levelRequire: undefined },
+      ]);
+    });
+  });
 });

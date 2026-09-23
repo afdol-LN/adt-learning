@@ -7,20 +7,30 @@ import {
   Post,
   Put,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import {
   CreateGoalWithSkillRequireDto,
   UpdateGoalWithSkillRequireDto,
 } from 'src/dto/goal.dto';
+import {
+  GoalWorkspaceDto,
+  PublishGoalResultDto,
+} from 'src/dto/goalWorkspace.dto';
 import { Goal } from 'src/entity/goal.entity';
+import { AdminMiddleware } from 'src/middleware/adminMiddleWare';
 import { goalService } from 'src/service/goal.service';
+import { goalWorkspaceService } from 'src/service/goalWorkspace.service';
 import { BaseController } from './base.controller';
 
 @ApiTags('Goal')
 @Controller('/goal')
 export class goalController extends BaseController<Goal> {
-  constructor(private readonly goalService: goalService) {
+  constructor(
+    private readonly goalService: goalService,
+    private readonly goalWorkspaceService: goalWorkspaceService,
+  ) {
     super(goalService);
   }
 
@@ -50,5 +60,27 @@ export class goalController extends BaseController<Goal> {
     @Body() dto: UpdateGoalWithSkillRequireDto,
   ): Promise<Goal> {
     return await this.goalService.updateGoalWithSkillRequire(id, dto);
+  }
+
+  /**
+   * ข้อมูลทั้งหน้าของ Goal Workspace ในคำขอเดียว
+   * admin เท่านั้น — guard ใส่ต่อ route เพื่อไม่เปลี่ยนสิทธิ์ของ CRUD ที่สืบทอดมา
+   * (route นี้อยู่ใต้ AuthMiddleWare อยู่แล้ว เพราะไม่ได้ถูก exclude)
+   */
+  @Get(':id/workspace')
+  @UseGuards(AdminMiddleware)
+  async getWorkspace(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<GoalWorkspaceDto> {
+    return await this.goalWorkspaceService.getWorkspace(id);
+  }
+
+  /** เปิดใช้งาน goal + skill ใน closure ที่ยังปิดอยู่ (ตรวจความพร้อมใหม่ที่ server) */
+  @Post(':id/publish')
+  @UseGuards(AdminMiddleware)
+  async publish(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<PublishGoalResultDto> {
+    return await this.goalWorkspaceService.publish(id);
   }
 }

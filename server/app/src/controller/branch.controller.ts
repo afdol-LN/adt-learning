@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Patch,
   Post,
   Req,
   Param,
@@ -9,7 +10,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { CreateBranchForSelfDto, responseGetBranch } from 'src/dto/branch.dto';
+import {
+  CreateBranchForSelfDto,
+  UpdateBranchExpForSelfDto,
+  responseGetBranch,
+} from 'src/dto/branch.dto';
 import type { AuthenRequestDto } from 'src/dto/userprofile.dto';
 import { Branch } from 'src/entity/branch.entity';
 import { branchService } from 'src/service/branch.service';
@@ -62,6 +67,20 @@ export class branchController extends BaseController<Branch> {
       goalId: dto.goalId,
       expForGoal: dto.expForGoal,
     });
+  }
+
+  // userId from the JWT, never the body — a student can only touch their own branch
+  @Patch('/mine/:id')
+  async updateMyBranchExp(
+    @Req() req: AuthenRequestDto,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateBranchExpForSelfDto,
+  ): Promise<{ id: number; expForGoal: number }> {
+    return await this.branchService.updateExpForSelf(
+      req.user!.userId,
+      id,
+      Number(dto?.expForGoal),
+    );
   }
 
   @Get('/:branchId/skills')
