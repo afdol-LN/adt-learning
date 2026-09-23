@@ -105,6 +105,11 @@ describe('sessionService returns the skill-tree Progress with each question', ()
   };
   let sessionAndExerciseRepo: { find: jest.Mock };
   let kt: { submitAttempt: jest.Mock };
+  let manager: {
+    getRepository: () => { save: (x: any) => Promise<any> };
+    create: (entity: unknown, x: any) => any;
+    save: jest.Mock;
+  };
 
   const skill = { skillId: 1, pL0: 0.25, pT: 0.1, skillPrequisite: [] };
   const exercise = (id: number) => ({
@@ -147,7 +152,7 @@ describe('sessionService returns the skill-tree Progress with each question', ()
         .fn()
         .mockResolvedValue({ isError: false, data: { pLNext: 0.6 } }),
     };
-    const manager = {
+    manager = {
       getRepository: () => ({ save: (x: any) => Promise.resolve({ ...x, id: 1 }) }),
       create: (_entity: unknown, x: any) => x,
       save: jest.fn().mockResolvedValue(undefined),
@@ -332,6 +337,90 @@ describe('sessionService returns the skill-tree Progress with each question', ()
     expect(emptyVisit.stopReason).toBe('abandoned');
     expect(emptyVisit.endedAt).toBeInstanceOf(Date);
     expect(withAnswers.endedAt).toBeNull();
+  });
+
+  // An admin edit replaces every choice (new ids, maybe new text) while a student may have the
+  // question open. Grade by the choice id the student saw; if that choice no longer exists the
+  // question changed under them — refuse to grade instead of scoring a stale answer as wrong.
+  describe('submitAnswer grades a choice by id and refuses a question that changed', () => {
+    const openSession = () => {
+      sessionRepo.findOne.mockResolvedValue({
+        id: 99,
+        branchId: 1,
+        skillId: 1,
+        endedAt: null,
+        branch: { id: 1, userId: 42, conceptMapState: practised() },
+      });
+    };
+    const twoChoices = () => ({
+      ...exercise(10),
+      exerciseChoices: [
+        { id: 100, script: 'right', isAnswer: true },
+        { id: 101, script: 'wrong', isAnswer: false },
+      ],
+    });
+    const submit = (answer: { choiceId?: number; chosenAnswer?: string }) =>
+      service.submitAnswer(42, 99, {
+        exerciseId: 10,
+        ...answer,
+        startTime: '2026-09-13T10:00:00Z',
+        endTime: '2026-09-13T10:00:20Z',
+      });
+    const savedHistory = () =>
+      manager.save.mock.calls
+        .map(([x]) => x)
+        .find((x) => x && 'isPretest' in x);
+
+    beforeEach(() => {
+      openSession();
+      exerciseRepo.findOne.mockResolvedValue(twoChoices());
+    });
+
+    it('grades by choiceId even when the text sent is out of date', async () => {
+      const res = await submit({ choiceId: 100, chosenAnswer: 'old wording' });
+
+      expect(res.isCorrect).toBe(true);
+      // history keeps the text of the choice that was graded, not what the client sent
+      expect(savedHistory().chosenAnswer).toBe('right');
+    });
+
+    it('grades a wrong choiceId as wrong', async () => {
+      const res = await submit({ choiceId: 101 });
+      expect(res.isCorrect).toBe(false);
+    });
+
+    it('refuses a choiceId that is no longer one of the exercise choices, without touching mastery', async () => {
+      await expect(submit({ choiceId: 555 })).rejects.toMatchObject({
+        status: 409,
+        response: { code: 'EXERCISE_CHANGED' },
+      });
+      expect(kt.submitAttempt).not.toHaveBeenCalled();
+      expect(manager.save).not.toHaveBeenCalled();
+    });
+
+    it('still grades an old client that sends only the choice text', async () => {
+      const res = await submit({ chosenAnswer: 'right' });
+      expect(res.isCorrect).toBe(true);
+    });
+
+    it('refuses choice text that matches no current choice', async () => {
+      await expect(submit({ chosenAnswer: 'old wording' })).rejects.toMatchObject({
+        status: 409,
+      });
+      expect(kt.submitAttempt).not.toHaveBeenCalled();
+    });
+
+    it('refuses a choiceId sent for an exercise that is now fill-in-the-blank', async () => {
+      exerciseRepo.findOne.mockResolvedValue({
+        ...exercise(10),
+        type: ExerciseType.FILL_IN_BLANK,
+        fillInBlank: 'x',
+        exerciseChoices: [],
+      });
+      await expect(submit({ choiceId: 100 })).rejects.toMatchObject({
+        status: 409,
+      });
+    });
   });
 
   it('startSession closes a draft with nothing left to ask and starts a new session', async () => {
