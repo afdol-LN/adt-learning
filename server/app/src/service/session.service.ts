@@ -162,6 +162,7 @@ export class sessionService {
       exerciseId: exercise.id,
       description: exercise.description,
       type: exercise.type,
+      skillLevel: exercise.skillLevel,
       expectTime: exercise.expectTime ?? null,
       code: exercise.code ?? null,
       language: exercise.language ?? null,
