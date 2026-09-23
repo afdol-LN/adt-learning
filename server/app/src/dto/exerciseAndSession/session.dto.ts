@@ -18,6 +18,9 @@ export class StartSessionDto {
 
 export class SubmitAnswerDto {
   exerciseId!: number;
+  /** the picked option of a CHOICE exercise — graded by this, not by its text */
+  choiceId?: number;
+  /** fill-in-the-blank answer; for CHOICE only a fallback for clients that send no choiceId */
   chosenAnswer?: string;
   startTime!: string;
   endTime!: string;

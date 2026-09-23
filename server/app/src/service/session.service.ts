@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -174,6 +175,44 @@ export class sessionService {
             }))
           : undefined,
     };
+  }
+
+  /**
+   * Grade against the exercise as it is now. A choice is identified by the id the student saw
+   * (text only for clients that don't send one); an admin edit replaces every choice, so an
+   * id or text that matches no current choice means the question changed while it was on
+   * screen — that answer is refused with EXERCISE_CHANGED rather than scored as wrong, and the
+   * client reloads the question. Nothing has been written when this throws.
+   */
+  private gradeAnswer(
+    exercise: Exercise,
+    dto: SubmitAnswerDto,
+  ): { isCorrect: boolean; chosenAnswer: string | undefined } {
+    if (exercise.type === ExerciseType.CHOICE) {
+      const choices = exercise.exerciseChoices || [];
+      const chosen =
+        dto.choiceId != null
+          ? choices.find((c) => c.id === dto.choiceId)
+          : choices.find((c) => c.script === dto.chosenAnswer);
+      if (!chosen) throw this.exerciseChanged(exercise.id);
+      return { isCorrect: !!chosen.isAnswer, chosenAnswer: chosen.script };
+    }
+
+    if (dto.choiceId != null) throw this.exerciseChanged(exercise.id);
+    const isCorrect =
+      exercise.isCasesensitive === 'YES'
+        ? exercise.fillInBlank === dto.chosenAnswer
+        : (exercise.fillInBlank || '').toLowerCase() ===
+          (dto.chosenAnswer || '').toLowerCase();
+    return { isCorrect, chosenAnswer: dto.chosenAnswer };
+  }
+
+  private exerciseChanged(exerciseId: number): ConflictException {
+    return new ConflictException({
+      statusCode: 409,
+      code: 'EXERCISE_CHANGED',
+      message: `Exercise ${exerciseId} was edited while it was being answered`,
+    });
   }
 
   private async createSession(
@@ -351,15 +390,7 @@ export class sessionService {
       );
     }
 
-    const isCorrect =
-      exercise.type === ExerciseType.CHOICE
-        ? (exercise.exerciseChoices || []).some(
-            (c) => c.isAnswer && c.script === dto.chosenAnswer,
-          )
-        : exercise.isCasesensitive === 'YES'
-          ? exercise.fillInBlank === dto.chosenAnswer
-          : (exercise.fillInBlank || '').toLowerCase() ===
-            (dto.chosenAnswer || '').toLowerCase();
+    const { isCorrect, chosenAnswer } = this.gradeAnswer(exercise, dto);
 
     const skill = await this.skillRepository.findOne({
       where: { skillId: session.skillId },
@@ -434,7 +465,7 @@ export class sessionService {
         isPretest: false,
         startTime: new Date(dto.startTime),
         endTime: new Date(dto.endTime),
-        chosenAnswer: dto.chosenAnswer,
+        chosenAnswer,
         pL: pLNext,
       });
       await manager.save(history);
