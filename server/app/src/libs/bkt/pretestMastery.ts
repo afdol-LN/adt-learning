@@ -11,9 +11,12 @@ export interface ProfileFactors {
   year: number | null;
 }
 
-const P_BASE_CAP = 0.75;
+// docs/adr/0006: expForGoal is self-reported, so it only nudges the start (≤ 0.35); the parts
+// add up to 0.55 at most, which a correct answer or two still has to lift to 0.95.
+const P_BASE_CAP = 0.35;
 const P_BASE_FLOOR = 0.1;
-const PL0_CAP = 0.85;
+// safety net only — base + pretest + profile can't reach it with the values below
+const PL0_CAP = 0.6;
 
 export class PretestMasteryCalculator {
   static computePBase(expForGoal: number | null, tierNum: number): number {
@@ -22,11 +25,11 @@ export class PretestMasteryCalculator {
     const clampedExp = Math.min(5, Math.max(1, exp));
     const gap = clampedExp - tierNum;
     if (gap <= -2) return P_BASE_FLOOR;
-    if (gap === -1) return 0.15;
-    if (gap === 0) return 0.25;
-    if (gap === 1) return 0.4;
-    if (gap === 2) return 0.55;
-    if (gap === 3) return 0.65;
+    if (gap === -1) return 0.12;
+    if (gap === 0) return 0.15;
+    if (gap === 1) return 0.2;
+    if (gap === 2) return 0.25;
+    if (gap === 3) return 0.3;
     return P_BASE_CAP; // gap >= 4
   }
 
@@ -57,8 +60,8 @@ export class PretestMasteryCalculator {
 
   static computeDeltaProfile(profile: ProfileFactors): number {
     return (
-      (profile.isAboutCs ? 0.05 : 0) +
-      (profile.year !== null && profile.year >= 2 ? 0.04 : 0)
+      (profile.isAboutCs ? 0.03 : 0) +
+      (profile.year !== null && profile.year >= 2 ? 0.02 : 0)
     );
   }
 
