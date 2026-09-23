@@ -17,7 +17,8 @@ const PL0_CAP = 0.85;
 
 export class PretestMasteryCalculator {
   static computePBase(expForGoal: number | null, tierNum: number): number {
-    const exp = expForGoal === null || expForGoal === undefined ? 3 : expForGoal;
+    const exp =
+      expForGoal === null || expForGoal === undefined ? 3 : expForGoal;
     const clampedExp = Math.min(5, Math.max(1, exp));
     const gap = clampedExp - tierNum;
     if (gap <= -2) return P_BASE_FLOOR;
@@ -61,16 +62,27 @@ export class PretestMasteryCalculator {
     );
   }
 
+  static breakdown(
+    expForGoal: number | null,
+    tierNum: number,
+    stats: PretestAnswerStat[],
+    profile: ProfileFactors,
+  ) {
+    const base = this.computePBase(expForGoal, tierNum);
+    const pretest = this.computeDeltaPretest(stats);
+    const profileDelta = this.computeDeltaProfile(profile);
+    const total = Math.min(PL0_CAP, base + pretest + profileDelta);
+    return { base, pretest, profile: profileDelta, total };
+  }
+
   static computePL0(
     expForGoal: number | null,
     tierNum: number,
     stats: PretestAnswerStat[],
     profile: ProfileFactors,
   ): number {
-    const pBase = this.computePBase(expForGoal, tierNum);
-    const deltaPretest = this.computeDeltaPretest(stats);
-    const deltaProfile = this.computeDeltaProfile(profile);
-    return Math.min(PL0_CAP, pBase + deltaPretest + deltaProfile);
+    // สูตรมีที่เดียวคือ breakdown() — หน้าอธิบายคะแนนเริ่มต้นใช้ตัวเดียวกัน ตัวเลขจึงตรงกันเสมอ
+    return this.breakdown(expForGoal, tierNum, stats, profile).total;
   }
 }
 
