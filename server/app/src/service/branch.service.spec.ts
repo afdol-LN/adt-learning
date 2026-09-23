@@ -143,7 +143,7 @@ describe('branchService', () => {
         { skillId: 10, skillsName: 'Python Basics', tier: 'T1' },
         { skillId: 11, skillsName: 'Loops', tier: 'T2' },
       ]);
-      // สาขาคอม + ปี 2 → ส่วนโปรไฟล์ = 0.05 + 0.04 = 0.09
+      // สาขาคอม + ปี 2 → ส่วนโปรไฟล์ = 0.03 + 0.02 = 0.05
       userprofileRepo.findOne.mockResolvedValue({
         id: 1,
         year: 2,
@@ -157,25 +157,25 @@ describe('branchService', () => {
 
       const [python, loops] = await service.getPretestBreakdown(7, 1);
 
-      // exp 3 vs T1 → base 0.55; รวม 0.765 ไม่ชนเพดาน 0.85
+      // exp 3 vs T1 → base 0.25; รวม 0.25 + 0.125 + 0.05 = 0.425
       expect(python).toEqual({
         skillId: 10,
         skillsName: 'Python Basics',
-        totalPercent: 80.52,
-        basePercent: 57.89,
+        totalPercent: 44.73,
+        basePercent: 26.31,
         pretestPercent: 13.15,
-        profilePercent: 9.47,
+        profilePercent: 5.26,
         capPercent: 0,
         correct: 2,
         answered: 2,
       });
-      // ไม่มีข้อใน pretest: ได้แค่พื้นฐาน (exp 3 vs T2 → 0.4) + โปรไฟล์
+      // ไม่มีข้อใน pretest: ได้แค่พื้นฐาน (exp 3 vs T2 → 0.2) + โปรไฟล์
       expect(loops).toEqual(
         expect.objectContaining({
-          totalPercent: 51.57,
-          basePercent: 42.1,
+          totalPercent: 26.31,
+          basePercent: 21.05,
           pretestPercent: 0,
-          profilePercent: 9.47,
+          profilePercent: 5.26,
           capPercent: 0,
           correct: 0,
           answered: 0,
@@ -183,20 +183,20 @@ describe('branchService', () => {
       );
     });
 
-    it('reports what the 0.85 ceiling cut off, so the parts add up to the total', async () => {
-      // exp 5 vs T1 → base 0.75; 0.75 + 0.125 + 0.09 = 0.965 → ถูกจำกัดที่ 0.85
+    // docs/adr/0006: the parts can add up to 0.55 at most, so the 0.6 cap is only a safety net
+    it('does not hit the cap even at the highest experience', async () => {
+      // exp 5 vs T1 → base 0.35; 0.35 + 0.125 + 0.05 = 0.525
       branchRepo.findOne.mockResolvedValue(pretestedBranch(5));
 
       const [python] = await service.getPretestBreakdown(7, 1);
 
-      expect(python.totalPercent).toBe(89.47);
-      expect(python.capPercent).toBe(12.09);
-      expect(
-        python.basePercent +
-          python.pretestPercent +
-          python.profilePercent -
-          python.capPercent,
-      ).toBeCloseTo(python.totalPercent, 2);
+      expect(python.totalPercent).toBe(55.26);
+      expect(python.capPercent).toBe(0);
+      // each part is truncated on its own (ADR 0004), so uncapped parts may sum up to 0.02 short
+      const partsSum =
+        python.basePercent + python.pretestPercent + python.profilePercent;
+      expect(python.totalPercent - partsSum).toBeGreaterThanOrEqual(0);
+      expect(python.totalPercent - partsSum).toBeLessThanOrEqual(0.02 + 1e-9);
     });
 
     it("refuses someone else's branch", async () => {
