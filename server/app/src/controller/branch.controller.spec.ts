@@ -3,11 +3,13 @@ import { branchController } from './branch.controller';
 import { branchService } from 'src/service/branch.service';
 import { historyService } from 'src/service/history.service';
 import { sessionService } from 'src/service/session.service';
+import { learningReportService } from 'src/service/learningReport.service';
 import { AuthenRequestDto } from 'src/dto/userprofile.dto';
 
 describe('branchController', () => {
   let controller: branchController;
   let service: { create: jest.Mock };
+  let report: { getBranchReport: jest.Mock; getSummaryReport: jest.Mock };
 
   const makeRequest = (userId: number): AuthenRequestDto =>
     ({
@@ -18,6 +20,10 @@ describe('branchController', () => {
     service = {
       create: jest.fn((data) => Promise.resolve({ id: 1, ...data })),
     };
+    report = {
+      getBranchReport: jest.fn().mockResolvedValue({ documentNo: 'ALS-B5' }),
+      getSummaryReport: jest.fn().mockResolvedValue({ documentNo: 'ALS-U42' }),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [branchController],
@@ -27,6 +33,7 @@ describe('branchController', () => {
         // requires them — without stubs Nest can't build the controller at all.
         { provide: historyService, useValue: {} },
         { provide: sessionService, useValue: {} },
+        { provide: learningReportService, useValue: report },
       ],
     }).compile();
 
@@ -60,6 +67,26 @@ describe('branchController', () => {
       userId: 42,
       goalId: 7,
       expForGoal: 3,
+    });
+  });
+
+  it('builds reports for the authenticated user only', async () => {
+    await controller.getBranchReport(makeRequest(42), 5);
+    await controller.getMySummaryReport(makeRequest(42));
+
+    expect(report.getBranchReport).toHaveBeenCalledWith(5, 42);
+    expect(report.getSummaryReport).toHaveBeenCalledWith(42);
+  });
+
+  it('reports another user\'s branch as an error instead of throwing', async () => {
+    report.getBranchReport.mockRejectedValue(new Error('Branch does not belong to the user'));
+
+    const res = await controller.getBranchReport(makeRequest(42), 5);
+
+    expect(res).toEqual({
+      isError: true,
+      data: null,
+      errorMassege: 'Branch does not belong to the user',
     });
   });
 });
