@@ -16,6 +16,7 @@ export class UserAdminItemDto {
   genderName: string;
   username: string;
   role: string;
+  createdAt: string | null;
 }
 
 export class fillAllForAdminManageResponseDto implements restfulResponse<

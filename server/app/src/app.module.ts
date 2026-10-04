@@ -62,6 +62,8 @@ import { ktController } from './controller/kt.controller';
 import { ktService } from './service/kt.service';
 import { sessionController } from './controller/session.controller';
 import { sessionService } from './service/session.service';
+import { exerciseStatsController } from './controller/exerciseStats.controller';
+import { exerciseStatsService } from './service/exerciseStats.service';
 import { aiDraftController } from './controller/aiDraft.controller';
 import { aiDraftService } from './service/aiDraft.service';
 import { LlmClient } from './libs/llm/llm.client';
@@ -120,6 +122,7 @@ import { envFilePath } from './config/env-file';
     ktController,
     sessionController,
     aiDraftController,
+    exerciseStatsController,
   ],
   providers: [
     AppService,
@@ -141,6 +144,7 @@ import { envFilePath } from './config/env-file';
     ktService,
     sessionService,
     aiDraftService,
+    exerciseStatsService,
     LlmClient,
     Hash,
     JwtService,

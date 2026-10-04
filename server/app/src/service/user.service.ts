@@ -175,6 +175,9 @@ export class userProfileService extends BaseService<Userprofile> {
               genderName: userProfile.gender?.gender || '-',
               username: userProfile.username,
               role: userProfile.role,
+              createdAt: userProfile.createdAt
+                ? userProfile.createdAt.toISOString()
+                : null,
             };
           }),
           errorMessage: '',
@@ -254,6 +257,7 @@ export class userProfileService extends BaseService<Userprofile> {
         if (!userprofile.status) {
           userprofile.status = 'active';
         }
+        userprofile['createdAt'] = new Date();
         const created = await this.userProfileRepository.save(userprofile);
         response = {
           isError: false,
