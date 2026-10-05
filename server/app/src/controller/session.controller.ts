@@ -14,6 +14,13 @@ import {
 export class sessionController {
   constructor(private readonly sessionService: sessionService) {}
 
+  // ตอบทันที ไม่รอ engine ตื่น — frontend ยิงตอนเปิดหน้า Home
+  @Post('/warmup')
+  warmUp(): { ok: true } {
+    this.sessionService.warmUpEngine();
+    return { ok: true };
+  }
+
   @Post('/start')
   async startSession(
     @Req() req: AuthenRequestDto,

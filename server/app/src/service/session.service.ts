@@ -285,10 +285,16 @@ export class sessionService {
     };
   }
 
+  /** ปลุก KT engine ก่อนนักเรียนส่งคำตอบแรก — เรียกตอนเปิด Home และตอนเริ่ม session */
+  warmUpEngine(): void {
+    this.ktService.warmUp();
+  }
+
   async startSession(
     userId: number,
     dto: StartSessionDto,
   ): Promise<StartSessionResponseDto> {
+    this.warmUpEngine();
     const branch = await this.loadOwnedBranch(dto.branchId, userId);
     const skill = await this.skillRepository.findOne({
       where: { skillId: dto.skillId },
