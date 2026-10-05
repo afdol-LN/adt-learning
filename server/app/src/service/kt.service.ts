@@ -64,25 +64,6 @@ export class ktService {
     }
   }
 
-  /**
-   * ปลุก engine ล่วงหน้า (Render free plan หลับเมื่อว่าง ~15 นาที และตื่นช้า ~70 วินาที)
-   * fire-and-forget: ไม่รอผล ไม่โยน error — ถ้าปลุกไม่ขึ้น submitAttempt จะรายงานเองตอนส่งคำตอบ
-   * ยิงไม่เกินครั้งละ WARM_UP_INTERVAL_MS ต่อ instance เพื่อไม่ให้นักเรียนหลายคนเปิด Home พร้อมกันแล้วยิงซ้ำ
-   */
-  private lastWarmUpAt = 0;
-  private static readonly WARM_UP_INTERVAL_MS = 60_000;
-
-  warmUp(): void {
-    const now = Date.now();
-    if (now - this.lastWarmUpAt < ktService.WARM_UP_INTERVAL_MS) return;
-    this.lastWarmUpAt = now;
-    firstValueFrom(
-      this.httpService.get(`${this.baseUrl}/health`, { timeout: 120_000 }),
-    ).catch((error) =>
-      this.logger.warn(`KT engine warm-up failed: ${error?.message}`),
-    );
-  }
-
   // service สำหรับรัน corn job
   async triggerCalibration(): Promise<
     restfulResponse<{ status: string; message: string } | null>

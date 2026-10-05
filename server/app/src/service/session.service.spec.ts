@@ -71,7 +71,7 @@ describe('sessionService.recommendNextSkill reads per-branch mastery', () => {
         { provide: getRepositoryToken(SessionAndExercise), useValue: {} },
         { provide: getRepositoryToken(History), useValue: {} },
         { provide: DataSource, useValue: {} },
-        { provide: ktService, useValue: { warmUp: jest.fn() } },
+        { provide: ktService, useValue: {} },
       ],
     }).compile();
 
@@ -104,7 +104,7 @@ describe('sessionService returns the skill-tree Progress with each question', ()
     find: jest.Mock;
   };
   let sessionAndExerciseRepo: { find: jest.Mock };
-  let kt: { submitAttempt: jest.Mock; warmUp: jest.Mock };
+  let kt: { submitAttempt: jest.Mock };
   let manager: {
     getRepository: () => { save: (x: any) => Promise<any> };
     create: (entity: unknown, x: any) => any;
@@ -148,7 +148,6 @@ describe('sessionService returns the skill-tree Progress with each question', ()
     };
     sessionAndExerciseRepo = { find: jest.fn().mockResolvedValue([]) };
     kt = {
-      warmUp: jest.fn(),
       submitAttempt: jest
         .fn()
         .mockResolvedValue({ isError: false, data: { pLNext: 0.6 } }),
