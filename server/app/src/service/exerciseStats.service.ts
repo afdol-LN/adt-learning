@@ -5,6 +5,7 @@ import { History } from 'src/entity/history.entity';
 import { Exercise } from 'src/entity/exerciseAndSession/exercise.entity';
 import { Skill } from 'src/entity/skill.entity';
 import { Userprofile } from 'src/entity/userprofile.entity';
+import { MasteryState } from 'src/libs/bkt/masteryState';
 import {
   ExerciseStatChoiceDto,
   ExerciseStatDetailDto,
@@ -201,7 +202,10 @@ export class exerciseStatsService {
         timeSpentSec: durations.length
           ? round1(durations.reduce((s, v) => s + v, 0) / durations.length)
           : null,
-        latestPL: practice.length ? practice[practice.length - 1].pL : null,
+        // progress (what students see), never raw P(L) — docs/adr/0001
+        latestProgress: practice.length
+          ? MasteryState.progressOf(practice[practice.length - 1].pL as number)
+          : null,
         lastAnsweredAt: last.endTime,
       });
 
