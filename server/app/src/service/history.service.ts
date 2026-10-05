@@ -68,7 +68,11 @@ export class historyService extends BaseService<History> {
     userId: number,
   ): Promise<History[]> {
     await this.validateBranchOwnership(branchId, userId, false);
+    return await this.loadBranchHistories(branchId);
+  }
 
+  // every answer of a branch with what a session card needs — no ownership check, callers do that
+  private async loadBranchHistories(branchId: number): Promise<History[]> {
     return await this.historyRepository.find({
       where: { branchId },
       relations: {
@@ -275,8 +279,39 @@ export class historyService extends BaseService<History> {
     userId: number,
   ): Promise<SessionHistoryItemDto[]> {
     const histories = await this.getRawHistoriesForBranch(branchId, userId);
+    return this.buildSessionHistory(histories);
+  }
 
+  /**
+   * One session, shaped exactly like a student's history card, for the admin History tab.
+   * Admin-only (the route is guarded), so there is no ownership check. The whole branch is loaded
+   * because the session's `progressBefore` comes from the answers saved before it.
+   */
+  async getSessionDetail(sessionId: number): Promise<SessionHistoryItemDto> {
+    const anyAnswer = await this.historyRepository.findOne({
+      where: { sessionAndExercise: { sessionId } },
+      select: { id: true, branchId: true },
+    });
+    if (!anyAnswer) {
+      throw new NotFoundException(`Session ${sessionId} has no answers`);
+    }
+    const sessions = this.buildSessionHistory(
+      await this.loadBranchHistories(anyAnswer.branchId),
+    );
+    const session = sessions.find((s) => s.sessionId === sessionId);
+    if (!session) {
+      throw new NotFoundException(`Session ${sessionId} not found`);
+    }
+    return session;
+  }
+
+  // History rows (id ASC) → one card per session, newest session first
+  buildSessionHistory(histories: History[]): SessionHistoryItemDto[] {
     const sessionsMap = new Map<number, SessionHistoryItemDto>();
+    // Rows come in the order they were saved (id ASC). Walking them in order, this holds each skill's
+    // P(L) after its latest practice answer so far — i.e. the "before" of the next session of that skill.
+    // Pretest rows are left out: their P(L) isn't the skill's practice mastery.
+    const lastPracticePL = new Map<number, number>();
 
     for (const history of histories) {
       const se = history.sessionAndExercise;
@@ -284,8 +319,13 @@ export class historyService extends BaseService<History> {
 
       const sessionId = se.sessionId;
       let sessionDto = sessionsMap.get(sessionId);
+      const skillId = se.exercise?.skillId;
 
       if (!sessionDto) {
+        const before =
+          !history.isPretest && skillId !== undefined
+            ? lastPracticePL.get(skillId)
+            : undefined;
         sessionDto = {
           sessionId,
           startTime: history.startTime,
@@ -295,9 +335,19 @@ export class historyService extends BaseService<History> {
           inProgress:
             !history.isPretest && !!se.session && !se.session.endedAt,
           skillNames: [],
+          stopReason: history.isPretest ? null : (se.session?.stopReason ?? null),
+          // Progress, never raw P(L) (docs/adr/0001): MasteryState is the only place it is computed
+          progressBefore:
+            before !== undefined ? MasteryState.progressOf(before) : null,
+          progressAfter: null,
           questions: [],
         };
         sessionsMap.set(sessionId, sessionDto);
+      }
+
+      if (!history.isPretest && skillId !== undefined && history.pL !== null) {
+        lastPracticePL.set(skillId, history.pL);
+        sessionDto.progressAfter = MasteryState.progressOf(history.pL);
       }
 
       if (history.startTime < sessionDto.startTime) {
@@ -339,6 +389,10 @@ export class historyService extends BaseService<History> {
         chosenAnswer: history.chosenAnswer || null,
         correctAnswer,
         isCasesensitive: exercise.isCasesensitive || 'NO',
+        code: exercise.code || null,
+        language: exercise.language || null,
+        skillLevel: exercise.skillLevel ?? null,
+        expectTime: exercise.expectTime ?? null,
       };
 
       sessionDto.questions.push(questionDto);

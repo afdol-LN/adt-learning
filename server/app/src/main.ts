@@ -5,8 +5,15 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  // CORS_ORIGINS: comma-separated list, e.g. "https://my-app.vercel.app,http://localhost:5173"
+  const corsOrigins = (
+    process.env.CORS_ORIGINS ?? 'http://localhost:5173,http://localhost:5174'
+  )
+    .split(',')
+    .map((o) => o.trim().replace(/\/$/, ''))
+    .filter(Boolean);
   app.enableCors({
-    origin: ['http://localhost:5173', 'http://localhost:5174'],
+    origin: corsOrigins,
     credentials: true,
   });
   // app.useGlobalPipes(

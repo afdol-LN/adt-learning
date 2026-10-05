@@ -7,6 +7,7 @@ import {
   Patch,
   Post,
   Put,
+  Query,
   Req,
 } from '@nestjs/common';
 import {
@@ -23,6 +24,8 @@ import { Hash } from 'src/libs/hash';
 import { UseGuards } from '@nestjs/common';
 import { AdminMiddleware } from 'src/middleware/adminMiddleWare';
 import { ApiTags } from '@nestjs/swagger';
+import { activityService } from 'src/service/activity.service';
+import type { ActivityQuery } from 'src/service/activity.service';
 
 @ApiTags('User Profile')
 @Controller('/userprofile')
@@ -31,6 +34,7 @@ export class userController extends BaseController<Userprofile> {
     private readonly userService: userProfileService,
     private readonly auth: authService,
     private readonly hash: Hash,
+    private readonly activity: activityService,
   ) {
     super(userService);
   }
@@ -68,6 +72,18 @@ export class userController extends BaseController<Userprofile> {
     @Body('status') status: string,
   ) {
     return await this.userService.updateUserStatus(id, status);
+  }
+
+  // timeline for the admin History tab: ?types=all|goal|skill|exercise|login&userId=&page=&pageSize=
+  @UseGuards(AdminMiddleware)
+  @Get('/admin/activity')
+  async activityTimeline(@Query() query: ActivityQuery) {
+    try {
+      const data = await this.activity.getActivity(query);
+      return { isError: false, data, errorMessage: '' };
+    } catch (error: any) {
+      return { isError: true, data: null, errorMessage: error.message };
+    }
   }
 
   @UseGuards(AdminMiddleware)

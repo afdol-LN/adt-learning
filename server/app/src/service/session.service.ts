@@ -412,42 +412,53 @@ export class sessionService {
       1000;
     const expectTimeForRatio = exercise.expectTime ?? responseTime;
 
-    const attemptPayload: AttemptRequestDto = {
-      pLCurrent: currentEntry.pL,
-      pT: skill.pT,
-      pG: exercise.pG,
-      pS: exercise.pS,
-      isCorrect,
-      responseTime,
-      expectTime: expectTimeForRatio,
-    };
-    const attemptResult = await this.ktService.submitAttempt(attemptPayload);
-    if (attemptResult.isError || !attemptResult.data) {
-      throw new BadRequestException(
-        attemptResult.errorMessage || 'KT engine failed to process the attempt',
+    // Review mode (docs/adr/0007): a skill already at 100% before this answer keeps the pL that got
+    // it there. The KT engine is not asked and conceptMapState is not written, so reviewing can never
+    // move Progress; the answer is still recorded in History, and the next question is picked with
+    // that same frozen pL, for a full round. A session that was *not* a review still ends on the answer
+    // that first takes the skill to 100% ('mastered', below), so it never goes on as a review.
+    const reviewing = currentEntry.pL >= MasteryState.MASTERY_THRESHOLD;
+
+    let pLNext = currentEntry.pL;
+    let nextEntry = currentEntry;
+    if (!reviewing) {
+      const attemptPayload: AttemptRequestDto = {
+        pLCurrent: currentEntry.pL,
+        pT: skill.pT,
+        pG: exercise.pG,
+        pS: exercise.pS,
+        isCorrect,
+        responseTime,
+        expectTime: expectTimeForRatio,
+      };
+      const attemptResult = await this.ktService.submitAttempt(attemptPayload);
+      if (attemptResult.isError || !attemptResult.data) {
+        throw new BadRequestException(
+          attemptResult.errorMessage ||
+            'KT engine failed to process the attempt',
+        );
+      }
+      pLNext = attemptResult.data.pLNext;
+      nextEntry = MasteryState.buildEntry(
+        pLNext,
+        currentEntry.attemptCount + 1,
       );
     }
-    const pLNext = attemptResult.data.pLNext;
-    const nextEntry = MasteryState.buildEntry(
-      pLNext,
-      currentEntry.attemptCount + 1,
-    );
 
     AdaptiveEngineLogger.log(
-      `[ability] user=${userId} skill=${skill.skillId} exercise=${exercise.id} correct=${isCorrect} pL ${currentEntry.pL.toFixed(3)} -> ${pLNext.toFixed(3)} mastered=${pLNext >= MasteryState.MASTERY_THRESHOLD}`,
+      `[ability] user=${userId} skill=${skill.skillId} exercise=${exercise.id} correct=${isCorrect} pL ${currentEntry.pL.toFixed(3)} -> ${pLNext.toFixed(3)} mastered=${pLNext >= MasteryState.MASTERY_THRESHOLD}${reviewing ? ' review (pL frozen)' : ''}`,
     );
 
     // Only this skill's entry changes, so the goal can only become complete on the answer that
-    // masters it — which also ends the session, so the celebration lands in its summary
+    // masters it — which also ends the session, so the celebration lands in its summary.
+    // A review changes nothing, so it can't complete the goal either.
     const nextState: ConceptMapState = {
       ...conceptMapState,
       [String(skill.skillId)]: nextEntry,
     };
-    const goalCompleted = await this.recordGoalCompletion(
-      branch,
-      conceptMapState,
-      nextState,
-    );
+    const goalCompleted = reviewing
+      ? false
+      : await this.recordGoalCompletion(branch, conceptMapState, nextState);
 
     await this.dataSource.transaction(async (manager) => {
       const sessionAndExerciseRepo = manager.getRepository(SessionAndExercise);
@@ -470,8 +481,10 @@ export class sessionService {
       });
       await manager.save(history);
 
-      branch.conceptMapState = nextState;
-      await manager.save(branch);
+      if (!reviewing) {
+        branch.conceptMapState = nextState;
+        await manager.save(branch);
+      }
     });
 
     const answeredExerciseIds = [
@@ -483,8 +496,11 @@ export class sessionService {
       exercise.id,
     ];
 
+    // Reaching 100% ends the session right there, whichever question it is. A review (already at
+    // 100% before this answer) can't reach it again, so it runs the full round: SESSION_QUESTION_LIMIT
+    // answers, or until the skill runs out of questions (docs/adr/0007).
     let stopReason: 'mastered' | 'completed' | 'exhausted' | null = null;
-    if (pLNext >= MasteryState.MASTERY_THRESHOLD) {
+    if (!reviewing && pLNext >= MasteryState.MASTERY_THRESHOLD) {
       stopReason = 'mastered';
     } else if (answeredExerciseIds.length >= SESSION_QUESTION_LIMIT) {
       stopReason = 'completed';

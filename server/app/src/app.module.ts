@@ -30,6 +30,7 @@ import { GoalSkillRequire } from './entity/goalSkillRequire.entity';
 
 // AI draft entity
 import { AiDraft } from './entity/aiDraft.entity';
+import { LoginLog } from './entity/loginLog.entity';
 
 // Controllers & Services
 import { userController } from './controller/user.controller';
@@ -55,10 +56,14 @@ import { goalService } from './service/goal.service';
 import { goalWorkspaceService } from './service/goalWorkspace.service';
 import { historyController } from './controller/history.controller';
 import { historyService } from './service/history.service';
+import { activityService } from './service/activity.service';
+import { learningReportService } from './service/learningReport.service';
 import { ktController } from './controller/kt.controller';
 import { ktService } from './service/kt.service';
 import { sessionController } from './controller/session.controller';
 import { sessionService } from './service/session.service';
+import { exerciseStatsController } from './controller/exerciseStats.controller';
+import { exerciseStatsService } from './service/exerciseStats.service';
 import { aiDraftController } from './controller/aiDraft.controller';
 import { aiDraftService } from './service/aiDraft.service';
 import { LlmClient } from './libs/llm/llm.client';
@@ -98,6 +103,7 @@ import { envFilePath } from './config/env-file';
       GoalSkillRequire,
       History,
       AiDraft,
+      LoginLog,
     ]),
   ],
   controllers: [
@@ -116,6 +122,7 @@ import { envFilePath } from './config/env-file';
     ktController,
     sessionController,
     aiDraftController,
+    exerciseStatsController,
   ],
   providers: [
     AppService,
@@ -132,9 +139,12 @@ import { envFilePath } from './config/env-file';
     goalService,
     goalWorkspaceService,
     historyService,
+    activityService,
+    learningReportService,
     ktService,
     sessionService,
     aiDraftService,
+    exerciseStatsService,
     LlmClient,
     Hash,
     JwtService,

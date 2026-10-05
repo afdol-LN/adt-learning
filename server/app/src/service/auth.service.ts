@@ -8,6 +8,7 @@ import { DateFormat } from 'src/libs/date-format';
 import { JwtService } from 'src/libs/jwt';
 import { access } from 'fs';
 import { CreateUserprofileDto } from 'src/dto/userprofile.dto';
+import { LoginLog } from 'src/entity/loginLog.entity';
 @Injectable()
 export class authService extends BaseService<Userprofile> {
   private readonly hash: Hash = new Hash();
@@ -15,6 +16,8 @@ export class authService extends BaseService<Userprofile> {
   constructor(
     @InjectRepository(Userprofile)
     private readonly userReponsitory: Repository<Userprofile>,
+    @InjectRepository(LoginLog)
+    private readonly loginLogRepository: Repository<LoginLog>,
   ) {
     super(userReponsitory);
     ('');
@@ -100,6 +103,7 @@ export class authService extends BaseService<Userprofile> {
           userId: result.id,
         };
         const accessToken = this.jwtservice.generateToken(payload);
+        await this.recordLogin(result.id);
         const branchIds =
           result.branches &&
           Array.isArray(result.branches) &&
@@ -125,6 +129,15 @@ export class authService extends BaseService<Userprofile> {
       };
     } finally {
       return response;
+    }
+  }
+
+  // admin History timeline reads this; a failed write must never block the login itself
+  private async recordLogin(userId: number) {
+    try {
+      await this.loginLogRepository.insert({ userId });
+    } catch (error: any) {
+      Logger.warn(`loginLog insert failed for user ${userId}: ${error.message}`);
     }
   }
 

@@ -143,7 +143,7 @@ export class branchService extends BaseService<Branch> {
       }),
       this.userprofileRepository.findOne({
         where: { id: userId },
-        relations: { major: true },
+        relations: { major: { faculty: true } },
       }),
     ]);
 
@@ -205,6 +205,12 @@ export class branchService extends BaseService<Branch> {
         capPercent,
         correct: stats.filter((s) => s.isCorrect).length,
         answered: stats.length,
+        // ค่าโปรไฟล์/ประสบการณ์ต่อไปนี้เหมือนกันทุกแถว (ผูกกับ user/branch ไม่ใช่ skill)
+        // ส่งมาซ้ำในแต่ละ item เพื่อไม่ต้องเปลี่ยนรูปแบบ response เดิมจาก array
+        expForGoal: branch.expForGoal,
+        facultyName: userprofile?.major?.faculty?.faculty ?? null,
+        majorName: userprofile?.major?.major ?? null,
+        year: userprofile?.year ?? null,
       };
     });
   }

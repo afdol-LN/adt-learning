@@ -25,7 +25,19 @@ import { AdminMiddleware } from 'src/middleware/adminMiddleWare';
 import { branchService } from 'src/service/branch.service';
 import { historyService } from 'src/service/history.service';
 import { sessionService } from 'src/service/session.service';
+import { learningReportService } from 'src/service/learningReport.service';
+import {
+  responseBranchReport,
+  responseSummaryReport,
+} from 'src/dto/learningReport.dto';
 import { BaseController } from './base.controller';
+
+const failure = (error: unknown) => ({
+  isError: true,
+  data: null,
+  errorMassege:
+    error instanceof Error ? error.message : 'An unknown error occurred',
+});
 
 @ApiTags('Branch')
 @Controller('/branch')
@@ -34,6 +46,7 @@ export class branchController extends BaseController<Branch> {
     private readonly branchService: branchService,
     private readonly historyService: historyService,
     private readonly sessionService: sessionService,
+    private readonly learningReport: learningReportService,
   ) {
     super(branchService);
   }
@@ -67,6 +80,37 @@ export class branchController extends BaseController<Branch> {
       goalId: dto.goalId,
       expForGoal: dto.expForGoal,
     });
+  }
+
+  // Profile → Export PDF, every goal of the caller. Declared before /:branchId/* so "mine" is not
+  // parsed as a branch id.
+  @Get('/mine/report')
+  async getMySummaryReport(
+    @Req() req: AuthenRequestDto,
+  ): Promise<responseSummaryReport> {
+    try {
+      const data = await this.learningReport.getSummaryReport(req.user!.userId);
+      return { isError: false, data, errorMassege: null };
+    } catch (error) {
+      return failure(error);
+    }
+  }
+
+  // Profile → Export PDF, one goal; the service checks the branch is the caller's
+  @Get('/:branchId/report')
+  async getBranchReport(
+    @Req() req: AuthenRequestDto,
+    @Param('branchId', ParseIntPipe) branchId: number,
+  ): Promise<responseBranchReport> {
+    try {
+      const data = await this.learningReport.getBranchReport(
+        branchId,
+        req.user!.userId,
+      );
+      return { isError: false, data, errorMassege: null };
+    } catch (error) {
+      return failure(error);
+    }
   }
 
   // userId from the JWT, never the body — a student can only touch their own branch

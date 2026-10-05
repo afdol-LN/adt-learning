@@ -166,4 +166,108 @@ describe('historyService conceptMapState-driven read side', () => {
       completedAt: '2026-09-10T08:00:00.000Z',
     });
   });
+
+  describe('getSessionsForBranch', () => {
+    // one History row as getRawHistoriesForBranch returns it (id ASC = the order answers were saved)
+    const row = (
+      id: number,
+      sessionId: number,
+      pL: number | null,
+      opts: { isPretest?: boolean; stopReason?: string | null; endedAt?: Date | null } = {},
+    ) => ({
+      id,
+      isCorrect: true,
+      isPretest: opts.isPretest ?? false,
+      startTime: new Date(`2026-09-2${sessionId}T10:00:0${id % 10}Z`),
+      endTime: new Date(`2026-09-2${sessionId}T10:00:2${id % 10}Z`),
+      chosenAnswer: 'a',
+      pL,
+      sessionAndExercise: {
+        sessionId,
+        session: { endedAt: opts.endedAt === undefined ? new Date() : opts.endedAt, stopReason: opts.stopReason ?? 'completed' },
+        exercise: {
+          id: 100 + id,
+          skillId: 1,
+          type: 'CHOICE',
+          description: `q${id}`,
+          code: 'print(1)',
+          language: 'python',
+          skillLevel: 3,
+          expectTime: 30,
+          exerciseChoices: [{ id: 1, script: 'a', isAnswer: true }],
+          skill: { skillsName: 'Skill 1' },
+        },
+      },
+    });
+
+    it('reports stopReason and the skill Progress before and after each session, never raw P(L)', async () => {
+      historyRepo.find.mockResolvedValue([
+        row(1, 1, 0.5, { isPretest: true }), // pretest P(L) is not practice mastery
+        row(2, 2, 0.4, { stopReason: 'completed' }),
+        row(3, 2, 0.6, { stopReason: 'completed' }),
+        row(4, 3, 0.8, { stopReason: 'mastered' }),
+        row(5, 3, 0.96, { stopReason: 'mastered' }),
+      ]);
+
+      const sessions = await service.getSessionsForBranch(1, 42);
+      const byId = new Map(sessions.map((s) => [s.sessionId, s]));
+
+      // pretest: no Progress, no stop reason
+      expect(byId.get(1)).toMatchObject({ stopReason: null, progressBefore: null, progressAfter: null });
+      // first practice session of the skill: nothing earlier to read "before" from
+      expect(byId.get(2)).toMatchObject({ stopReason: 'completed', progressBefore: null, progressAfter: 63.15 });
+      // the next one starts where the last answer left it; 0.96 → 100 (docs/adr/0004)
+      expect(byId.get(3)).toMatchObject({ stopReason: 'mastered', progressBefore: 63.15, progressAfter: 100 });
+    });
+
+    it('sends the question code, language, level and expected time', async () => {
+      historyRepo.find.mockResolvedValue([row(2, 2, 0.4)]);
+
+      const [session] = await service.getSessionsForBranch(1, 42);
+
+      expect(session.questions[0]).toMatchObject({
+        code: 'print(1)',
+        language: 'python',
+        skillLevel: 3,
+        expectTime: 30,
+      });
+    });
+
+    describe('getSessionDetail (admin)', () => {
+      let findOne: jest.Mock;
+      beforeEach(() => {
+        findOne = jest.fn();
+        (historyRepo as any).findOne = findOne;
+      });
+
+      it('returns that one session, with Progress read from the whole branch', async () => {
+        findOne.mockResolvedValue({ id: 4, branchId: 7 });
+        historyRepo.find.mockResolvedValue([
+          row(2, 2, 0.4),
+          row(3, 2, 0.6),
+          row(4, 3, 0.8, { stopReason: 'mastered' }),
+          row(5, 3, 0.96, { stopReason: 'mastered' }),
+        ]);
+
+        const session = await service.getSessionDetail(3);
+
+        // the branch is found from the session's answers — no ownership check on the admin path
+        expect(historyRepo.find).toHaveBeenCalledWith(
+          expect.objectContaining({ where: { branchId: 7 } }),
+        );
+        expect(session).toMatchObject({
+          sessionId: 3,
+          stopReason: 'mastered',
+          progressBefore: 63.15,
+          progressAfter: 100,
+        });
+        expect(session.questions).toHaveLength(2);
+      });
+
+      it('404s a session with no answers', async () => {
+        findOne.mockResolvedValue(null);
+        await expect(service.getSessionDetail(99)).rejects.toThrow('has no answers');
+      });
+    });
+  });
 });

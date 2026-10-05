@@ -260,6 +260,7 @@ describe('sessionService returns the skill-tree Progress with each question', ()
       goalSkillRequire: [{ goalId: 7, skillId: 1 }],
     },
   });
+  // question 1 of 2 — the skill still has another question, so only reaching 100% can end it here
   const masteringAnswer = async (branch: ReturnType<typeof goalBranch>) => {
     sessionRepo.findOne.mockResolvedValue({
       id: 99,
@@ -291,6 +292,100 @@ describe('sessionService returns the skill-tree Progress with each question', ()
       goalName: 'Web Developer',
     });
     expect(branch.goalCompletedAt).toBeInstanceOf(Date);
+  });
+
+  // docs/adr/0007: reaching 100% ends a practice session on the spot; only a review runs the full round
+  it('ends the session as mastered on the answer that reaches 100%, even with questions left', async () => {
+    const res = await masteringAnswer(goalBranch(null));
+
+    // exercise 11 is still unanswered — the session ends anyway, it does not go on as a review
+    expect(res.sessionEnded).toBe(true);
+    expect(res.stopReason).toBe('mastered');
+    expect(res.nextQuestion).toBeNull();
+    expect(res.progress.progressPercent).toBe(100);
+  });
+
+  it('a review of a skill already at 100% ends only when the questions run out, never as mastered', async () => {
+    const branch = {
+      id: 1,
+      userId: 42,
+      conceptMapState: {
+        '1': { pL: 0.97, progress: 100, status: 'completed', attemptCount: 12 },
+      },
+    };
+    exerciseRepo.find.mockResolvedValue([exercise(10)]);
+    sessionRepo.findOne.mockResolvedValue({ id: 99, branchId: 1, skillId: 1, endedAt: null, branch });
+    branchRepo.findOne.mockResolvedValue(branch);
+
+    const res = await service.submitAnswer(42, 99, {
+      exerciseId: 10,
+      chosenAnswer: 'right',
+      startTime: '2026-09-13T10:00:00Z',
+      endTime: '2026-09-13T10:00:20Z',
+    });
+
+    expect(kt.submitAttempt).not.toHaveBeenCalled();
+    expect(res.stopReason).toBe('exhausted');
+    expect(res.summary?.goalCompleted).toBeNull();
+  });
+
+  // docs/adr/0007: practising a skill already at 100% is a review — pL is frozen at the value that got it there
+  describe('submitAnswer on a skill already at 100% (review)', () => {
+    const masteredState = () => ({
+      '1': { pL: 0.97, progress: 100, status: 'unlocked', attemptCount: 12 },
+    });
+    const review = async (chosenAnswer: string) => {
+      const branch = { id: 1, userId: 42, conceptMapState: masteredState() };
+      exerciseRepo.findOne.mockResolvedValue({
+        ...exercise(10),
+        exerciseChoices: [
+          { id: 100, script: 'right', isAnswer: true },
+          { id: 101, script: 'wrong', isAnswer: false },
+        ],
+      });
+      sessionRepo.findOne.mockResolvedValue({
+        id: 99,
+        branchId: 1,
+        skillId: 1,
+        endedAt: null,
+        branch,
+      });
+      const res = await service.submitAnswer(42, 99, {
+        exerciseId: 10,
+        chosenAnswer,
+        startTime: '2026-09-13T10:00:00Z',
+        endTime: '2026-09-13T10:00:20Z',
+      });
+      return { res, branch };
+    };
+
+    it('keeps pL and Progress exactly as they were, even on a wrong answer, without asking the KT engine', async () => {
+      const { res, branch } = await review('wrong');
+
+      expect(res.isCorrect).toBe(false);
+      expect(res.pL).toBe(0.97);
+      expect(res.progress).toEqual({ progressPercent: 100, attemptCount: 12 });
+      expect(kt.submitAttempt).not.toHaveBeenCalled();
+      expect(branch.conceptMapState).toEqual(masteredState());
+    });
+
+    it('still records the answer in History, with the frozen pL, but never saves the branch', async () => {
+      await review('right');
+
+      const saved = manager.save.mock.calls.map(([x]) => x);
+      expect(saved).toContainEqual(
+        expect.objectContaining({ isCorrect: true, isPretest: false, pL: 0.97 }),
+      );
+      expect(saved.some((x) => 'conceptMapState' in x)).toBe(false);
+    });
+
+    it('does not end the session as mastered — the round goes on with the next question', async () => {
+      const { res } = await review('right');
+
+      expect(res.sessionEnded).toBe(false);
+      expect(res.stopReason).toBeNull();
+      expect(res.nextQuestion?.exerciseId).toBe(11);
+    });
   });
 
   it('submitAnswer does not celebrate or re-date a goal that was already recorded as complete', async () => {
