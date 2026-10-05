@@ -1,0 +1,59 @@
+# Render Blueprint: deploys both backend services on the free plan.
+# Render dashboard → New → Blueprint → pick this repo.
+# Values marked `sync: false` are secrets — Render asks for them on first deploy; never commit them.
+services:
+  # Python knowledge-tracing engine (FastAPI)
+  - type: web
+    name: adt-btk-engine
+    runtime: python
+    plan: free
+    rootDir: server/btk-engine
+    buildCommand: pip install -r requirements.txt
+    startCommand: cd app && uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.7
+
+  # NestJS API
+  - type: web
+    name: adt-api
+    runtime: node
+    plan: free
+    rootDir: server/app
+    buildCommand: npm ci && npm run build
+    startCommand: node dist/main
+    healthCheckPath: /docs
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: BKT_ENGINE_URL
+        sync: false # https://adt-btk-engine.onrender.com (copy from the engine's dashboard page)
+      - key: CORS_ORIGINS
+        sync: false # https://<your-app>.vercel.app
+      - key: DATABASE_URL
+        sync: false # Supabase *pooler* URL (…pooler.supabase.com), not db.<ref>.supabase.co
+      - key: JWT_SECRET
+        sync: false
+      - key: LLM_CHAIN
+        sync: false
+      - key: OPENROUTER_MINIMAX_PROVIDER
+        sync: false
+      - key: OPENROUTER_MINIMAX_BASE_URL
+        sync: false
+      - key: OPENROUTER_MINIMAX_API_KEY
+        sync: false
+      - key: OPENROUTER_MINIMAX_MODEL
+        sync: false
+      - key: OPENROUTER_MINIMAX_TIMEOUT_MS
+        sync: false
+      - key: DOTBLUE_GEMMA_PROVIDER
+        sync: false
+      - key: DOTBLUE_GEMMA_BASE_URL
+        sync: false
+      - key: DOTBLUE_GEMMA_API_KEY
+        sync: false
+      - key: DOTBLUE_GEMMA_MODEL
+        sync: false
+      - key: DOTBLUE_GEMMA_TIMEOUT_MS
+        sync: false
