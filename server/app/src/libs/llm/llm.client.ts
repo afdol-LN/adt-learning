@@ -375,12 +375,52 @@ export class LlmClient {
             `provider ตอบ error กลับมา — ${code}${data.error.message ?? 'ไม่ระบุสาเหตุ'}`,
           );
         }
-        return this.requireText(
-          data?.choices?.[0]?.message?.content,
-          provider,
-          data,
-        );
+        return this.parseOpenAiMessage(data, provider);
     }
+  }
+
+  /**
+   * อ่าน choices[0].message ของ OpenAI-compatible
+   * - บาง model ส่ง content เป็น array ของ part ({ type: 'text', text }) แทนสตริง
+   * - reasoning model อาจใช้ token หมดไปกับการคิด แล้วได้ content ว่าง + finish_reason 'length'
+   *   ต้องบอกสาเหตุนั้นตรง ๆ ไม่ใช่แค่ "อ่านไม่ได้"
+   */
+  private parseOpenAiMessage(data: any, provider: LlmProvider): string {
+    const choice = data?.choices?.[0];
+    const content = choice?.message?.content;
+    const text = Array.isArray(content)
+      ? content
+          .filter((p: any) => typeof p?.text === 'string')
+          .map((p: any) => p.text)
+          .join('')
+      : content;
+
+    if (typeof text === 'string' && text.trim() !== '') {
+      // ถูกตัดกลางคันเพราะชน max_tokens — JSON ไม่ครบแน่นอน โยน error ให้ chain ลองตัวถัดไป
+      if (choice?.finish_reason === 'length') {
+        throw new ServiceUnavailableException(
+          `คำตอบถูกตัดเพราะชน max_tokens (finish_reason=length, ได้มา ${text.length} ตัวอักษร) — ลองลดจำนวนข้อต่อครั้ง`,
+        );
+      }
+      return text;
+    }
+
+    if (choice) {
+      const finish = choice.finish_reason ?? 'ไม่ระบุ';
+      const reasoning = choice.message?.reasoning ?? choice.message?.reasoning_content;
+      const hint =
+        finish === 'length'
+          ? reasoning
+            ? ' — model ใช้ token หมดไปกับการคิด (reasoning) ก่อนตอบ ลองใช้ model ที่ไม่ใช่ reasoning หรือลดจำนวนข้อต่อครั้ง'
+            : ' — คำตอบยาวเกิน max_tokens ลองลดจำนวนข้อต่อครั้ง'
+          : reasoning
+            ? ' — มีแต่ reasoning ไม่มีคำตอบจริง'
+            : '';
+      throw new ServiceUnavailableException(
+        `model ตอบกลับมาโดยไม่มีข้อความ (finish_reason=${finish})${hint}`,
+      );
+    }
+    return this.requireText(undefined, provider, data);
   }
 
   /** ประกอบข้อความจาก body แบบ text/event-stream ของ OpenAI-compatible */
@@ -412,6 +452,12 @@ export class LlmClient {
         `Claude ปฏิเสธคำขอนี้ด้วยเหตุผลด้านความปลอดภัย (${category})`,
       );
     }
+    // ชน max_tokens = คำตอบขาดกลางคัน (การ "คิด" ก็นับรวมด้วย) — ให้ chain ลองตัวถัดไป
+    if (data?.stop_reason === 'max_tokens') {
+      throw new ServiceUnavailableException(
+        'คำตอบถูกตัดเพราะชน max_tokens (stop_reason=max_tokens) — ลองลดจำนวนข้อต่อครั้ง',
+      );
+    }
     // content เป็น array ของ block หลายชนิด (thinking, text, ...) เอาเฉพาะ text
     const blocks = Array.isArray(data?.content) ? data.content : [];
     const text = blocks
@@ -429,8 +475,14 @@ export class LlmClient {
       );
     }
     const candidate = data?.candidates?.[0];
+    // ชน max_tokens = คำตอบขาดกลางคัน — ให้ chain ลองตัวถัดไป
+    if (candidate?.finishReason === 'MAX_TOKENS') {
+      throw new ServiceUnavailableException(
+        'คำตอบถูกตัดเพราะชน max_tokens (finishReason=MAX_TOKENS) — ลองลดจำนวนข้อต่อครั้ง',
+      );
+    }
     if (candidate?.finishReason && candidate.finishReason !== 'STOP') {
-      // MAX_TOKENS / SAFETY / RECITATION — คำตอบอาจขาดกลางคัน บอกให้รู้ตรง ๆ
+      // SAFETY / RECITATION — คำตอบอาจขาดกลางคัน บอกให้รู้ตรง ๆ
       this.logger.warn(`Gemini finished with reason ${candidate.finishReason}`);
     }
     const parts = Array.isArray(candidate?.content?.parts)
