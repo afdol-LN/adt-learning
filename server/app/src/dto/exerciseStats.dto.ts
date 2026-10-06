@@ -32,8 +32,9 @@ export class ExerciseStatStudentDto {
   firstAnswer: string | null;
   // average of (endTime - startTime) over this student's attempts
   timeSpentSec: number | null;
-  // P(L) after the student's latest non-pretest answer; null if none
-  latestPL: number | null;
+  // skill progress % (0-100, same number the student sees) after the student's latest
+  // non-pretest answer on this question; null if none
+  latestProgress: number | null;
   lastAnsweredAt: Date;
 }
 
