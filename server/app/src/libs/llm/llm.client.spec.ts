@@ -454,6 +454,31 @@ describe('LlmClient — error handling', () => {
     await expect(client.complete('sys', 'user')).rejects.not.toThrow(/test-key/);
   });
 
+  it('OpenRouter ตอบ 200 พร้อม { id, error } → error บอกข้อความจริงของ provider', async () => {
+    const { client, post } = makeClient(OPENAI_ENV);
+    post.mockReturnValue(
+      of({ data: { id: 'gen-1', error: { code: 429, message: 'Provider returned error' } } }),
+    );
+
+    await expect(client.complete('sys', 'user')).rejects.toThrow(
+      /429: Provider returned error/,
+    );
+  });
+
+  it('HTTP error ที่ body ไม่ตรงรูปแบบ → โชว์หน้าตา body แทนข้อความกลาง ๆ ของ axios', async () => {
+    const { client, post } = makeClient(OPENAI_ENV);
+    post.mockReturnValue(
+      throwError(() => ({
+        response: { status: 403, data: '<html>Access denied</html>' },
+        message: 'Request failed with status code 403',
+      })),
+    );
+
+    await expect(client.complete('sys', 'user')).rejects.toThrow(
+      /HTTP 403: .*Access denied/,
+    );
+  });
+
   it('response รูปแบบแปลก ๆ ถือเป็น error ไม่คืนสตริงว่าง', async () => {
     const { client, post } = makeClient(OPENAI_ENV);
     post.mockReturnValue(of({ data: { unexpected: true } }));

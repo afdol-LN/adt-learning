@@ -367,6 +367,14 @@ export class LlmClient {
             data,
           );
         }
+        // OpenRouter ตอบ HTTP 200 พร้อม { id, error } เมื่อ provider ปลายทางพัง (rate limit, model ล่ม ...)
+        // ดึงข้อความจริงออกมา ไม่งั้นเหลือแค่ "อ่านไม่ได้ (keys: id, error)"
+        if (data?.error && !data?.choices) {
+          const code = data.error.code ? `${data.error.code}: ` : '';
+          throw new ServiceUnavailableException(
+            `provider ตอบ error กลับมา — ${code}${data.error.message ?? 'ไม่ระบุสาเหตุ'}`,
+          );
+        }
         return this.requireText(
           data?.choices?.[0]?.message?.content,
           provider,
@@ -475,10 +483,16 @@ export class LlmClient {
       return error.message;
     }
     const status = error?.response?.status;
+    const body = error?.response?.data;
     const detail =
-      error?.response?.data?.error?.message ?? // openai / gemini
-      error?.response?.data?.error?.detail ??
-      error?.response?.data?.detail ?? // dotBLUE / FastAPI style
+      body?.error?.message ?? // openai / gemini
+      body?.error?.detail ??
+      body?.detail ?? // dotBLUE / FastAPI style
+      body?.message ??
+      // body ไม่ตรงรูปแบบไหนเลย (เช่นหน้า HTML ของ firewall) — โชว์หน้าตาแบบสั้นแทนข้อความกลาง ๆ ของ axios
+      (body !== undefined && body !== null && body !== ''
+        ? this.describeShape(body)
+        : undefined) ??
       error?.message ??
       'unknown error';
     return status ? `HTTP ${status}: ${detail}` : String(detail);
