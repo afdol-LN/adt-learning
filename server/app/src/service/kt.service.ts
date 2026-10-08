@@ -32,10 +32,7 @@ export class ktService {
         response_time: dto.responseTime,
         expect_time: dto.expectTime,
       };
-      const response = await firstValueFrom(
-        this.httpService.post(`${this.baseUrl}/kt/attempt`, payload),
-      );
-      const data = response.data;
+      const data = await this.postAttemptWithRetry(payload);
       return {
         isError: false,
         data: {
@@ -62,6 +59,42 @@ export class ktService {
         errorMessage: msg,
       };
     }
+  }
+
+  /**
+   * Render ตอบ 502/503/504 (หรือตัด connection) ระหว่างที่ engine กำลังตื่นหรือ restart
+   * /kt/attempt เป็นการคำนวณล้วน ไม่มี state ฝั่ง engine จึงยิงซ้ำได้อย่างปลอดภัย
+   * รอรวม ~70 วินาที (เท่าเวลาตื่นของ free plan) — frontend รอ /answer ได้ 180 วินาที
+   */
+  private static readonly ATTEMPT_RETRY_DELAYS_MS = [
+    2_000, 4_000, 8_000, 16_000, 20_000, 20_000,
+  ];
+
+  private async postAttemptWithRetry(payload: object): Promise<any> {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        const response = await firstValueFrom(
+          this.httpService.post(`${this.baseUrl}/kt/attempt`, payload),
+        );
+        return response.data;
+      } catch (error) {
+        const delay = ktService.ATTEMPT_RETRY_DELAYS_MS[attempt];
+        if (delay === undefined || !ktService.isTransient(error)) throw error;
+        this.logger.warn(
+          `KT engine unavailable (${error?.response?.status ?? error?.code}), retry ${attempt + 1} in ${delay}ms`,
+        );
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+  }
+
+  private static isTransient(error: any): boolean {
+    const status = error?.response?.status;
+    if (status) return status === 502 || status === 503 || status === 504;
+    // ไม่มี response เลย = ต่อไม่ติด/ถูกตัดระหว่างทาง
+    return ['ECONNRESET', 'ECONNREFUSED', 'ETIMEDOUT', 'EAI_AGAIN'].includes(
+      error?.code,
+    );
   }
 
   /**

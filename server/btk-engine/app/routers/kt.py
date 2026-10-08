@@ -5,7 +5,6 @@ from schemas.bkt_schema import (
 )
 from service import kt_service
 
-from script import calibrate
 router = APIRouter(prefix="/kt", tags=["knowledge-tracing"])
 
 
@@ -24,6 +23,10 @@ def submit_attempt(payload: AttemptIn):
 
 @router.post("/calibrate")
 def trigger_calibration():
+    # import ตอนเรียกเท่านั้น: calibrate ดึง pandas/pyBKT/sklearn ซึ่งทำให้ boot ช้าและกิน RAM
+    # บน Render free plan จน /kt/attempt ได้ 502 — ส่วน /kt/attempt ไม่ต้องใช้ของพวกนี้เลย
+    from script import calibrate
+
     try:
         # เรียกฟังก์ชันคำนวณที่เราเขียนไว้ (เหมือนวิธีที่ 1)
         calibrate.run_calibration()
