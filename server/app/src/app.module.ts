@@ -160,7 +160,7 @@ export class AppModule implements NestModule {
         { path: '/gender', method: RequestMethod.GET },
         { path: '/authen/authen_request', method: RequestMethod.POST },
         { path: '/authen/access_request', method: RequestMethod.POST },
-        { path: '/kt/(.*)', method: RequestMethod.ALL },
+        // { path: '/kt/(.*)', method: RequestMethod.ALL },
         { path: '/docs', method: RequestMethod.GET },
         { path: '/docs/(.*)', method: RequestMethod.GET },
         { path: '/docs-json', method: RequestMethod.GET },
