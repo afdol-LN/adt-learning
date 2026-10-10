@@ -23,15 +23,16 @@ export interface SkillContextItem {
 export interface PromptInput {
   entityType: AiDraftEntityType;
   count: number;
+  /** คำสั่งอิสระที่ admin พิมพ์ */
   instruction?: string;
+  /** รายชื่อ skill ทั้งหมดในระบบ */
   skills: SkillContextItem[];
   /** ตัวอย่างของเดิม 3-5 รายการ ให้ LLM เลียนสไตล์ */
   samples: unknown[];
+  /** เฉพาะ exercise — โจทย์เดิมไม่ส่งให้ generator แล้ว การเทียบซ้ำเป็นงานของ duplicate checker */
   skillId?: number;
   skillLevel?: number;
   exerciseType?: 'CHOICE' | 'FILL_IN_BLANK' | 'MIXED';
-  existingExercises?: ExistingExerciseItem[];
-  existingExercisesScope?: ExistingExercisesScope;
   /** payload เดิมที่ห้ามสร้างซ้ำ (ใช้ตอน regenerate รายข้อ) */
   avoid?: unknown;
 }
