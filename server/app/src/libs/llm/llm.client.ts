@@ -69,6 +69,10 @@ const DEFAULT_TIMEOUT_MS = 120000;
  * จะเลื่อนไปตัวถัดไปทันที ต่อเมื่อพังหมดทุกตัวถึงจะโยน error ออกไป
  * พร้อมสรุปว่าแต่ละตัวพังเพราะอะไร
  *
+ * ── chain ของ duplicate checker (ไม่บังคับ) ─────────────────────────
+ *   LLM_CHECK_CHAIN=DOTBLUE_GEMMA
+ *   ใช้ตอนเรียก complete(..., { chain: 'check' }) — ไม่ตั้ง = ใช้ LLM_CHAIN
+ *
  * ── ตั้งค่าแบบตัวเดียว (ของเดิม ยังใช้ได้) ─────────────────────────
  *   LLM_PROVIDER / LLM_BASE_URL / LLM_API_KEY / LLM_MODEL / LLM_TIMEOUT_MS
  *
@@ -80,12 +84,21 @@ const DEFAULT_TIMEOUT_MS = 120000;
 export class LlmClient {
   private readonly logger = new Logger(LlmClient.name);
   private readonly candidates: LlmCandidate[];
+  /** chain ของ duplicate checker — ไม่ตั้ง LLM_CHECK_CHAIN = ใช้ chain หลัก */
+  private readonly checkCandidates: LlmCandidate[];
 
   constructor(
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
   ) {
-    this.candidates = this.loadCandidates();
+    this.candidates = this.loadCandidates('LLM_CHAIN', true);
+    const check = this.loadCandidates('LLM_CHECK_CHAIN', false);
+    this.checkCandidates = check.length > 0 ? check : this.candidates;
+    if (check.length > 0) {
+      this.logger.log(
+        `LLM check chain: ${check.map((c) => `${c.name}(${c.provider}:${c.model})`).join(' → ')}`,
+      );
+    }
 
     if (this.candidates.length === 0) {
       this.logger.warn(
@@ -122,7 +135,12 @@ export class LlmClient {
   async complete(
     systemPrompt: string,
     userPrompt: string,
-    options: { temperature?: number; maxTokens?: number } = {},
+    options: {
+      temperature?: number;
+      maxTokens?: number;
+      /** 'check' = ใช้ LLM_CHECK_CHAIN (ถ้าไม่ได้ตั้งก็คือ chain หลัก) */
+      chain?: 'generate' | 'check';
+    } = {},
   ): Promise<LlmCompletion> {
     if (!this.isConfigured()) {
       throw new ServiceUnavailableException(
@@ -130,13 +148,15 @@ export class LlmClient {
       );
     }
 
+    const candidates =
+      options.chain === 'check' ? this.checkCandidates : this.candidates;
     const temperature = options.temperature ?? 0.7;
     const maxTokens = options.maxTokens ?? 4096;
     const failures: string[] = [];
 
-    for (let i = 0; i < this.candidates.length; i++) {
-      const candidate = this.candidates[i];
-      const isLast = i === this.candidates.length - 1;
+    for (let i = 0; i < candidates.length; i++) {
+      const candidate = candidates[i];
+      const isLast = i === candidates.length - 1;
 
       try {
         const text = await this.callCandidate(
@@ -170,8 +190,9 @@ export class LlmClient {
 
   // ───────────────────────────── config ─────────────────────────────
 
-  private loadCandidates(): LlmCandidate[] {
-    const chain = (this.configService.get<string>('LLM_CHAIN') || '').trim();
+  /** allowLegacy = ถ้าไม่ได้ตั้ง chain ให้ถอยไปอ่าน LLM_* แบบตัวเดียว (เฉพาะ chain หลัก) */
+  private loadCandidates(envName: string, allowLegacy: boolean): LlmCandidate[] {
+    const chain = (this.configService.get<string>(envName) || '').trim();
 
     const names = chain
       ? chain
@@ -182,6 +203,7 @@ export class LlmClient {
 
     // ไม่ได้ตั้ง LLM_CHAIN → ถอยไปอ่านแบบตัวเดียวของเดิม
     if (names.length === 0) {
+      if (!allowLegacy) return [];
       const legacy = this.buildCandidate('LLM', 'LLM');
       return legacy ? [legacy] : [];
     }
@@ -194,7 +216,7 @@ export class LlmClient {
       } else {
         // ตั้งชื่อไว้ใน chain แต่ตัวแปรไม่ครบ — บอกให้รู้ ไม่ข้ามเงียบ ๆ
         this.logger.warn(
-          `LLM_CHAIN อ้างถึง "${name}" แต่ตัวแปร ${name}_API_KEY / ${name}_MODEL ไม่ครบ — ข้ามตัวนี้`,
+          `${envName} อ้างถึง "${name}" แต่ตัวแปร ${name}_API_KEY / ${name}_MODEL ไม่ครบ — ข้ามตัวนี้`,
         );
       }
     }

@@ -66,6 +66,7 @@ import { exerciseStatsController } from './controller/exerciseStats.controller';
 import { exerciseStatsService } from './service/exerciseStats.service';
 import { aiDraftController } from './controller/aiDraft.controller';
 import { aiDraftService } from './service/aiDraft.service';
+import { duplicateCheckService } from './service/duplicateCheck.service';
 import { LlmClient } from './libs/llm/llm.client';
 import { Hash } from './libs/hash';
 import { JwtService } from './libs/jwt';
@@ -144,6 +145,7 @@ import { envFilePath } from './config/env-file';
     ktService,
     sessionService,
     aiDraftService,
+    duplicateCheckService,
     exerciseStatsService,
     LlmClient,
     Hash,
