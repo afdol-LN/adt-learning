@@ -23,24 +23,24 @@ import { CreateExerciseDto } from 'src/dto/exerciseAndSession/exercise.dto';
 import { CreateSkillWithPrerequisiteDto } from 'src/dto/skill.dto';
 import { CreateGoalWithSkillRequireDto } from 'src/dto/goal.dto';
 import { LlmClient } from 'src/libs/llm/llm.client';
-import {
-  buildPrompt,
-  ExistingExerciseItem,
-  selectPromptExercises,
-  SkillContextItem,
-} from 'src/libs/llm/prompt.builder';
+import { buildPrompt, SkillContextItem } from 'src/libs/llm/prompt.builder';
 import {
   exerciseDuplicateKey,
-  ExerciseSimilarity,
   extractJsonArray,
   RejectedDraft,
   validateExerciseDrafts,
   validateGoalDrafts,
   validateSkillDrafts,
 } from 'src/libs/llm/draft.validator';
+import {
+  DuplicateCheck,
+  normalizeSimilarity,
+} from 'src/libs/llm/check.prompt';
+import { PoolItem } from 'src/libs/llm/similarity';
 import { exerciseService } from './exercise.service';
 import { skillService } from './skill.service';
 import { goalService } from './goal.service';
+import { duplicateCheckService } from './duplicateCheck.service';
 
 /** กันค่า token บาน และกัน response ยาวจน LLM ตัดกลางคัน */
 const MAX_GENERATE_COUNT = 20;
@@ -65,6 +65,7 @@ export class aiDraftService {
     private readonly exerciseSvc: exerciseService,
     private readonly skillSvc: skillService,
     private readonly goalSvc: goalService,
+    private readonly duplicateCheck: duplicateCheckService,
   ) {}
 
   // ───────────────────────────── generate ─────────────────────────────
@@ -89,21 +90,14 @@ export class aiDraftService {
 
     const skills = await this.loadSkillContext();
     const samples = await this.loadSamples(entityType, dto.skillId);
-    // ทั้งคลังใช้ตรวจซ้ำใน validator; prompt ได้เฉพาะ skill ที่เลือกแบบไม่ตัด
-    const existingExercises = await this.loadExistingExercises(entityType);
-    const promptExercises = selectPromptExercises(
-      existingExercises,
-      dto.skillId,
-    );
 
+    // generator ไม่เห็นโจทย์เดิม — การเทียบซ้ำย้ายไปอยู่ที่ duplicate checker หลังจากนี้
     const { system, user } = buildPrompt({
       entityType,
       count,
       instruction: dto.instruction,
       skills,
       samples,
-      existingExercises: promptExercises.items,
-      existingExercisesScope: promptExercises.scope,
       skillId: dto.skillId,
       skillLevel: dto.skillLevel,
       exerciseType: dto.exerciseType,
@@ -113,12 +107,14 @@ export class aiDraftService {
       maxTokens: Math.min(1024 + count * 400, 8192),
     });
 
-    const { valid, rejected, similarities } = this.validateByType(
+    const items = extractJsonArray(completion.text);
+    const pool = await this.loadDuplicatePool(entityType, items, dto.skillId);
+    const { valid, rejected } = this.validateByType(
       entityType,
-      extractJsonArray(completion.text),
+      items,
       skills,
       dto,
-      existingExercises,
+      pool,
     );
 
     if (valid.length === 0) {
@@ -128,6 +124,8 @@ export class aiDraftService {
           .join('; ')})`,
       );
     }
+
+    const checks = await this.checkDuplicates(entityType, valid, pool);
 
     const batchId = randomUUID();
     const generateParams = {
@@ -141,7 +139,7 @@ export class aiDraftService {
         batchId,
         entityType,
         payload: payload as Record<string, any>,
-        similarity: similarities[index],
+        similarity: checks[index],
         status: AiDraftStatus.PENDING,
         prompt: dto.instruction ?? null,
         generateParams,
@@ -177,13 +175,6 @@ export class aiDraftService {
     const skills = await this.loadSkillContext();
     const params = draft.generateParams ?? {};
     const samples = await this.loadSamples(draft.entityType, params.skillId);
-    const existingExercises = await this.loadExistingExercises(
-      draft.entityType,
-    );
-    const promptExercises = selectPromptExercises(
-      existingExercises,
-      params.skillId,
-    );
 
     // รวมคำสั่งเดิมกับคำสั่งใหม่ เพื่อไม่ให้บริบทตอนสั่งครั้งแรกหายไป
     const combinedInstruction = [draft.prompt, instruction]
@@ -196,8 +187,6 @@ export class aiDraftService {
       instruction: combinedInstruction || undefined,
       skills,
       samples,
-      existingExercises: promptExercises.items,
-      existingExercisesScope: promptExercises.scope,
       skillId: params.skillId,
       skillLevel: params.skillLevel,
       exerciseType: params.exerciseType,
@@ -208,9 +197,17 @@ export class aiDraftService {
       maxTokens: 2048,
     });
 
-    const { valid, rejected, similarities } = this.validateByType(
+    const items = extractJsonArray(completion.text);
+    // ไม่นับร่างตัวเองเป็นตัวเทียบ — ไม่งั้นข้อที่สร้างใหม่ซ้ำกับของที่กำลังจะถูกแทน
+    const pool = await this.loadDuplicatePool(
       draft.entityType,
-      extractJsonArray(completion.text),
+      items,
+      params.skillId,
+      draft.id,
+    );
+    const { valid, rejected } = this.validateByType(
+      draft.entityType,
+      items,
       skills,
       {
         entityType: draft.entityType,
@@ -218,7 +215,7 @@ export class aiDraftService {
         skillId: params.skillId,
         skillLevel: params.skillLevel,
       },
-      existingExercises,
+      pool,
     );
 
     if (valid.length === 0) {
@@ -229,8 +226,10 @@ export class aiDraftService {
       );
     }
 
+    const [check] = await this.checkDuplicates(draft.entityType, valid, pool);
+
     draft.payload = valid[0] as Record<string, any>;
-    draft.similarity = similarities[0];
+    draft.similarity = check;
     draft.model = completion.model;
     draft.note = instruction?.slice(0, 255) ?? draft.note;
     draft.updatedAt = new Date();
@@ -245,10 +244,14 @@ export class aiDraftService {
     if (query.entityType) where.entityType = query.entityType;
     if (query.batchId) where.batchId = query.batchId;
 
-    return this.aiDraftRepository.find({
+    const drafts = await this.aiDraftRepository.find({
       where,
       order: { id: 'DESC' },
     });
+    for (const draft of drafts) {
+      draft.similarity = normalizeSimilarity(draft.similarity);
+    }
+    return drafts;
   }
 
   async findOneOrFail(id: number): Promise<AiDraft> {
@@ -271,7 +274,7 @@ export class aiDraftService {
 
     const skills = await this.loadSkillContext();
     const params = draft.generateParams ?? {};
-    // admin แก้เองก็ยังห้ามซ้ำตรงตัวกับโจทย์เดิม — similarity เดิมคงไว้ เพราะไม่มี LLM ประเมินใหม่
+    // admin แก้เองก็ยังห้ามซ้ำตรงตัวกับโจทย์เดิม/ร่างอื่น — similarity เดิมคงไว้ ไม่เรียก checker ใหม่
     const { valid, rejected } = this.validateByType(
       draft.entityType,
       [payload],
@@ -282,7 +285,12 @@ export class aiDraftService {
         skillId: params.skillId,
         skillLevel: params.skillLevel,
       },
-      await this.loadExistingExercises(draft.entityType),
+      await this.loadDuplicatePool(
+        draft.entityType,
+        [payload],
+        params.skillId,
+        draft.id,
+      ),
     );
 
     if (valid.length === 0) {
@@ -396,23 +404,35 @@ export class aiDraftService {
   }
 
   /**
-   * โจทย์ทุกข้อใน DB (ทุก skill ทุก status) ให้ LLM เทียบว่าซ้ำหรือคล้ายข้อไหน
-   * select เฉพาะ id/description/code — ไม่ดึงทั้ง entity
+   * ตัวเทียบสำหรับกันซ้ำ: โจทย์จริง + ร่าง pending ของทุก skill ที่ร่างชุดนี้อ้างถึง
+   * ใช้ทั้งตัดซ้ำตรงตัว (validator) และคัดตัวเทียบให้ duplicate checker
    */
-  private async loadExistingExercises(
+  private async loadDuplicatePool(
     entityType: AiDraftEntityType,
-  ): Promise<ExistingExerciseItem[]> {
+    items: unknown[],
+    fallbackSkillId?: number,
+    excludeDraftId?: number,
+  ): Promise<PoolItem[]> {
     if (entityType !== AiDraftEntityType.EXERCISE) return [];
-    const exercises = await this.exerciseRepository.find({
-      select: { id: true, skillId: true, description: true, code: true },
-      order: { id: 'ASC' },
-    });
-    return exercises.map((e) => ({
-      id: e.id,
-      skillId: e.skillId,
-      description: e.description,
-      code: e.code ?? null,
-    }));
+    const skillIds = new Set<number>();
+    if (fallbackSkillId !== undefined && fallbackSkillId !== null) {
+      skillIds.add(Number(fallbackSkillId));
+    }
+    for (const item of items) {
+      const id = Number((item as Record<string, unknown> | null)?.skillId);
+      if (Number.isInteger(id)) skillIds.add(id);
+    }
+    return this.duplicateCheck.loadPool([...skillIds], excludeDraftId);
+  }
+
+  /** เรียงตรงกับ valid — skill/goal ไม่ได้ตรวจ จึงเป็น null */
+  private async checkDuplicates(
+    entityType: AiDraftEntityType,
+    valid: unknown[],
+    pool: PoolItem[],
+  ): Promise<(DuplicateCheck | null)[]> {
+    if (entityType !== AiDraftEntityType.EXERCISE) return valid.map(() => null);
+    return this.duplicateCheck.check(valid as CreateExerciseDto[], pool);
   }
 
   /** ตัวอย่างของเดิมให้ LLM เลียนสไตล์ — ตัดเฉพาะ field ที่จำเป็น ไม่ส่งทั้ง entity */
@@ -478,18 +498,9 @@ export class aiDraftService {
       entityType: AiDraftEntityType;
       count: number;
     },
-    existingExercises: ExistingExerciseItem[] = [],
-  ): {
-    valid: unknown[];
-    rejected: RejectedDraft[];
-    /** เรียงตรงกับ valid — skill/goal เป็น null ทั้งหมด */
-    similarities: (ExerciseSimilarity | null)[];
-  } {
+    pool: PoolItem[] = [],
+  ): { valid: unknown[]; rejected: RejectedDraft[] } {
     const existingSkillIds = new Set(skills.map((s) => s.skillId));
-    const withoutSimilarity = (result: {
-      valid: unknown[];
-      rejected: RejectedDraft[];
-    }) => ({ ...result, similarities: result.valid.map(() => null) });
 
     switch (entityType) {
       case AiDraftEntityType.EXERCISE:
@@ -497,27 +508,22 @@ export class aiDraftService {
           existingSkillIds,
           fallbackSkillId: dto.skillId,
           fallbackSkillLevel: dto.skillLevel,
-          existingExerciseIds: new Set(existingExercises.map((e) => e.id)),
           existingExerciseKeys: new Map(
-            existingExercises.map((e) => [
-              exerciseDuplicateKey(e.description, e.code),
-              e.id,
+            pool.map((p) => [
+              exerciseDuplicateKey(p.description, p.code),
+              { kind: p.kind, id: p.id },
             ]),
           ),
         });
       case AiDraftEntityType.SKILL:
-        return withoutSimilarity(
-          validateSkillDrafts(items, {
-            existingSkillIds,
-            existingSkillCodes: new Set(
-              skills.map((s) => s.skillCode.toUpperCase()),
-            ),
-          }),
-        );
+        return validateSkillDrafts(items, {
+          existingSkillIds,
+          existingSkillCodes: new Set(
+            skills.map((s) => s.skillCode.toUpperCase()),
+          ),
+        });
       case AiDraftEntityType.GOAL:
-        return withoutSimilarity(
-          validateGoalDrafts(items, { existingSkillIds }),
-        );
+        return validateGoalDrafts(items, { existingSkillIds });
     }
   }
 }

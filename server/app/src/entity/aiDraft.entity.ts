@@ -3,6 +3,7 @@ import {
   AiDraftEntityType,
   AiDraftStatus,
 } from 'src/enums/ai-draft.enum';
+import type { DuplicateCheck } from 'src/libs/llm/check.prompt';
 
 /**
  * ร่าง (draft) ที่ LLM สร้างขึ้น รอให้ admin ตรวจก่อนบันทึกลงตารางจริง
@@ -47,11 +48,12 @@ export class AiDraft {
   generateParams: Record<string, any> | null;
 
   /**
-   * เฉพาะ exercise: โจทย์เดิมใน DB ที่ร่างนี้คล้ายที่สุด ตามที่ LLM ประเมิน
-   * null = ไม่คล้ายข้อไหน — ไม่อยู่ใน payload เพราะ payload ถูกส่งตรงไป createExercise
+   * เฉพาะ exercise: ผลตรวจซ้ำจาก duplicate checker (ดู libs/llm/check.prompt.ts)
+   * null = ไม่ได้ตรวจ (skill/goal) — ไม่อยู่ใน payload เพราะ payload ถูกส่งตรงไป createExercise
+   * แถวเก่าเก็บเป็น { exerciseId, percent } — findAll แปลงด้วย normalizeSimilarity ตอนอ่าน
    */
   @Column({ type: 'jsonb', nullable: true })
-  similarity: { exerciseId: number; percent: number } | null;
+  similarity: DuplicateCheck | null;
 
   /** ชื่อ model ที่สร้างร่างนี้ ไว้ตรวจย้อนหลัง */
   @Column({ type: 'varchar', length: 120, nullable: true })

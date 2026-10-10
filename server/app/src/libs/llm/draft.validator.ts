@@ -126,14 +126,6 @@ export function extractFencedCode(text: string): {
 
 // ────────────────────────────── EXERCISE ──────────────────────────────
 
-/** LLM ประเมินว่าคล้ายโจทย์เดิมตั้งแต่ค่านี้ขึ้นไป = ซ้ำ คัดทิ้ง */
-export const DUPLICATE_SIMILARITY_PERCENT = 90;
-
-export interface ExerciseSimilarity {
-  exerciseId: number;
-  percent: number;
-}
-
 /** เทียบแบบไม่สนตัวพิมพ์และช่องว่าง — ซ้ำตรงตัวแบบนี้ไม่ต้องพึ่งการประเมินของ LLM */
 export function exerciseDuplicateKey(
   description: string,
@@ -149,39 +141,18 @@ export interface ExerciseValidationContext {
   /** ถ้า LLM ไม่ใส่ skillId มา ให้ใช้ค่าที่ admin เลือกไว้ในฟอร์ม */
   fallbackSkillId?: number;
   fallbackSkillLevel?: number;
-  /** exercise id ที่มีอยู่จริง — similarTo ที่อ้าง id อื่นถูกตัดเป็น null */
-  existingExerciseIds?: Set<number>;
-  /** exerciseDuplicateKey -> id ของโจทย์เดิม */
-  existingExerciseKeys?: Map<string, number>;
-}
-
-export interface ExerciseValidationResult
-  extends ValidationResult<CreateExerciseDto> {
-  /** เรียงตรงกับ valid ทีละตัว — ไม่ใส่ใน payload เพราะ payload ส่งตรงไป createExercise */
-  similarities: (ExerciseSimilarity | null)[];
-}
-
-function readSimilarity(
-  raw: unknown,
-  existingIds?: Set<number>,
-): ExerciseSimilarity | null {
-  const record = asRecord(raw);
-  if (!record) return null;
-  const exerciseId = Number(record.exerciseId);
-  const percent = Math.round(Number(record.percent));
-  if (!Number.isInteger(exerciseId) || !Number.isFinite(percent)) return null;
-  if (percent < 1) return null;
-  // id ที่ LLM แต่งขึ้นเอง ไม่มีประโยชน์ให้ admin ตามไปดู
-  if (existingIds && !existingIds.has(exerciseId)) return null;
-  return { exerciseId, percent: Math.min(percent, 100) };
+  /**
+   * exerciseDuplicateKey -> ข้อเดิม (โจทย์จริงหรือร่าง pending)
+   * ซ้ำตรงตัวแบบนี้ตัดทิ้งเลย ส่วน "คล้าย" เป็นงานของ duplicate checker ที่ติดป้ายให้ admin
+   */
+  existingExerciseKeys?: Map<string, { kind: 'exercise' | 'draft'; id: number }>;
 }
 
 export function validateExerciseDrafts(
   items: unknown[],
   ctx: ExerciseValidationContext,
-): ExerciseValidationResult {
+): ValidationResult<CreateExerciseDto> {
   const valid: CreateExerciseDto[] = [];
-  const similarities: (ExerciseSimilarity | null)[] = [];
   const rejected: RejectedDraft[] = [];
   // กันซ้ำกันเองภายในชุดเดียวกันด้วย
   const seenKeys = new Set<string>();
@@ -322,11 +293,14 @@ export function validateExerciseDrafts(
     }
 
     const key = exerciseDuplicateKey(draft.description, draft.code);
-    const exactDuplicateId = ctx.existingExerciseKeys?.get(key);
-    if (exactDuplicateId !== undefined) {
+    const exact = ctx.existingExerciseKeys?.get(key);
+    if (exact) {
       rejected.push({
         raw: item,
-        reason: `โจทย์ซ้ำกับข้อเดิม id ${exactDuplicateId}`,
+        reason:
+          exact.kind === 'exercise'
+            ? `โจทย์ซ้ำกับข้อเดิม id ${exact.id}`
+            : `โจทย์ซ้ำกับร่าง #${exact.id} ที่รอตรวจอยู่`,
       });
       continue;
     }
@@ -335,24 +309,11 @@ export function validateExerciseDrafts(
       continue;
     }
 
-    const similarity = readSimilarity(
-      record.similarTo,
-      ctx.existingExerciseIds,
-    );
-    if (similarity && similarity.percent >= DUPLICATE_SIMILARITY_PERCENT) {
-      rejected.push({
-        raw: item,
-        reason: `คล้ายข้อเดิม id ${similarity.exerciseId} ถึง ${similarity.percent}% — นับเป็นโจทย์ซ้ำ`,
-      });
-      continue;
-    }
-
     seenKeys.add(key);
     valid.push(draft);
-    similarities.push(similarity);
   }
 
-  return { valid, rejected, similarities };
+  return { valid, rejected };
 }
 
 // ─────────────────────────────── SKILL ───────────────────────────────

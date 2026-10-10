@@ -1,6 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
 import {
-  DUPLICATE_SIMILARITY_PERCENT,
   exerciseDuplicateKey,
   extractJsonArray,
   validateExerciseDrafts,
@@ -227,12 +226,21 @@ describe('validateExerciseDrafts', () => {
     expect(result.rejected).toHaveLength(1);
   });
 
-  describe('โจทย์ซ้ำ / คล้าย', () => {
+  describe('โจทย์ซ้ำตรงตัว', () => {
     const existingCtx = {
       ...ctx,
-      existingExerciseIds: new Set([10, 11]),
-      existingExerciseKeys: new Map([
-        [exerciseDuplicateKey('ผลลัพธ์ของโค้ดนี้คืออะไร', 'print(1 + 1)'), 10],
+      existingExerciseKeys: new Map<
+        string,
+        { kind: 'exercise' | 'draft'; id: number }
+      >([
+        [
+          exerciseDuplicateKey('ผลลัพธ์ของโค้ดนี้คืออะไร', 'print(1 + 1)'),
+          { kind: 'exercise', id: 10 },
+        ],
+        [
+          exerciseDuplicateKey('ข้อใดคือ list ว่าง', ''),
+          { kind: 'draft', id: 17 },
+        ],
       ]),
     };
 
@@ -256,36 +264,20 @@ describe('validateExerciseDrafts', () => {
       expect(result.rejected[0].reason).toContain('ชุดเดียวกัน');
     });
 
-    it('คัดออกเมื่อ LLM บอกว่าคล้ายตั้งแต่ DUPLICATE_SIMILARITY_PERCENT', () => {
-      const result = validateExerciseDrafts(
-        [
-          {
-            ...validChoice,
-            similarTo: { exerciseId: 11, percent: DUPLICATE_SIMILARITY_PERCENT },
-          },
-        ],
-        existingCtx,
-      );
+    it('คัดออกเมื่อตรงกับร่าง pending และบอกเลขร่าง', () => {
+      const dup = { ...validChoice, description: 'ข้อใดคือ list ว่าง' };
+      const result = validateExerciseDrafts([dup], existingCtx);
       expect(result.valid).toHaveLength(0);
+      expect(result.rejected[0].reason).toContain('ร่าง #17');
     });
 
-    it('เก็บ similarity ไว้แยกจาก payload เมื่อคล้ายแต่ไม่ซ้ำ', () => {
+    it('ไม่ตัดสินจาก similarTo ที่ LLM ใส่มาแล้ว และไม่หลุดเข้า payload', () => {
       const result = validateExerciseDrafts(
-        [{ ...validChoice, similarTo: { exerciseId: 11, percent: 62.4 } }],
+        [{ ...validChoice, similarTo: { exerciseId: 11, percent: 99 } }],
         existingCtx,
       );
       expect(result.valid).toHaveLength(1);
-      expect(result.similarities).toEqual([{ exerciseId: 11, percent: 62 }]);
       expect(result.valid[0]).not.toHaveProperty('similarTo');
-    });
-
-    it('ตัด similarity ทิ้งเมื่ออ้าง id ที่ไม่มีอยู่จริง', () => {
-      const result = validateExerciseDrafts(
-        [{ ...validChoice, similarTo: { exerciseId: 999, percent: 50 } }],
-        existingCtx,
-      );
-      expect(result.valid).toHaveLength(1);
-      expect(result.similarities).toEqual([null]);
     });
   });
 });

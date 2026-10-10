@@ -70,6 +70,7 @@ import { adminDeleteController } from './controller/adminDelete.controller';
 import { adminDeleteService } from './service/adminDelete.service';
 import { aiDraftController } from './controller/aiDraft.controller';
 import { aiDraftService } from './service/aiDraft.service';
+import { duplicateCheckService } from './service/duplicateCheck.service';
 import { LlmClient } from './libs/llm/llm.client';
 import { Hash } from './libs/hash';
 import { JwtService } from './libs/jwt';
@@ -150,6 +151,7 @@ import { envFilePath } from './config/env-file';
     ktService,
     sessionService,
     aiDraftService,
+    duplicateCheckService,
     exerciseStatsService,
     learnerStatsService,
     adminDeleteService,

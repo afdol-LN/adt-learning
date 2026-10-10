@@ -285,6 +285,40 @@ describe('LlmClient — fallback chain', () => {
   });
 });
 
+describe('LlmClient — check chain', () => {
+  it("chain: 'check' ใช้ LLM_CHECK_CHAIN ส่วนค่าปกติยังใช้ LLM_CHAIN", async () => {
+    const { client, post } = makeClient({
+      ...CHAIN_ENV,
+      LLM_CHECK_CHAIN: 'DOTBLUE_GEMMA',
+    });
+    post.mockReturnValue(okOpenAi('ok'));
+
+    const checked = await client.complete('sys', 'user', { chain: 'check' });
+    const generated = await client.complete('sys', 'user');
+
+    expect(checked.candidate).toBe('DOTBLUE_GEMMA');
+    expect(generated.candidate).toBe('OPENROUTER_MINIMAX');
+  });
+
+  it('ไม่ตั้ง LLM_CHECK_CHAIN → checker ใช้ chain หลัก', async () => {
+    const { client, post } = makeClient(CHAIN_ENV);
+    post.mockReturnValue(okOpenAi('ok'));
+    const result = await client.complete('sys', 'user', { chain: 'check' });
+    expect(result.candidate).toBe('OPENROUTER_MINIMAX');
+  });
+
+  it('LLM_CHECK_CHAIN ที่ตัวแปรไม่ครบ → ถอยไปใช้ chain หลัก', async () => {
+    const { client, post } = makeClient({
+      ...OPENAI_ENV,
+      LLM_CHECK_CHAIN: 'MISSING',
+    });
+    post.mockReturnValue(okOpenAi('ok'));
+    const result = await client.complete('sys', 'user', { chain: 'check' });
+    // MISSING ไม่มีตัวแปรครบ → ว่าง → ถอยไปใช้ chain หลัก (legacy LLM_*)
+    expect(result.candidate).toBe('LLM');
+  });
+});
+
 describe('LlmClient — openai-compatible', () => {
   it('ยิงไป /chat/completions พร้อม Bearer token และอ่านคำตอบได้', async () => {
     const { client, post } = makeClient(OPENAI_ENV);
