@@ -64,6 +64,10 @@ import { sessionController } from './controller/session.controller';
 import { sessionService } from './service/session.service';
 import { exerciseStatsController } from './controller/exerciseStats.controller';
 import { exerciseStatsService } from './service/exerciseStats.service';
+import { learnerStatsController } from './controller/learnerStats.controller';
+import { learnerStatsService } from './service/learnerStats.service';
+import { adminDeleteController } from './controller/adminDelete.controller';
+import { adminDeleteService } from './service/adminDelete.service';
 import { aiDraftController } from './controller/aiDraft.controller';
 import { aiDraftService } from './service/aiDraft.service';
 import { duplicateCheckService } from './service/duplicateCheck.service';
@@ -124,6 +128,8 @@ import { envFilePath } from './config/env-file';
     sessionController,
     aiDraftController,
     exerciseStatsController,
+    learnerStatsController,
+    adminDeleteController,
   ],
   providers: [
     AppService,
@@ -147,6 +153,8 @@ import { envFilePath } from './config/env-file';
     aiDraftService,
     duplicateCheckService,
     exerciseStatsService,
+    learnerStatsService,
+    adminDeleteService,
     LlmClient,
     Hash,
     JwtService,

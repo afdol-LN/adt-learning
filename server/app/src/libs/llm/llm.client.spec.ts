@@ -179,6 +179,24 @@ describe('LlmClient — fallback chain', () => {
     );
   });
 
+  it('สลับเมื่อคำตอบถูกตัดเพราะชน max_tokens แม้จะมีข้อความมาบางส่วน', async () => {
+    const { client, post } = makeClient(CHAIN_ENV);
+    post
+      .mockReturnValueOnce(
+        of({
+          data: {
+            choices: [{ finish_reason: 'length', message: { content: '[{"description": "ครึ่ง' } }],
+          },
+        }),
+      )
+      .mockReturnValueOnce(okOpenAi('ok'));
+
+    const result = await client.complete('sys', 'user');
+
+    expect(result.candidate).toBe('DOTBLUE_GEMMA');
+    expect(result.text).toBe('ok');
+  });
+
   it('สลับเมื่อ response อ่านไม่ได้', async () => {
     const { client, post } = makeClient(CHAIN_ENV);
     post
@@ -486,6 +504,83 @@ describe('LlmClient — error handling', () => {
 
     await expect(client.complete('sys', 'user')).rejects.toThrow(/bad key/);
     await expect(client.complete('sys', 'user')).rejects.not.toThrow(/test-key/);
+  });
+
+  it('OpenRouter ตอบ 200 พร้อม { id, error } → error บอกข้อความจริงของ provider', async () => {
+    const { client, post } = makeClient(OPENAI_ENV);
+    post.mockReturnValue(
+      of({ data: { id: 'gen-1', error: { code: 429, message: 'Provider returned error' } } }),
+    );
+
+    await expect(client.complete('sys', 'user')).rejects.toThrow(
+      /429: Provider returned error/,
+    );
+  });
+
+  it('HTTP error ที่ body ไม่ตรงรูปแบบ → โชว์หน้าตา body แทนข้อความกลาง ๆ ของ axios', async () => {
+    const { client, post } = makeClient(OPENAI_ENV);
+    post.mockReturnValue(
+      throwError(() => ({
+        response: { status: 403, data: '<html>Access denied</html>' },
+        message: 'Request failed with status code 403',
+      })),
+    );
+
+    await expect(client.complete('sys', 'user')).rejects.toThrow(
+      /HTTP 403: .*Access denied/,
+    );
+  });
+
+  it('อ่าน content ที่เป็น array ของ part ได้', async () => {
+    const { client, post } = makeClient(OPENAI_ENV);
+    post.mockReturnValue(
+      of({
+        data: {
+          choices: [{ message: { content: [{ type: 'text', text: 'he' }, { type: 'text', text: 'llo' }] } }],
+        },
+      }),
+    );
+
+    expect((await client.complete('sys', 'user')).text).toBe('hello');
+  });
+
+  it('reasoning model ใช้ token หมดก่อนตอบ → error บอก finish_reason และสาเหตุ', async () => {
+    const { client, post } = makeClient(OPENAI_ENV);
+    post.mockReturnValue(
+      of({
+        data: {
+          choices: [
+            { finish_reason: 'length', message: { content: null, reasoning: 'thinking...' } },
+          ],
+        },
+      }),
+    );
+
+    await expect(client.complete('sys', 'user')).rejects.toThrow(
+      /finish_reason=length.*reasoning/,
+    );
+  });
+
+  it('Claude stop_reason max_tokens → error ไม่คืนข้อความที่ขาด', async () => {
+    const { client, post } = makeClient(ANTHROPIC_ENV);
+    post.mockReturnValue(
+      of({ data: { stop_reason: 'max_tokens', content: [{ type: 'text', text: '[{"a":' }] } }),
+    );
+
+    await expect(client.complete('sys', 'user')).rejects.toThrow(/max_tokens/);
+  });
+
+  it('Gemini finishReason MAX_TOKENS → error ไม่คืนข้อความที่ขาด', async () => {
+    const { client, post } = makeClient(GEMINI_ENV);
+    post.mockReturnValue(
+      of({
+        data: {
+          candidates: [{ finishReason: 'MAX_TOKENS', content: { parts: [{ text: '[{"a":' }] } }],
+        },
+      }),
+    );
+
+    await expect(client.complete('sys', 'user')).rejects.toThrow(/MAX_TOKENS/);
   });
 
   it('response รูปแบบแปลก ๆ ถือเป็น error ไม่คืนสตริงว่าง', async () => {
