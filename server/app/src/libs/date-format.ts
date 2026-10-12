@@ -8,6 +8,22 @@ export class DateFormat {
     const mm = String(date.getMonth() + 1).padStart(2, '0');
     const dd = String(date.getDate()).padStart(2, '0');
     return `${yyyy}-${mm}-${dd}`;
+    //2026-10-10
+  }
+
+  /**
+   * Returns the date in Thailand as "YYYY-MM-DD", whatever the server's own time zone.
+   * Must match the frontend's formatDateTime() — login hashes username + this date,
+   * and a UTC server would otherwise disagree with Thai browsers from 00:00–07:00.
+   */
+  static toBangkokDateString(date: Date = new Date()): string {
+    // en-CA formats as YYYY-MM-DD
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Bangkok',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(date);
   }
 
   /**

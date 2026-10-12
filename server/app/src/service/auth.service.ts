@@ -24,7 +24,7 @@ export class authService extends BaseService<Userprofile> {
   }
   async authenRequest(authenRequest: string) {
     let response;
-    const today: string = DateFormat.toDateString();
+    const today: string = DateFormat.toBangkokDateString();
     try {
       // ดึง userprofile ทุกคนมาก่อน
       const allUsers = await this.userReponsitory.find({
