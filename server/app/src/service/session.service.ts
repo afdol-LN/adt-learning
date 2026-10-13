@@ -281,7 +281,12 @@ export class sessionService {
     );
     return {
       exercises: remaining,
-      candidates: remaining.map((e) => ({ id: e.id, pG: e.pG, pS: e.pS })),
+      candidates: remaining.map((e) => ({
+        id: e.id,
+        skillLevel: e.skillLevel,
+        pG: e.pG,
+        pS: e.pS,
+      })),
     };
   }
 
@@ -323,7 +328,6 @@ export class sessionService {
     let selectedId = QuestionSelector.selectNext(
       candidates,
       pL,
-      0.7,
       `session-start skill=${skill.skillId} session=${session.id}`,
     );
 
@@ -339,7 +343,6 @@ export class sessionService {
       selectedId = QuestionSelector.selectNext(
         candidates,
         pL,
-        0.7,
         `session-start skill=${skill.skillId} session=${session.id}`,
       );
     }
@@ -554,7 +557,6 @@ export class sessionService {
     const nextId = QuestionSelector.selectNext(
       candidates,
       pLNext,
-      0.7,
       `session=${session.id} skill=${skill.skillId}`,
     );
     const nextExercise = exercises.find((e) => e.id === nextId)!;
