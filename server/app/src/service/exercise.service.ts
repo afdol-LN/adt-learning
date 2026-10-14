@@ -28,6 +28,7 @@ import { History } from 'src/entity/history.entity';
 import { ForbiddenException } from '@nestjs/common';
 import { Userprofile } from 'src/entity/userprofile.entity';
 import { SkillTier } from 'src/libs/bkt/tier';
+import { PretestDifficulty } from 'src/libs/bkt/pretestDifficulty';
 import { MasteryState, ConceptMapState } from 'src/libs/bkt/masteryState';
 import {
   PretestMasteryCalculator,
@@ -439,7 +440,9 @@ export class exerciseService extends BaseService<Exercise> {
         relations: { exerciseChoices: true, skill: true },
       });
       const tierFiltered = this.filterExercisesByTier(allMatch, level);
-      const effectiveMatch = tierFiltered.length > 0 ? tierFiltered : allMatch;
+      const tierMatch = tierFiltered.length > 0 ? tierFiltered : allMatch;
+      // จำกัดความยากตาม exp ของ branch: exp N → skillLevel N-1..N+1
+      const effectiveMatch = PretestDifficulty.filterByExp(tierMatch, level);
       choiceExercises = effectiveMatch.filter(
         (ex) => !ex.fillInBlank || ex.fillInBlank.trim() === '',
       );
