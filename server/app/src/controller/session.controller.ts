@@ -14,10 +14,9 @@ import {
 export class sessionController {
   constructor(private readonly sessionService: sessionService) {}
 
-  // ตอบทันที ไม่รอ engine ตื่น — frontend ยิงตอนเปิดหน้า Home
+  // frontend ยิงตอนเปิดหน้า Home — แค่ปลุก API เอง (Render free plan หลับเมื่อว่าง); KT คำนวณใน NestJS แล้ว ไม่มี engine ให้ปลุก
   @Post('/warmup')
   warmUp(): { ok: true } {
-    this.sessionService.warmUpEngine();
     return { ok: true };
   }
 
