@@ -58,7 +58,6 @@ import { historyController } from './controller/history.controller';
 import { historyService } from './service/history.service';
 import { activityService } from './service/activity.service';
 import { learningReportService } from './service/learningReport.service';
-import { ktController } from './controller/kt.controller';
 import { ktService } from './service/kt.service';
 import { sessionController } from './controller/session.controller';
 import { sessionService } from './service/session.service';
@@ -124,7 +123,6 @@ import { envFilePath } from './config/env-file';
     skillController,
     goalController,
     historyController,
-    ktController,
     sessionController,
     aiDraftController,
     exerciseStatsController,
